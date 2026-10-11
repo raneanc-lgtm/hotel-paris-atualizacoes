@@ -1,4 +1,12 @@
 {
   "app": "hotel-paris",
-  "packages": []
+  "packages": [
+    {
+      "from": "1.9.17",
+      "version": "1.9.18",
+      "file": "pacotes/HotelParis-1.9.17-para-1.9.18.hpupdate",
+      "sha256": "f392ae059e40576d5c33d5cad85814ad4e498389765e4b71d449919e1faa6fdc",
+      "at": "2026-10-11T11:11:54.094Z"
+    }
+  ]
 }
