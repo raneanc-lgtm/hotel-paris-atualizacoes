@@ -169,6 +169,19 @@
   #dTxt{color:var(--sub);font-size:14px;line-height:1.5;margin:4px 0 4px;white-space:pre-line}
   .dBtns{display:flex;gap:8px;margin-top:6px}
   .dBtns .btn{margin-top:12px}
+  .compor .cbtn{background:var(--corpo2);color:var(--txt);border:1px solid var(--borda);font-size:19px}
+  .compor .cbtn.grav{background:var(--verm);color:#fff;border-color:var(--verm)}
+  #gravBar{display:flex;align-items:center;gap:10px;flex:1;min-height:46px;background:var(--bg);border:1px solid var(--verm);border-radius:23px;padding:0 16px;color:#ff8a8a;font-weight:700;font-family:ui-monospace,Menlo,monospace}
+  #gravBar[hidden]{display:none}
+  #gravBar i{width:10px;height:10px;border-radius:50%;background:var(--verm);animation:pisca .8s infinite}
+  .bolha .midia{display:flex;align-items:center;gap:10px;min-width:170px}
+  .bolha .midia button{width:40px;height:40px;border-radius:50%;border:0;background:var(--verde);color:#062012;font-size:15px;font-weight:900;flex:none}
+  .bolha .midia small{color:var(--sub);font-size:13px}
+  .bolha img.foto{display:block;max-width:100%;width:230px;min-height:80px;border-radius:12px;background:var(--bg);cursor:pointer;margin-top:2px}
+  #verFoto{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:70;display:flex;align-items:center;justify-content:center;padding:12px}
+  #verFoto[hidden]{display:none}
+  #verFoto img{max-width:100%;max-height:100%;border-radius:8px}
+  .sel{width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--borda);border-radius:12px;padding:12px;font-size:15px;margin:2px 0 8px;font-family:inherit}
   #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(200px);background:#000;color:#fff;
     border:1px solid var(--borda);padding:12px 16px;border-radius:12px;font-size:14px;max-width:90vw;z-index:50;transition:transform .25s;text-align:center}
   #toast.on{transform:translateX(-50%) translateY(0)}
@@ -228,8 +241,12 @@
     <div class="nota">🕒 As mensagens somem 3 minutos depois de enviadas</div>
     <div id="msgs"><div class="vazio" id="chatVazio">Nenhuma mensagem agora. Manda a primeira!</div></div>
     <div class="compor">
+      <button class="cbtn" id="btnFoto" aria-label="Mandar foto">📷</button>
       <textarea id="inMsg" rows="1" maxlength="1000" placeholder="Mensagem"></textarea>
-      <button id="btnEnviar" aria-label="Enviar">➤</button>
+      <div id="gravBar" hidden><i></i><span id="gravTempo">0:00</span><span style="flex:1"></span></div>
+      <button class="cbtn" id="btnCancelarGrav" aria-label="Cancelar áudio" hidden>✕</button>
+      <button id="btnEnviar" aria-label="Gravar áudio">🎤</button>
+      <input type="file" id="inFoto" accept="image/*" hidden>
     </div>
   </div>
 </section>
@@ -256,10 +273,19 @@
       <span>Vibrar ao receber</span>
       <label class="sw"><input type="checkbox" id="swVibra"><b></b></label>
     </div>
-    <div class="opcao">
-      <span>Som de mensagem no chat</span>
-      <label class="sw"><input type="checkbox" id="swSomChat"><b></b></label>
-    </div>
+    <div class="opcao" style="border-bottom:0;padding-bottom:4px"><span>Notificação do chat<small>Como avisar quando chega mensagem</small></span></div>
+    <select class="sel" id="selChat">
+      <option value="som">🔔 Som e vibração</option>
+      <option value="vibra">📳 Só vibrar</option>
+      <option value="1h">🔕 Silenciar por 1 hora</option>
+      <option value="8h">🔕 Silenciar por 8 horas</option>
+      <option value="mudo">🔕 Silencioso sempre</option>
+    </select>
+    <div class="opcao" style="border-bottom:0;padding-bottom:4px"><span>Chamada com o app minimizado<small>O que acontece quando alguém chama no rádio</small></span></div>
+    <select class="sel" id="selFundo">
+      <option value="A">A — Toque + fala o áudio (padrão)</option>
+      <option value="B">B — Só o toque; ouço quando abrir</option>
+    </select>
 
     <div id="secAdmin" hidden>
       <h4>MEUS CANAIS</h4>
@@ -314,12 +340,13 @@
 
 <div id="faixa" hidden><span id="faixaTxt"></span><button id="faixaBtn">Atualizar</button></div>
 <div id="toast"></div>
+<div id="verFoto" hidden><img id="verFotoImg" alt=""></div>
 
 <script>
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 7;
+const APP_VERSAO = 8;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -411,6 +438,20 @@ const cfgLocal = {
   vibra:   LS.get('radinho_vibra') !== '0',
   somChat: LS.get('radinho_somchat') !== '0'
 };
+let pendentes = [], recChat = null, chunksChat = [], gravChat = false, tIniChat = 0, timerChat = null, limiteChat = null, cancelouChat = false, avisandoChamada = false;
+const MAX_CHAT_AUDIO = 60;
+const modoFundo = () => (LS.get('radinho_fundo') === 'B' ? 'B' : 'A');
+function modoChat(){                 // 'som' | 'vibra' | 'mudo'
+  const sel = LS.get('radinho_chatmodo') || (LS.get('radinho_somchat') === '0' ? 'vibra' : 'som');
+  if (sel === '1h' || sel === '8h'){
+    if (Date.now() < (parseInt(LS.get('radinho_chatate')) || 0)) return 'mudo';
+    LS.set('radinho_chatmodo', 'som'); return 'som';
+  }
+  return sel === 'vibra' || sel === 'mudo' ? sel : 'som';
+}
+function notificarNativo(titulo, texto, tipo, som){   // usado pelo APK novo quando ele tiver notificação nativa
+  try{ if (window.RadinhoNativo && RadinhoNativo.notificar) RadinhoNativo.notificar(String(titulo), String(texto), tipo, !!som); }catch(e){}
+}
 let mutadosLocal = {};
 try{ mutadosLocal = JSON.parse(LS.get('radinho_mutlocal') || '{}') || {}; }catch(e){}
 const agora = () => Date.now() + offset;
@@ -691,7 +732,7 @@ function limparAntigas(){
   }, () => {});
   refCanal.child('chat').orderByChild('ts').endAt(limite).once('value', s => {
     const upd = {};
-    s.forEach(c => { upd['chat/' + c.key] = null; });
+    s.forEach(c => { upd['chat/' + c.key] = null; const v = c.val(); if (v && v.tipo) upd['audios/' + c.key] = null; });
     if (Object.keys(upd).length) refCanal.update(upd).catch(()=>{});
   }, () => {});
 }
@@ -736,10 +777,29 @@ function chegou(key, m){
   if (!m) return;
   adicionarHistorico(key, m);
   if (carregado && m.uid !== uid && !mutadosLocal[m.uid] && (agora() - (m.ts || 0)) < JANELA_AUTO){
-    fila.push({ key, nome: m.nome, mime: m.mime });
+    const item = { key, nome: m.nome, mime: m.mime, ts: m.ts || agora() };
     vibrar([90, 60, 90]);
+    if (document.visibilityState !== 'visible'){
+      notificarNativo('📻 ' + m.nome, 'Chamando no rádio', 'radio', true);
+      if (modoFundo() === 'B'){ pendentes.push(item); avisarChamada(); return; }
+    }
+    fila.push(item);
     tocarProx();
   }
+}
+async function avisarChamada(){        // modo B: só o toque, o áudio fica guardado pra quando abrir
+  if (avisandoChamada || tocando || gravando) return;
+  avisandoChamada = true;
+  try{ await acordarAudio(); await tocarToque(); }catch(e){}
+  avisandoChamada = false;
+  setTimeout(dormirAudio, 300);
+}
+function tocarPendentes(){
+  if (!pendentes.length) return;
+  const limite = agora() - TTL_MS;
+  pendentes.filter(i => i.ts >= limite).forEach(i => fila.push(i));
+  pendentes = [];
+  tocarProx();
 }
 async function buscarAudio(key){
   const s = await refCanal.child('audios/' + key).once('value');
@@ -939,8 +999,13 @@ function addChat(key, m){
   const el = document.createElement('div');
   el.id = 'c_' + key; el.dataset.ts = ts;
   el.className = 'bolha' + (minha ? ' minha' : '') + (cont ? ' cont' : '');
+  let corpo = '<div class="tx">' + esc(m.txt) + '</div>';
+  if (m.tipo === 'audio') corpo = '<div class="midia"><button aria-label="Ouvir">▶</button><small>🎤 Áudio • ' + (m.dur || 0).toFixed(0) + 's</small></div>';
+  if (m.tipo === 'foto')  corpo = '<img class="foto" alt="Foto">';
   el.innerHTML = (!minha && !cont ? '<div class="nm">' + esc(m.nome) + '</div>' : '') +
-                 '<div class="tx">' + esc(m.txt) + '</div><div class="hr">' + hora(ts) + '</div>';
+                 corpo + '<div class="hr">' + hora(ts) + '</div>';
+  if (m.tipo === 'audio'){ const bt = el.querySelector('.midia button'); bt.onclick = () => ouvirAudioChat(key, m, bt); }
+  if (m.tipo === 'foto') carregarFoto(key, el.querySelector('img.foto'));
   const nm = el.querySelector('.nm'); if (nm) nm.onclick = () => abrirPessoa(m.uid, m.nome);
   const fim = perto_do_fim();
   box.appendChild(el);
@@ -952,8 +1017,12 @@ function addChat(key, m){
       naoLidas++; atualizarBadge();
       if (aba !== 'chat') aviso('💬 ' + m.nome + ': ' + String(m.txt).slice(0, 60));
     }
-    vibrar(60);
-    if (cfgLocal.somChat && !tocando && !gravando){ try{ bip('msg').then(() => setTimeout(dormirAudio, 300)); }catch(e){} }
+    const modo = modoChat();
+    if (modo !== 'mudo'){
+      vibrar(60);
+      if (document.visibilityState !== 'visible') notificarNativo('💬 ' + m.nome, String(m.txt).slice(0, 120), 'chat', modo === 'som');
+    }
+    if (modo === 'som' && !tocando && !gravando && !gravChat){ try{ bip('msg').then(() => setTimeout(dormirAudio, 300)); }catch(e){} }
   }
 }
 async function enviarChat(){
@@ -968,9 +1037,127 @@ async function enviarChat(){
     inp.value = txt; aviso('Não foi possível enviar: ' + (e.message || e), 4000);
   }
 }
-function ajustarAltura(){ const t = $('inMsg'); t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; }
+function ajustarAltura(){ const t = $('inMsg'); t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; iconeEnviar(); }
+function iconeEnviar(){
+  const b = $('btnEnviar');
+  if (gravChat){ b.textContent = '➤'; b.setAttribute('aria-label', 'Enviar áudio'); return; }
+  const temTxt = !!$('inMsg').value.trim();
+  b.textContent = temTxt ? '➤' : '🎤';
+  b.setAttribute('aria-label', temTxt ? 'Enviar' : 'Gravar áudio');
+}
+function modoGravChat(on){
+  $('inMsg').hidden = on; $('btnFoto').hidden = on;
+  $('gravBar').hidden = !on; $('btnCancelarGrav').hidden = !on;
+  iconeEnviar();
+}
+async function comecarAudioChat(){
+  if (gravChat || gravando) return;
+  if (document.visibilityState !== 'visible') return;
+  if (souMudo){ aviso('Você está silenciado.'); return; }
+  const mime = mimeSuportado();
+  if (mime === null){ aviso('Este aparelho não suporta gravação.'); return; }
+  destravarAudio();
+  try{ await pegarMic(); }
+  catch(e){ aviso('Sem acesso ao microfone. Libere a permissão do Radinho nas configurações do Android.', 5000); return; }
+  pararTocar();
+  const opts = { audioBitsPerSecond: BITRATE }; if (mime) opts.mimeType = mime;
+  try{ recChat = new MediaRecorder(stream, opts); }catch(e){ recChat = new MediaRecorder(stream); }
+  chunksChat = []; cancelouChat = false;
+  recChat.ondataavailable = e => { if (e.data && e.data.size) chunksChat.push(e.data); };
+  recChat.onstop = () => { soltarMic(); enviarAudioChat(); };
+  recChat.start();
+  gravChat = true; tIniChat = Date.now();
+  modoGravChat(true); vibrar(30);
+  $('gravTempo').textContent = '0:00';
+  timerChat = setInterval(() => {
+    const s = Math.floor((Date.now() - tIniChat) / 1000);
+    $('gravTempo').textContent = Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') + ' / 1:00';
+  }, 250);
+  limiteChat = setTimeout(() => { aviso('Tempo máximo do áudio, enviando.'); pararAudioChat(false); }, MAX_CHAT_AUDIO * 1000);
+}
+function pararAudioChat(cancelar){
+  if (!gravChat) return;
+  clearInterval(timerChat); clearTimeout(limiteChat);
+  gravChat = false; cancelouChat = !!cancelar;
+  try{ recChat.stop(); }catch(e){ soltarMic(); }
+  modoGravChat(false);
+}
+async function enviarAudioChat(){
+  const dur = (Date.now() - tIniChat) / 1000;
+  const tipo = (recChat && recChat.mimeType) || 'audio/webm';
+  if (cancelouChat){ aviso('Áudio descartado.'); setTimeout(resetarAudio, 400); return; }
+  if (dur < 0.7 || !chunksChat.length){ aviso('Áudio muito curto.'); setTimeout(resetarAudio, 400); return; }
+  try{
+    const b64 = await blobB64(new Blob(chunksChat, { type: tipo }));
+    const key = refCanal.child('chat').push().key;
+    await refCanal.child('audios/' + key).set(b64);
+    await refCanal.child('chat/' + key).set({ uid, nome, txt: '🎤 Áudio', tipo: 'audio', mime: tipo, dur: Math.round(dur * 10) / 10, ts: TS() });
+  }catch(e){ aviso(souMudo ? 'Você está silenciado.' : 'Falha ao enviar o áudio: ' + (e.message || e), 5000); }
+  setTimeout(resetarAudio, 400);
+}
+async function ouvirAudioChat(key, m, bt){
+  if (tocando || gravando || gravChat){ aviso('Espere o rádio terminar.'); return; }
+  destravarAudio();
+  tocando = { chat: true }; bt.textContent = '■';
+  try{
+    const b64 = await buscarAudio(key);
+    if (b64){ await acordarAudio(); await tocarAudio(b64, m.mime); }
+    else aviso('Esse áudio já sumiu.');
+  }catch(e){ console.warn(e); }
+  bt.textContent = '▶';
+  tocando = false; atualizarVisor();
+  if (!fila.length) resetarAudio();
+  tocarProx();
+}
+async function carregarFoto(key, img){
+  try{
+    const b64 = await buscarAudio(key);
+    if (!b64){ img.alt = 'Foto apagada'; return; }
+    img.src = 'data:image/jpeg;base64,' + b64;
+    img.onload = () => rolarFim(false);
+    img.onclick = () => { $('verFotoImg').src = img.src; $('verFoto').hidden = false; };
+  }catch(e){ img.alt = 'Erro ao carregar'; }
+}
+function fotoParaB64(file){
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      let w = im.naturalWidth, h = im.naturalHeight; const MAX = 1280;
+      if (w > MAX || h > MAX){ const k = MAX / Math.max(w, h); w = Math.round(w * k); h = Math.round(h * k); }
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(im, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      let q = 0.75, d = c.toDataURL('image/jpeg', q);
+      while (d.length > 900000 && q > 0.35){ q -= 0.1; d = c.toDataURL('image/jpeg', q); }
+      res(d.split(',')[1]);
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('imagem inválida')); };
+    im.src = url;
+  });
+}
+async function enviarFoto(file){
+  if (souMudo){ aviso('Você está silenciado.'); return; }
+  if (!file || !/^image\//.test(file.type || 'image/')){ aviso('Escolha uma imagem.'); return; }
+  aviso('Enviando foto...', 8000);
+  try{
+    const b64 = await fotoParaB64(file);
+    const key = refCanal.child('chat').push().key;
+    await refCanal.child('audios/' + key).set(b64);
+    await refCanal.child('chat/' + key).set({ uid, nome, txt: '📷 Foto', tipo: 'foto', ts: TS() });
+    aviso('Foto enviada!');
+  }catch(e){ aviso('Falha ao enviar a foto: ' + (e.message || e), 5000); }
+}
 function prepararChat(){
-  $('btnEnviar').addEventListener('pointerdown', e => { e.preventDefault(); enviarChat(); });
+  $('btnEnviar').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if (gravChat) return pararAudioChat(false);
+    if ($('inMsg').value.trim()) return enviarChat();
+    comecarAudioChat();
+  });
+  $('btnCancelarGrav').addEventListener('pointerdown', e => { e.preventDefault(); pararAudioChat(true); });
+  $('btnFoto').onclick = () => { if (souMudo){ aviso('Você está silenciado.'); return; } $('inFoto').value = ''; $('inFoto').click(); };
+  $('inFoto').onchange = e => { const f = e.target.files && e.target.files[0]; if (f) enviarFoto(f); };
+  $('verFoto').onclick = () => { $('verFoto').hidden = true; $('verFotoImg').src = ''; };
   $('inMsg').addEventListener('input', ajustarAltura);
   $('inMsg').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 700){ e.preventDefault(); enviarChat(); } });
   $('abaRadio').onclick = () => mudarAba('radio');
@@ -1195,7 +1382,7 @@ function mostrarFaixa(v){
 }
 function aplicarSeLivre(){
   if (!attPronta) return;
-  if (gravando || tocando || fila.length || $('inMsg').value){ setTimeout(aplicarSeLivre, 5000); return; }
+  if (gravando || gravChat || tocando || fila.length || $('inMsg').value){ setTimeout(aplicarSeLivre, 5000); return; }
   location.reload();
 }
 function renderInfoVersao(){
@@ -1240,7 +1427,8 @@ function prepararAjustes(){
   $('swVivo').checked  = cfgLocal.vivo;
   $('swTela').checked  = cfgLocal.tela;
   $('swVibra').checked = cfgLocal.vibra;
-  $('swSomChat').checked = cfgLocal.somChat;
+  $('selChat').value = (() => { const v = LS.get('radinho_chatmodo') || (LS.get('radinho_somchat') === '0' ? 'vibra' : 'som'); return (v === '1h' || v === '8h') && modoChat() !== 'mudo' ? 'som' : v; })();
+  $('selFundo').value = modoFundo();
   textoPTT();
 
   $('btnAjustes').onclick = () => { renderInfoVersao(); renderAdmin(); $('fundo').hidden = false; };
@@ -1265,7 +1453,12 @@ function prepararAjustes(){
     cfgLocal.tela ? ligarTela() : desligarTela();
   };
   $('swVibra').onchange = e => { cfgLocal.vibra = e.target.checked; LS.set('radinho_vibra', cfgLocal.vibra ? '1' : '0'); };
-  $('swSomChat').onchange = e => { cfgLocal.somChat = e.target.checked; LS.set('radinho_somchat', cfgLocal.somChat ? '1' : '0'); };
+  $('selChat').onchange = e => {
+    const v = e.target.value; LS.set('radinho_chatmodo', v);
+    if (v === '1h' || v === '8h') LS.set('radinho_chatate', String(Date.now() + (v === '1h' ? 3600000 : 28800000)));
+    aviso({ som: 'Chat com som.', vibra: 'Chat só vai vibrar.', '1h': 'Chat silenciado por 1 hora.', '8h': 'Chat silenciado por 8 horas.', mudo: 'Chat no silencioso.' }[v]);
+  };
+  $('selFundo').onchange = e => { LS.set('radinho_fundo', e.target.value); aviso(e.target.value === 'B' ? 'Minimizado: toca o toque e o áudio espera você abrir.' : 'Minimizado: toca o toque e já fala o áudio.', 4000); };
 
   $('btnSenha').onclick = trocarSenha;
   $('btnNovoCanal').onclick = novoCanal;
@@ -1322,12 +1515,14 @@ document.addEventListener('visibilitychange', () => {
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(()=>{});
     resetarAudio();
     if (cfgLocal.vivo && ctx) ligarVivo();
+    tocarPendentes();
     if (cfgLocal.tela && !wakeLock) ligarTela();
     if (aba === 'chat'){ naoLidas = 0; atualizarBadge(); }
     varrerExpirados();
     atualizarVisor();
   } else {
     // minimizou: encerra a transmissão e libera microfone e áudio pros outros apps
+    if (gravChat) pararAudioChat(false);
     if (gravando) parar(); else apertado = false;
     if (rec && rec.state === 'recording'){ try{ rec.stop(); }catch(e){} }
     else soltarMic();
