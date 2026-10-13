@@ -227,6 +227,35 @@
   .pessoa .btn:last-child{justify-content:center;padding-left:14px}
   .lista-adm li button{display:flex;align-items:center;gap:6px}
   .chip svg.i{width:13px;height:13px}
+  /* ---------- v19: balões do chat ---------- */
+  #msgs{gap:2px;padding:6px 4px 12px}
+  .bolha{position:relative;max-width:78%;padding:7px 11px 7px 12px;border-radius:18px;background:#1b2220;border:1px solid #252e2a;
+    box-shadow:0 1px 1.5px rgba(0,0,0,.35);margin-top:1px}
+  .bolha:not(.cont){margin-top:8px;border-top-left-radius:5px}
+  .bolha.minha{background:linear-gradient(180deg,#1f6a45,#1a5a3b);border-color:#23744c;color:#eafff2}
+  .bolha.minha:not(.cont){border-top-left-radius:18px;border-top-right-radius:5px}
+  .bolha .nm{font-size:12.5px;font-weight:700;margin-bottom:2px;letter-spacing:.2px}
+  .bolha .tx{font-size:15.5px;line-height:1.38}
+  .bolha .tx::after{content:"";display:inline-block;width:44px;height:1px}
+  .bolha .lixo{display:none!important}
+  .bolha.sel .lixo{display:grid!important}
+  #msgs.pode-mod .bolha.sel .tx::after{width:66px}
+  #msgs.pode-mod .bolha{cursor:pointer}
+  .bolha.sel{outline:2px solid rgba(255,77,77,.55);outline-offset:1px}
+  .bolha .hr{position:absolute;right:9px;bottom:5px;margin:0;font-size:10.5px;color:rgba(238,242,239,.55);display:flex;align-items:center;gap:4px}
+  .bolha.minha .hr{color:rgba(234,255,242,.65)}
+  .bolha .lixo{padding:0;color:inherit;opacity:.8}
+  .bolha .lixo svg.i{width:14px;height:14px}
+  .bolha .midia{display:flex;align-items:center;gap:10px;min-width:200px;padding:2px 0 14px}
+  .bolha .midia button{width:38px;height:38px;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+  .bolha.minha .midia button{background:#eafff2;color:#1a5a3b}
+  .onda{flex:1;display:flex;align-items:center;gap:2px;height:28px}
+  .onda i{flex:1;max-width:4px;border-radius:2px;background:currentColor;opacity:.45}
+  .bolha .midia small{position:absolute;left:62px;bottom:5px;font-size:10.5px;color:inherit;opacity:.6}
+  .bolha.foto-b{padding:4px}
+  .bolha.foto-b .nm{padding:3px 7px 1px}
+  .bolha img.foto{width:240px;max-width:100%;border-radius:14px;margin:0;display:block}
+  .bolha.foto-b .hr{right:10px;bottom:9px;background:rgba(0,0,0,.45);color:#fff;padding:2px 7px;border-radius:10px}
   #camera{position:fixed;inset:0;z-index:80;background:#000;display:flex;flex-direction:column}
   #camera[hidden]{display:none}
   #camVideo{flex:1;min-height:0;width:100%;object-fit:cover;background:#000}
@@ -439,7 +468,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 18;
+const APP_VERSAO = 19;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1142,11 +1171,18 @@ function addChat(key, m){
   el.id = 'c_' + key; el.dataset.ts = ts;
   el.className = 'bolha' + (minha ? ' minha' : '') + (cont ? ' cont' : '');
   let corpo = '<div class="tx">' + esc(m.txt) + '</div>';
-  if (m.tipo === 'audio') corpo = '<div class="midia"><button aria-label="Ouvir">' + ic('play') + '</button><small>Áudio • ' + (m.dur || 0).toFixed(0) + 's</small></div>';
+  if (m.tipo === 'audio') corpo = '<div class="midia"><button aria-label="Ouvir">' + ic('play') + '</button>' + ondaHtml(key) + '<small>0:' + String(Math.round(m.dur || 0)).padStart(2, '0') + '</small></div>';
   if (m.tipo === 'foto')  corpo = '<img class="foto" alt="Foto">';
-  el.innerHTML = (!minha && !cont ? '<div class="nm">' + esc(m.nome) + '</div>' : '') +
+  if (m.tipo === 'foto') el.classList.add('foto-b');
+  el.innerHTML = (!minha && !cont ? '<div class="nm" style="color:' + corDe(m.uid) + '">' + esc(m.nome) + '</div>' : '') +
                  corpo + '<div class="hr">' + hora(ts) + '<button class="lixo" aria-label="Apagar">' + ic('trash') + '</button></div>';
-  const lxc = el.querySelector('.lixo'); lxc.hidden = !possoModerar(); lxc.onclick = () => apagarItem('chat', key);
+  const lxc = el.querySelector('.lixo'); lxc.hidden = !possoModerar(); lxc.onclick = e => { e.stopPropagation(); apagarItem('chat', key); };
+  el.addEventListener('click', e => {                 // moderador: toca no balão pra mostrar a lixeira
+    if (!possoModerar() || e.target.closest('button,img,.nm')) return;
+    const ja = el.classList.contains('sel');
+    document.querySelectorAll('.bolha.sel').forEach(b => b.classList.remove('sel'));
+    if (!ja) el.classList.add('sel');
+  });
   if (m.tipo === 'audio'){ const bt = el.querySelector('.midia button'); bt.onclick = () => ouvirAudioChat(key, m, bt); }
   if (m.tipo === 'foto') carregarFoto(key, el.querySelector('img.foto'));
   const nm = el.querySelector('.nm'); if (nm) nm.onclick = () => abrirPessoa(m.uid, m.nome);
@@ -1169,6 +1205,10 @@ function addChat(key, m){
     if (modo === 'som' && !nativoCuida && !tocando && !gravando && !gravChat){ try{ bip('msg').then(() => setTimeout(dormirAudio, 300)); }catch(e){} }
   }
 }
+const CORES_NOME = ['#3ddc84','#5ec8ff','#ffb547','#ff7aa8','#b48cff','#4fe0d0','#ff8a5b','#d6e35a'];
+function corDe(id){ let h = 0; for (const ch of String(id || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return CORES_NOME[h % CORES_NOME.length]; }
+function ondaHtml(seed){ let h = 7, out = '<span class="onda">'; for (const ch of String(seed)) h = (h * 33 + ch.charCodeAt(0)) >>> 0;
+  for (let i = 0; i < 26; i++){ h = (h * 1103515245 + 12345) >>> 0; out += '<i style="height:' + (5 + (h % 22)) + 'px"></i>'; } return out + '</span>'; }
 async function enviarChat(){
   if (souMudo){ aviso('Você está silenciado.'); return; }
   const inp = $('inMsg');
@@ -1370,7 +1410,7 @@ function abrirPessoa(id, n){
   icBtn($('pMod'), ehMod(id) ? 'x' : 'star', ehMod(id) ? 'Tirar de moderador' : 'Tornar moderador');
   $('fundoP').hidden = false;
 }
-function atualizarLixeiras(){ const v = possoModerar(); document.querySelectorAll('.lixo').forEach(b => b.hidden = !v); }
+function atualizarLixeiras(){ const v = possoModerar(); document.querySelectorAll('.lixo').forEach(b => b.hidden = !v); $('msgs').classList.toggle('pode-mod', v); }
 async function apagarItem(onde, key){
   if (!possoModerar()) return;
   if (!(await confirmar('🗑 Apagar mensagem', 'Apaga essa ' + (onde === 'msgs' ? 'transmissão' : 'mensagem') + ' pra todo mundo.', 'Apagar', true))) return;
