@@ -286,7 +286,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 4;
+const APP_VERSAO = 5;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -551,7 +551,7 @@ async function conectarCanal(){
     $('led').classList.toggle('on', on);
     if (on && !saindo){
       pres.onDisconnect().remove();
-      pres.set({ nome, ts: TS() }).catch(()=>{});
+      pres.set({ nome, v: APP_VERSAO, ts: TS() }).catch(()=>{});
     }
   });
   refCanal.child('online').on('value', s => renderOnline(s.val() || {}), falhou);
@@ -591,7 +591,8 @@ function renderOnline(lista){
     const mudo = mudos[id] || mutadosLocal[id];
     const c = document.createElement('div');
     c.className = 'chip' + (p.falando ? ' fala' : '') + (id === uid ? ' eu' : '') + (mudo ? ' mudo' : '');
-    c.innerHTML = '<i></i>' + esc(p.nome || '?') + (id === uid ? ' (você)' : '') + (mudo ? ' 🔇' : '');
+    c.innerHTML = '<i></i>' + esc(p.nome || '?') + (id === uid ? ' (você)' : '') + (mudo ? ' 🔇' : '') +
+      (souAdmin() ? ' <small style="color:var(--sub)">v' + (p.v || '?') + '</small>' : '');
     if (id !== uid) c.onclick = () => abrirPessoa(id, p.nome);
     el.appendChild(c);
   });
@@ -889,7 +890,9 @@ function abrirPessoa(id, n){
   pessoaAtual = { id, nome: n || '?' };
   $('pNome').textContent = pessoaAtual.nome;
   const mudoTodos = !!mudos[id], mudoLocal = !!mutadosLocal[id];
-  $('pInfo').textContent = mudoTodos ? 'Silenciado pelo administrador.' : (mudoLocal ? 'Silenciado só pra você.' : '');
+  const ver = onlineAtual[id] && onlineAtual[id].v;
+  $('pInfo').textContent = (mudoTodos ? 'Silenciado pelo administrador. ' : (mudoLocal ? 'Silenciado só pra você. ' : '')) +
+    (ver ? 'App na versão ' + ver + '.' : (onlineAtual[id] ? 'Versão do app: antiga (antes da 5).' : ''));
   $('pMutarLocal').textContent = mudoLocal ? '🔊 Voltar a ouvir (só pra mim)' : '🔇 Silenciar só pra mim';
   const adm = souAdmin();
   $('pMutarTodos').hidden = !adm;
