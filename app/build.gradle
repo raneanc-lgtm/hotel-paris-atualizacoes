@@ -11,8 +11,9 @@ android {
         minSdk 24
         targetSdk 34
         // a automação do GitHub passa o número da compilação: cada APK novo instala por cima do anterior
-        versionCode (System.getenv("BUILD_NUMBER") ?: "1").toInteger()
-        versionName "1." + (System.getenv("BUILD_NUMBER") ?: "1")
+        def numero = System.getenv("BUILD_NUMBER") ?: "1"
+        versionCode = Integer.parseInt(numero)
+        versionName = "1." + numero
     }
 
     // chave fixa do projeto: assim toda atualização instala por cima, sem precisar desinstalar
