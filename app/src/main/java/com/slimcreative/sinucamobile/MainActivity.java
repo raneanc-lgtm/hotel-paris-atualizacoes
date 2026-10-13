@@ -3,6 +3,7 @@ package com.slimcreative.sinucamobile;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -19,6 +20,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
     private WebView web;
     private BluetoothMesa mesa;
+    private volatile String assistir = null;   // código de partida vindo de um link
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -45,6 +47,7 @@ public class MainActivity extends Activity {
         s.setTextZoom(100);
 
         mesa = new BluetoothMesa(this, web);
+        assistir = codigoDoLink(getIntent());
         web.addJavascriptInterface(new Ponte(), "SinucaApp");   // jogo online: mandar o código da sala pelo WhatsApp etc.
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new WebChromeClient());
@@ -98,6 +101,7 @@ public class MainActivity extends Activity {
                 startActivity(Intent.createChooser(i, "Convidar para a sala"));
             });
         }
+        @JavascriptInterface public String codigoAssistir() { String c = assistir; assistir = null; return c; }
         // ---- jogo via Bluetooth ----
         @JavascriptInterface public boolean btDisponivel() { return mesa.disponivel(); }
         @JavascriptInterface public void btHospedar() { runOnUiThread(() -> mesa.iniciar("hospedar")); }
@@ -105,6 +109,24 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void btConectar(String endereco) { mesa.conectar(endereco); }
         @JavascriptInterface public void btEnviar(String texto) { mesa.enviar(texto); }
         @JavascriptInterface public void btFechar() { mesa.fechar(); }
+    }
+
+    /** sinucamobile://assistir/ABCD  ou  https://...?assistir=ABCD */
+    private static String codigoDoLink(Intent i) {
+        if (i == null || i.getData() == null) return null;
+        Uri u = i.getData();
+        String c = u.getQueryParameter("assistir");
+        if (c == null && "sinucamobile".equals(u.getScheme())) c = u.getLastPathSegment();
+        if (c == null) return null;
+        c = c.toUpperCase().replaceAll("[^A-Z0-9]", "");
+        return c.length() == 4 ? c : null;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        String c = codigoDoLink(intent);
+        if (c != null && web != null) web.evaluateJavascript("window.__assistir && window.__assistir('" + c + "')", null);
     }
 
     @Override

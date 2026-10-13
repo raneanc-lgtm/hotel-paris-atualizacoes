@@ -121,6 +121,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .menucard, .resetcard{position:relative}
 .onlinecard .onbox{display:flex; flex-direction:column; gap:10px}
 .onjoin{display:flex; gap:8px}
+.viewers{position:absolute; top:calc(var(--sat, 0px) + 44px); left:50%; transform:translateX(-50%); background:rgba(15,10,6,.78); border:1px solid var(--line); color:var(--chalk); font:700 .8rem var(--body); padding:3px 10px; border-radius:20px; pointer-events:none; z-index:3}
+.reacts{position:absolute; left:50%; bottom:64px; transform:translateX(-50%); display:flex; gap:6px; z-index:3; background:rgba(15,10,6,.55); padding:5px 8px; border-radius:30px; border:1px solid var(--line)}
+.reacts button{font-size:1.35rem; line-height:1; background:none; border:0; padding:4px 5px; cursor:pointer; border-radius:50%}
+.reacts button:active{transform:scale(1.25)}
+.floatemo{position:absolute; bottom:90px; font-size:2.2rem; pointer-events:none; z-index:3; animation:emoUp 2.2s ease-out forwards}
+@keyframes emoUp{0%{opacity:0; transform:translateY(0) scale(.6)} 12%{opacity:1; transform:translateY(-20px) scale(1.15)} 100%{opacity:0; transform:translateY(-220px) scale(1)}}
+.appbar{position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:6; display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--brass); border-radius:12px; padding:6px 8px 6px 14px; font:600 .85rem var(--body); color:var(--chalk); box-shadow:0 4px 14px rgba(0,0,0,.5)}
+.appbar a{background:var(--brass); color:#1a1209; text-decoration:none; font-weight:800; padding:6px 12px; border-radius:8px}
+.appbar button{background:none; border:0; color:var(--muted); font:700 1rem var(--body); cursor:pointer}
 .frhead{display:flex; justify-content:space-between; align-items:center; gap:10px}
 .frhead b{font:700 .8rem var(--body); letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
 .nick{display:flex; align-items:center; gap:6px; font:600 .78rem var(--body); color:var(--muted)}
@@ -199,6 +208,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 <div id="game">
 <canvas id="table" aria-label="Mesa de sinuca"></canvas>
 <div class="msg" id="msg"></div>
+<div class="viewers" id="viewers" hidden></div>
+<div class="reacts" id="reacts" hidden><button type="button" data-e="👏">👏</button><button type="button" data-e="🔥">🔥</button><button type="button" data-e="😮">😮</button><button type="button" data-e="😂">😂</button><button type="button" data-e="😱">😱</button></div>
+<div class="appbar" id="appbar" hidden><span>Tem o Sinuca Mobile?</span><a id="appLink" href="#">Abrir no app</a><button type="button" id="appbarX" aria-label="Fechar">✕</button></div>
 <div class="foul win" id="win" aria-live="assertive"><b id="winTitle">VITÓRIA!</b><span class="why" id="winWho"></span><div class="rem" id="winScore"></div></div>
 <div class="foul" id="foul" aria-live="assertive"><b>FALTA!</b><span class="why" id="foulWhy"></span><div class="rem" id="foulRem"></div></div>
 
@@ -267,6 +279,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     <button class="btn main" id="next" type="button" hidden>Próxima partida</button>
     <button class="btn main" id="resume" type="button">Continuar</button>
     <button class="btn" id="p-opts" type="button">⚙ Configurações</button>
+    <button class="btn" id="p-watch" type="button" hidden>👁 Convidar pra assistir</button>
     <button class="btn" id="restart" type="button">Nova partida / rearrumar</button>
     <button class="btn" id="tomodes" type="button">Menu inicial</button>
     <button class="btn" id="fs" type="button">Tela cheia</button>
@@ -328,7 +341,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <div class="frhead"><b>Amigos</b><label class="nick">Seu nome <input id="onNick" maxlength="14" autocomplete="off" spellcheck="false" aria-label="Seu nome no jogo"></label></div>
       <div class="frlist" id="frList"></div>
       <button class="btn" id="onCreate" type="button">Criar sala <em>você é o P-1 e sai primeiro</em></button>
-      <div class="onjoin"><input id="onCode" maxlength="4" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Código da sala"><button class="btn main" id="onJoin" type="button">Entrar</button></div>
+      <div class="onjoin"><input id="onCode" maxlength="4" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Código da sala"><button class="btn main" id="onJoin" type="button">Entrar</button><button class="btn" id="onWatch" type="button" title="Assistir a partida desse código">👁 Assistir</button></div>
     </div>
     <div id="onWait" class="onbox" hidden>
       <div class="oncode" id="onBig">····</div>
@@ -892,7 +905,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 
   // ---------- Regras (sinuca de Minas: par ou ímpar, bolas 2 a 15) ----------
   const PEER = () => net && net.peerNick ? String(net.peerNick).slice(0, 14) : "Amigo";
-  const NAME0 = i => net ? (i === net.me ? "Você" : PEER()) : vsCPU ? (i === 0 ? "Você" : "Computador") : `Jogador ${i+1}`;
+  const NAME0 = i => net ? (net.spect ? String(net.names?.[i] || `Jogador ${i+1}`).slice(0, 14) : i === net.me ? "Você" : PEER()) : vsCPU ? (i === 0 ? "Você" : "Computador") : `Jogador ${i+1}`;
   const NAME = i => netCap ? "\u0001" + i : NAME0(i);                          // online: nome vira marcador e cada celular escreve o seu ("Você"/"Amigo")
   const unTok = t => typeof t === "string" ? t.replace(/\u0001(\d)/g, (_, i) => NAME0(+i))
     .replace(/([Vv])ez de Você/g, (_, v) => v === "V" ? "Sua vez" : "sua vez").replace(/([Vv])ez de Amigo/g, "$1ez do seu amigo") : t;
@@ -967,15 +980,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const pays = BET() && (!bo3 || seriesOver);
         if (pays){
           ficha[i] += wager; ficha[loser] = Math.max(0, ficha[loser] - wager);
-          if (net) store.set("ficha0", String(ficha[net.me]));
+          if (net){ if (!net.spect) store.set("ficha0", String(ficha[net.me])); }   // quem só assiste não ganha nem perde ficha
           else { store.set("ficha0", String(ficha[0])); store.set("ficha1", String(ficha[1])); }
         }
         if (seriesOver) series[i]++;                                     // ponto geral: séries ganhas
         const ME = net ? net.me : 0;
-        const who = vsCPU ? (i === 0 ? "Você" : "O computador") : net ? (i === ME ? "Você" : PEER()) : NAME0(i);
-        const winLine = vsCPU ? (i === 0 ? "Você venceu!" : "O computador venceu") : net ? (i === ME ? "Você venceu!" : `${PEER()} venceu`) : `${who} venceu!`;
+        const who = net && net.spect ? NAME0(i) : vsCPU ? (i === 0 ? "Você" : "O computador") : net ? (i === ME ? "Você" : PEER()) : NAME0(i);
+        const winLine = net && net.spect ? `${NAME0(i)} venceu!` : vsCPU ? (i === 0 ? "Você venceu!" : "O computador venceu") : net ? (i === ME ? "Você venceu!" : `${PEER()} venceu`) : `${who} venceu!`;
         const placar = `${NAME0(0)} ${wins[0]} x ${wins[1]} ${NAME0(1)}`;
-        const fichasTxt = pays ? ` · ${i === ME ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}` : "";
+        const fichasTxt = !pays ? "" : net && net.spect ? ` · ${NAME0(i)} +${wager} ficha${wager > 1 ? "s" : ""}` : ` · ${i === ME ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}`;
         document.getElementById("foul").classList.remove("show"); document.getElementById("msg").classList.remove("show");
         document.getElementById("winTitle").textContent = seriesOver ? "CAMPEÃO DA SÉRIE!" : "VITÓRIA!";
         document.getElementById("winWho").textContent = winLine + (force && force.why ? ` · ${unTok(force.why)}` : "");
@@ -984,6 +997,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         setTimeout(() => {
           if (!gameOver) return;                                          // (online) o amigo já puxou a próxima
           document.getElementById("win").classList.remove("show");
+          if (net && net.spect && !(bo3 && !seriesOver)){ flash("Esperando os jogadores começarem a próxima…"); return; }   // quem assiste só espera
           if (bo3 && !seriesOver){                                       // melhor de 3 no meio: segue direto, só avisa
             newGame(`Próxima partida · ${placar}`);
             return;
@@ -993,7 +1007,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
             ? `Séries: ${NAME0(0)} ${series[0]} x ${series[1]} ${NAME0(1)}` + (pays ? ` · ${i === ME ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}` : "")
             : `Placar: ${placar}` + fichasTxt;
           const nx = document.getElementById("next");
-          nx.hidden = false; nx.textContent = seriesOver ? "Continuar · nova série" : "Próxima partida";
+          nx.hidden = !!(net && net.spect); nx.textContent = seriesOver ? "Continuar · nova série" : "Próxima partida";
           nx.dataset.reset = seriesOver ? "1" : "";
           document.getElementById("resume").hidden = true; openMenu();
         }, 2600);
@@ -1672,7 +1686,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     }
   }
   const CHALK = {x: 0, y: 29, r: 30};
-  const chalkOwner = () => net ? net.me : vsCPU ? 0 : turn;
+  const chalkOwner = () => net ? (net.spect ? turn : net.me) : vsCPU ? 0 : turn;
   const chalkReady = () => inMatch && !gameOver && !moving && !strike && !cpu && chalk[chalkOwner()] > 0 && myTurn();
   function drawChalk(){
     if (!inMatch) return;
@@ -2205,10 +2219,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
       return;
     }
-    const rows = [["Modo", RULE_NAME()], ["Adversário", net ? (net.code === "BT" ? `${PEER()} · Bluetooth` : net.code === "AMIGO" ? `${PEER()} · online` : `${PEER()} · sala ${net.code}`) : vsCPU ? `Computador · ${LEVELS[cpuLevel].name}` : "2 jogadores"],
+    const rows = [["Modo", RULE_NAME()], ["Adversário", net ? (net.spect ? `Assistindo · ${NAME0(0)} x ${NAME0(1)}` : net.code === "BT" ? `${PEER()} · Bluetooth` : net.code === "AMIGO" ? `${PEER()} · online` : `${PEER()} · sala ${net.code}`) : vsCPU ? `Computador · ${LEVELS[cpuLevel].name}` : "2 jogadores"],
       ["Partida", matchFmt === "bo3" ? "Melhor de 3" : "Jogo contínuo"], [matchFmt === "bo3" ? "Série" : "Placar", `${NAME(0)} ${wins[0]} × ${wins[1]} ${NAME(1)}`]];
     if (matchFmt === "bo3") rows.push(["Séries ganhas", `${NAME(0)} ${series[0]} × ${series[1]} ${NAME(1)}`]);
-    if (BET()) rows.push(["Aposta", `${wager} ficha${wager > 1 ? "s" : ""} ${matchFmt === "bo3" ? "pela série" : "por partida"}`], ["Suas fichas", String(ficha[net ? net.me : 0])]);
+    if (BET()) rows.push(["Aposta", `${wager} ficha${wager > 1 ? "s" : ""} ${matchFmt === "bo3" ? "pela série" : "por partida"}`], [net && net.spect ? "Fichas" : "Suas fichas", net && net.spect ? `${NAME0(0)} ${ficha[0]} · ${NAME0(1)} ${ficha[1]}` : String(ficha[net ? net.me : 0])]);
     const dl = document.getElementById("menuInfo"); dl.textContent = "";
     rows.forEach(([k, v]) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
   }
@@ -2403,19 +2417,154 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       } else netApplyEnd(m);
     }
     else if (m.t === "next"){ if (gameOver && m.n === gameNo) doNext(!!m.r); }   // o amigo clicou em "próxima": as duas mesas seguem juntas
-    else if (m.t === "bye") netLost("Seu amigo saiu da partida");
+    else if (m.t === "bye") netLost(net.spect ? "A partida acabou" : "Seu amigo saiu da partida");
+    else if (m.t === "wcode") net.watchCode = m.code;
+    else if (m.t === "viewers") showViewers(m.n | 0);
+    else if (m.t === "react") floatEmoji(m.e);
   }
   // liga um "canal" (internet hoje, Bluetooth depois): precisa de send, close e on("data"/"close")
   function netLink(link, host, code){
-    net = {host, me: host ? 0 : 1, code, peerFicha: 0, live: false,
-      send: m => { try { link.send(m); } catch(e){} }, close: () => { try { link.close(); } catch(e){} }};
-    const mine = net;
+    const mine = net = {host, me: host ? 0 : 1, code, peerFicha: 0, live: false,
+      send: m => { try { link.send(m); } catch(e){} if (host && m && RELAY.has(m.t)) relay(m); }, close: () => { try { link.close(); } catch(e){} }};
     net.lastRx = performance.now();
-    link.on("data", m => { if (net === mine) net.lastRx = performance.now(); if (net === mine) try { onNetMsg(typeof m === "string" ? JSON.parse(m) : m); } catch(e){ console.error(e); } });
+    link.on("data", m => {
+      if (net !== mine) return;
+      net.lastRx = performance.now();
+      try { const o = typeof m === "string" ? JSON.parse(m) : m; onNetMsg(o); if (host && o && RELAY.has(o.t)) relay(o); } catch(e){ console.error(e); }   // anfitrião repassa pra quem assiste
+    });
     link.on("close", () => { if (net === mine) netLost("Conexão perdida"); });
     if (host) net.send({t: "hello", rules: ruleMode, fmt: matchFmt, wager: initialWager, ficha: parseInt(store.get("ficha0", "0")) || 0, ex: naturalExtra, uid: UID, nick: myNick()});
   }
   window.__netLink = netLink;
+  // ---------- Modo espectador: quem tem o código/link assiste ao vivo (a mesa calcula igualzinho) ----------
+  const RELAY = new Set(["rack", "aim", "shot", "end", "next", "ping", "bye", "viewers", "react"]);
+  const W_PREFIX = "sinucamobile-v1-w-", WATCH_URL = "https://raneanc-lgtm.github.io/hotel-paris-atualizacoes/sinuca/";
+  let watchPeer = null, watchers = [];
+  function relay(m){ for (const c of watchers) try { c.send(m); } catch(e){} }
+  function snapshot(){
+    return {t: "snap", b: balls.map(b => [b.n, b.x, b.y, b.in ? 1 : 0]), turn, groups, scores, chalk, pots, inHand, breakShot, lastChance, wins, series, gameNo, lastWinner,
+      ficha, wager, rules: ruleMode, fmt: matchFmt, rackSeq, gameOver, ex: forcedExtra, names: [NAME0(0) === "Você" ? myNick() : PEER(), NAME0(1) === "Você" ? myNick() : PEER()]};
+  }
+  function watchStart(){
+    if (!net || !net.host || net.spect || watchPeer) return;
+    const mine = net;
+    loadPeer().then(() => {
+      if (net !== mine || watchPeer) return;
+      const code = Array.from({length: 4}, () => CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join("");
+      const p = watchPeer = new window.Peer(W_PREFIX + code, PEER_OPT);
+      p.on("open", () => { if (watchPeer === p && net === mine){ mine.watchCode = code; mine.send({t: "wcode", code}); } });
+      p.on("connection", c => {
+        c.on("data", m => {
+          if (!m || watchPeer !== p) return;
+          if (m.t === "watch"){
+            if (watchers.includes(c)) return;
+            if (watchers.length >= 10){ c.send({t: "full"}); setTimeout(() => { try { c.close(); } catch(e){} }, 300); return; }
+            watchers.push(c); c.send(snapshot()); viewersChanged();
+          } else if (m.t === "react" && watchers.includes(c) && typeof m.e === "string" && m.e.length <= 4){
+            const o = {t: "react", e: m.e}; floatEmoji(o.e); mine.send(o);   // mostra aqui, manda pro amigo e pra arquibancada
+          }
+        });
+        c.on("close", () => { if (watchers.includes(c)){ watchers = watchers.filter(x => x !== c); viewersChanged(); } });
+      });
+      p.on("error", err => { if (watchPeer === p && err && err.type === "unavailable-id"){ watchPeer = null; try { p.destroy(); } catch(e){} setTimeout(watchStart, 500); } });
+    }).catch(() => {});
+  }
+  function watchStop(){
+    for (const c of watchers) try { c.send({t: "bye"}); setTimeout(() => { try { c.close(); } catch(e){} }, 300); } catch(e){}
+    watchers = [];
+    if (watchPeer){ const p = watchPeer; watchPeer = null; setTimeout(() => { try { p.destroy(); } catch(e){} }, 600); }
+  }
+  function viewersChanged(){ const n = watchers.length; showViewers(n); if (net) net.send({t: "viewers", n}); }
+  function showViewers(n){ const el = document.getElementById("viewers"); el.hidden = !n; el.textContent = `👁 ${n} assistindo`; }
+  let emoT = 0;
+  function floatEmoji(e){
+    if (typeof e !== "string" || e.length > 4) return;
+    const el = document.createElement("div"); el.className = "floatemo"; el.textContent = e;
+    el.style.left = (38 + Math.random()*24) + "%";
+    document.getElementById("game").appendChild(el); setTimeout(() => el.remove(), 2300);
+  }
+  document.querySelectorAll("#reacts button").forEach(b => b.onclick = () => {
+    const now = performance.now(); if (!net || !net.spect || now - emoT < 1200) return; emoT = now;
+    net.send({t: "react", e: b.dataset.e});
+  });
+  // espectador: entra pelo código
+  async function watchJoin(code){
+    code = String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (code.length !== 4){ onStatus("O código tem 4 letras/números", true); return; }
+    if (net){ flash("Saia da partida atual antes de assistir outra", true); return; }
+    if (onlineBox.hidden){ openOnline(); }
+    const tryId = ++onTry;
+    onStatus("Procurando a partida " + code + "…");
+    try { await loadPeer(); } catch(e){ if (tryId === onTry) onStatus("Sem internet: não deu para assistir", true); return; }
+    if (tryId !== onTry) return;
+    netClosePeer();
+    const p = peer = new window.Peer(PEER_OPT);
+    p.on("open", () => {
+      if (peer !== p) return;
+      const c = p.connect(W_PREFIX + code, {reliable: true, serialization: "json"});
+      let started = false;
+      c.on("open", () => c.send({t: "watch", nick: myNick()}));
+      c.on("data", m => {
+        if (!m) return;
+        if (!started){
+          if (m.t === "full"){ onStatus("Essa partida já está com a arquibancada cheia (10)", true); return; }
+          if (m.t !== "snap") return;
+          started = true; watchBegin(c, code, m); return;
+        }
+      });
+      setTimeout(() => { if (!started && tryId === onTry) onStatus("A partida não respondeu · confira o código", true); }, 12000);
+    });
+    p.on("error", err => {
+      if (peer !== p || (net && net.spect)) return;
+      onStatus(err && err.type === "peer-unavailable" ? "Partida " + code + " não encontrada · ela já acabou ou o código está errado" : "Não deu para conectar (" + (err && err.type || "erro") + ")", true);
+    });
+  }
+  function watchBegin(c, code, s){
+    const mine = net = {spect: true, host: false, me: -1, code, live: true, names: s.names, peerFicha: 0, lastRx: performance.now(),
+      send: m => { try { c.send(m); } catch(e){} }, close: () => { try { c.close(); } catch(e){} }};
+    c.on("data", m => { if (net !== mine || !m || m.t === "snap") return; net.lastRx = performance.now(); try { onNetMsg(m); } catch(e){ console.error(e); } });
+    c.on("close", () => { if (net === mine) netLost("A transmissão caiu"); });
+    // mesa igualzinha à dos jogadores
+    ruleMode = s.rules; TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = false; matchFmt = s.fmt === "bo3" ? "bo3" : "cont";
+    forcedExtra = s.ex == null ? null : s.ex; resize();
+    inMatch = true; vsCPU = false; cpu = null;
+    rackCore(0);
+    balls = s.b.map(([n, x, y, i]) => ({n, x, y, px: x, py: y, vx: 0, vy: 0, rx: 0, ry: 0, sz: 0, in: !!i, dirty: true, q: [1, 0, 0, 0]}));
+    turn = s.turn; groups = s.groups; scores = s.scores; chalk = s.chalk; pots = s.pots; inHand = s.inHand; breakShot = s.breakShot; lastChance = s.lastChance;
+    wins = s.wins; series = s.series; gameNo = s.gameNo; lastWinner = s.lastWinner; ficha = s.ficha; wager = s.wager; rackSeq = s.rackSeq; gameOver = !!s.gameOver;
+    netPendingRack = null; netPendingEnd = null; introT = 1;
+    ["online", "invite", "modes", "opts", "lines", "reset", "spin", "menu"].forEach(id => document.getElementById(id).hidden = true);
+    document.getElementById("resume").hidden = false; document.getElementById("next").hidden = true;
+    document.getElementById("menuTitle").textContent = "Assistindo ao vivo";
+    document.getElementById("menuSub").textContent = `${NAME0(0)} x ${NAME0(1)} · ${RULE_NAME()}`;
+    netMenuButtons(); document.getElementById("reacts").hidden = false;
+    flash(`👁 Assistindo ao vivo · ${NAME0(0)} x ${NAME0(1)}`);
+  }
+  window.__assistir = code => watchJoin(code);
+  document.getElementById("onWatch").onclick = () => watchJoin(document.getElementById("onCode").value);
+  document.getElementById("p-watch").onclick = () => {
+    const code = net && net.watchCode;
+    if (!code){ flash("A transmissão ainda está abrindo (precisa de internet) · tente em alguns segundos", true); if (net && net.host) watchStart(); return; }
+    const txt = `👁 Assista ao vivo: ${myNick()} x ${PEER()} no Sinuca Mobile\n${WATCH_URL}?assistir=${code}\n(no app: Online › digite ${code} › Assistir)`;
+    if (window.SinucaApp && window.SinucaApp.compartilhar) window.SinucaApp.compartilhar(txt);
+    else if (navigator.share) navigator.share({text: txt}).catch(() => {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => flash("Link copiado · cole no WhatsApp"), () => flash("Código pra assistir: " + code));
+    else flash("Código pra assistir: " + code);
+  };
+  // abriu pelo link (?assistir=CODE) ou pelo app (sinucamobile://assistir/CODE)
+  setTimeout(() => {
+    let code = null;
+    try { code = new URLSearchParams(location.search).get("assistir"); } catch(e){}
+    try { if (!code && window.SinucaApp && window.SinucaApp.codigoAssistir) code = window.SinucaApp.codigoAssistir(); } catch(e){}
+    if (!code) return;
+    code = code.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+    if (/Android/i.test(navigator.userAgent) && !window.SinucaApp && /^https?:/.test(location.protocol)){
+      document.getElementById("appLink").href = `intent://assistir/${code}#Intent;scheme=sinucamobile;package=com.slimcreative.sinucamobile;end`;
+      document.getElementById("appbar").hidden = false;
+    }
+    watchJoin(code);
+  }, 900);
+  document.getElementById("appbarX").onclick = () => document.getElementById("appbar").hidden = true;
   // sinal de vida: se o celular do amigo some (sem internet, app fechado), a partida encerra sozinha
   setInterval(() => {
     if (!net || !net.live) return;
@@ -2423,18 +2572,20 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (performance.now() - net.lastRx > 15000) netLost("Conexão perdida com seu amigo");
   }, 2000);
   window.addEventListener("pagehide", () => { if (net) net.send({t: "bye"}); });
-  window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq, netDiff,
+  window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq, netDiff, watchCode: net && net.watchCode, spect: !!(net && net.spect),
     balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p)};
   function startOnline(){
     net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
     ficha[net.me] = parseInt(store.get("ficha0", "0")) || 0; ficha[1 - net.me] = net.peerFicha;
     addFriend(net.peerUid, net.peerNick);                                // jogou uma vez: vira amigo pra chamar direto depois
+    if (net.host) setTimeout(watchStart, 1200);                          // abre a "arquibancada" (link pra assistir)
     ["online", "invite", "modes", "opts", "lines", "reset", "spin"].forEach(id => document.getElementById(id).hidden = true);
     startGame(false);
   }
   function netLost(why){
     if (!net) return;
     if (why) fillMenuInfo();                                             // mostra como ficou a partida antes de desligar
+    watchStop(); showViewers(0); document.getElementById("reacts").hidden = true;
     const n = net; net = null; netCap = null;
     if (forcedExtra !== null){ forcedExtra = null; resize(); }              // volta a mesa do tamanho da tela netPendingEnd = null; netPendingRack = null; clearTimeout(netEndTimer);
     n.close(); netClosePeer();
@@ -2712,6 +2863,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   };
   function netMenuButtons(){                                              // online não tem "rearrumar"
     document.getElementById("restart").hidden = !!net;
+    document.getElementById("p-watch").hidden = !net || !!net.spect;
   }
 
   // ---------- Efeito ----------
