@@ -11,6 +11,8 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -20,6 +22,7 @@ import android.webkit.WebViewClient;
 public class MainActivity extends Activity {
     private WebView web;
     private BluetoothMesa mesa;
+    private Atualizador atual;
     private volatile String assistir = null;   // código de partida vindo de um link
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -49,7 +52,14 @@ public class MainActivity extends Activity {
         mesa = new BluetoothMesa(this, web);
         assistir = codigoDoLink(getIntent());
         web.addJavascriptInterface(new Ponte(), "SinucaApp");   // jogo online: mandar o código da sala pelo WhatsApp etc.
-        web.setWebViewClient(new WebViewClient());
+        atual = new Atualizador(this, web);
+        web.setWebViewClient(new WebViewClient() {
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {
+                WebResourceResponse x = atual.interceptar(r.getUrl().toString());   // versão nova do jogo baixada da internet
+                return x != null ? x : super.shouldInterceptRequest(v, r);
+            }
+        });
         web.setWebChromeClient(new WebChromeClient());
         setContentView(web);
         telaCheia();
@@ -88,7 +98,7 @@ public class MainActivity extends Activity {
     }
 
     @Override protected void onPause() { super.onPause(); web.onPause(); }
-    @Override protected void onResume() { super.onResume(); web.onResume(); telaCheia(); }
+    @Override protected void onResume() { super.onResume(); web.onResume(); telaCheia(); if (atual != null) atual.verificar(false); }
 
     /** ponte com o jogo: abre o "compartilhar" do Android com o convite da sala */
     private class Ponte {
@@ -101,6 +111,9 @@ public class MainActivity extends Activity {
                 startActivity(Intent.createChooser(i, "Convidar para a sala"));
             });
         }
+        @JavascriptInterface public int versaoWeb() { return atual.versaoWeb(); }
+        @JavascriptInterface public void instalarApk() { runOnUiThread(() -> atual.instalar()); }
+        @JavascriptInterface public void procurarAtualizacao() { atual.verificar(true); }
         @JavascriptInterface public String codigoAssistir() { String c = assistir; assistir = null; return c; }
         // ---- jogo via Bluetooth ----
         @JavascriptInterface public boolean btDisponivel() { return mesa.disponivel(); }

@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- atualização automática do app -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
     <!-- jogo via Bluetooth (celular com celular, sem internet) -->
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
@@ -43,5 +45,10 @@
                 <data android:scheme="sinucamobile" android:host="assistir" />
             </intent-filter>
         </activity>
+        <provider
+            android:name=".ApkProvider"
+            android:authorities="com.slimcreative.sinucamobile.apk"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>
