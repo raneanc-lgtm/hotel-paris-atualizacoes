@@ -2450,8 +2450,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     const mine = net;
     loadPeer().then(() => {
       if (net !== mine || watchPeer) return;
-      const code = Array.from({length: 4}, () => CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join("");
-      const p = watchPeer = new window.Peer(W_PREFIX + code, PEER_OPT);
+      const code = /^[A-Z0-9]{4}$/.test(mine.code || "") && !watchStart.tried ? mine.code   // partida de sala: o mesmo código serve pra assistir
+        : Array.from({length: 4}, () => CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join("");
+      watchStart.tried = true;
+      const p = watchPeer = new window.Peer(W_PREFIX + code, peerOpt());
       p.on("open", () => { if (watchPeer === p && net === mine){ mine.watchCode = code; mine.send({t: "wcode", code}); } });
       p.on("connection", c => {
         c.on("data", m => {
@@ -2498,7 +2500,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     try { await loadPeer(); } catch(e){ if (tryId === onTry) onStatus("Sem internet: não deu para assistir", true); return; }
     if (tryId !== onTry) return;
     netClosePeer();
-    const p = peer = new window.Peer(PEER_OPT);
+    const p = peer = new window.Peer(peerOpt());
     p.on("open", () => {
       if (peer !== p) return;
       const c = p.connect(W_PREFIX + code, {reliable: true, serialization: "json"});
@@ -2578,7 +2580,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
     ficha[net.me] = parseInt(store.get("ficha0", "0")) || 0; ficha[1 - net.me] = net.peerFicha;
     addFriend(net.peerUid, net.peerNick);                                // jogou uma vez: vira amigo pra chamar direto depois
-    if (net.host) setTimeout(watchStart, 1200);                          // abre a "arquibancada" (link pra assistir)
+    if (net.host){ watchStart.tried = false; setTimeout(watchStart, 1200); }                          // abre a "arquibancada" (link pra assistir)
     ["online", "invite", "modes", "opts", "lines", "reset", "spin"].forEach(id => document.getElementById(id).hidden = true);
     startGame(false);
   }
@@ -2603,7 +2605,47 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   // PeerJS (servidor público gratuito só para os dois celulares se acharem; o jogo vai direto de um pro outro)
   const PEER_PREFIX = "sinucamobile-v1-", CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const PEER_OPT = window.__peerOpt || {host: "0.peerjs.com", port: 443, path: "/", secure: true, debug: 0};
+  // ---- ligar celulares em redes diferentes (4G/5G, outra casa) ----
+  // STUN acha o "endereço de fora"; quando a operadora não deixa ligar direto, o TURN faz a ponte.
+  // TURN gratuito do Open Relay (metered.ca) com autenticação "static auth": usuário = validade:nome, senha = HMAC-SHA1(segredo, usuário)
+  function sha1(bytes){
+    const ml = bytes.length, wl = ((ml + 8) >> 6) + 1, w = new Uint32Array(wl*16);
+    for (let i = 0; i < ml; i++) w[i >> 2] |= bytes[i] << (24 - (i % 4)*8);
+    w[ml >> 2] |= 0x80 << (24 - (ml % 4)*8); w[wl*16 - 1] = ml*8;
+    let h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE, h3 = 0x10325476, h4 = 0xC3D2E1F0; const x = new Uint32Array(80);
+    for (let b = 0; b < w.length; b += 16){
+      for (let t = 0; t < 80; t++){ x[t] = t < 16 ? w[b + t] : ((v => (v << 1) | (v >>> 31))(x[t-3] ^ x[t-8] ^ x[t-14] ^ x[t-16])); }
+      let a = h0, bb = h1, c = h2, d = h3, e = h4;
+      for (let t = 0; t < 80; t++){
+        const f = t < 20 ? (bb & c) | (~bb & d) : t < 40 ? bb ^ c ^ d : t < 60 ? (bb & c) | (bb & d) | (c & d) : bb ^ c ^ d;
+        const k = t < 20 ? 0x5A827999 : t < 40 ? 0x6ED9EBA1 : t < 60 ? 0x8F1BBCDC : 0xCA62C1D6;
+        const tmp = (((a << 5) | (a >>> 27)) + f + e + k + x[t]) >>> 0;
+        e = d; d = c; c = (bb << 30) | (bb >>> 2); bb = a; a = tmp;
+      }
+      h0 = (h0 + a) >>> 0; h1 = (h1 + bb) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+    }
+    const out = new Uint8Array(20); [h0, h1, h2, h3, h4].forEach((h, i) => { out[i*4] = h >>> 24; out[i*4+1] = (h >>> 16) & 255; out[i*4+2] = (h >>> 8) & 255; out[i*4+3] = h & 255; });
+    return out;
+  }
+  function hmacSha1B64(key, msg){
+    const enc = t => new TextEncoder().encode(t);
+    let k = enc(key); if (k.length > 64) k = sha1(k);
+    const kp = new Uint8Array(64); kp.set(k);
+    const m = enc(msg), ipad = new Uint8Array(64 + m.length), opad = new Uint8Array(84);
+    for (let i = 0; i < 64; i++){ ipad[i] = kp[i] ^ 0x36; opad[i] = kp[i] ^ 0x5c; }
+    ipad.set(m, 64); opad.set(sha1(ipad), 64);
+    return btoa(String.fromCharCode(...sha1(opad)));
+  }
+  window.__hmac = hmacSha1B64;
+  function iceServers(){
+    const user = (Math.floor(Date.now()/1000) + 48*3600) + ":sinucamobile", cred = hmacSha1B64("openrelayprojectsecret", user), H = "staticauth.openrelay.metered.ca";
+    return [
+      {urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
+      {urls: [`turn:${H}:80`, `turn:${H}:80?transport=tcp`, `turn:${H}:443`, `turns:${H}:443?transport=tcp`], username: user, credential: cred},
+      {urls: ["turn:eu-0.turn.peerjs.com:3478", "turn:us-0.turn.peerjs.com:3478"], username: "peerjs", credential: "peerjsp"}
+    ];
+  }
+  const peerOpt = () => Object.assign({host: "0.peerjs.com", port: 443, path: "/", secure: true, debug: 0}, window.__peerOpt || {}, {config: {iceServers: iceServers(), sdpSemantics: "unified-plan"}});
   let peer = null, peerLib = null, onTry = 0;
   function loadPeer(){
     if (window.Peer) return Promise.resolve();
@@ -2704,7 +2746,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (homePeer) return;
     loadPeer().then(() => {
       if (homePeer) return;
-      const p = homePeer = new window.Peer(UID_PREFIX + UID, PEER_OPT);
+      const p = homePeer = new window.Peer(UID_PREFIX + UID, peerOpt());
       p.on("open", () => { if (homePeer === p){ homeOk = true; if (!onlineBox.hidden) probeAll(); } });
       p.on("connection", homeIncoming);
       p.on("disconnected", () => { if (homePeer !== p) return; homeOk = false; setTimeout(() => { if (homePeer === p && !p.destroyed) try { p.reconnect(); } catch(e){} }, 3000); });
@@ -2814,15 +2856,18 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     try { await loadPeer(); } catch(e){ if (tryId === onTry) onStatus("Sem internet: não deu para abrir a sala", true); return; }
     if (tryId !== onTry) return;
     const code = Array.from({length: 4}, () => CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join("");
-    const p = peer = new window.Peer(PEER_PREFIX + code, PEER_OPT);
+    const p = peer = new window.Peer(PEER_PREFIX + code, peerOpt());
     p.on("open", () => {
       if (peer !== p) return;
       document.getElementById("onBig").textContent = code; document.getElementById("onShare").hidden = false;
       onStatus("Sala aberta · esperando seu amigo entrar com esse código…");
     });
     p.on("connection", c => {
-      if (peer !== p || net){ try { c.close(); } catch(e){} return; }
-      c.on("open", () => { if (peer === p && !net){ onStatus("Amigo conectado! Começando…"); netLink(wrapConn(c), true, code); } });
+      if (peer !== p){ try { c.close(); } catch(e){} return; }
+      if (net){ c.on("open", () => { c.send({t: "full"}); setTimeout(() => { try { c.close(); } catch(e){} }, 500); }); return; }   // sala já jogando: quem chegar vai assistir
+      onStatus("Seu amigo está entrando…");
+      const t = setTimeout(() => { if (!net && peer === p) onStatus("Seu amigo achou a sala mas a conexão não fechou · peçam pra tentar de novo (se um estiver no Wi-Fi, testem os dois no 4G/5G)", true); }, 20000);
+      c.on("open", () => { clearTimeout(t); if (peer === p && !net){ onStatus("Amigo conectado! Começando…"); netLink(wrapConn(c), true, code); } });
     });
     p.on("error", err => {
       if (peer !== p) return;
@@ -2838,11 +2883,20 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     try { await loadPeer(); } catch(e){ if (tryId === onTry) onStatus("Sem internet: não deu para entrar", true); return; }
     if (tryId !== onTry) return;
     netClosePeer();
-    const p = peer = new window.Peer(PEER_OPT);
+    const p = peer = new window.Peer(peerOpt());
     p.on("open", () => {
       if (peer !== p) return;
       const c = p.connect(PEER_PREFIX + code, {reliable: true, serialization: "json"});
-      c.on("open", () => { if (peer === p && !net){ onStatus("Conectado! Recebendo a mesa…"); netLink(wrapConn(c), false, code); } });
+      let opened = false, first = true;
+      onStatus("Sala achada · ligando os dois celulares…");
+      setTimeout(() => { if (!opened && peer === p && !net && tryId === onTry) onStatus("A sala existe mas a conexão não fechou · tentem de novo (se um estiver no Wi-Fi, testem os dois no 4G/5G)", true); }, 20000);
+      c.on("open", () => { opened = true; if (peer === p && !net) onStatus("Conectado! Recebendo a mesa…"); });
+      c.on("data", m => {                                                 // espera o "olá" do anfitrião (ou aviso de sala cheia)
+        if (!first || peer !== p || net || !m) return;
+        if (m.t === "full"){ first = false; onStatus("Essa sala já está jogando · entrando pra assistir…"); setTimeout(() => watchJoin(code), 300); return; }
+        if (m.t !== "hello") return;
+        first = false; netLink(wrapConn(c), false, code); onNetMsg(m);
+      });
     });
     p.on("error", err => {
       if (peer !== p) return;
