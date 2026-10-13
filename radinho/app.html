@@ -182,6 +182,8 @@
   #verFoto[hidden]{display:none}
   #verFoto img{max-width:100%;max-height:100%;border-radius:8px}
   .sel{width:100%;background:var(--bg);color:var(--txt);border:1px solid var(--borda);border-radius:12px;padding:12px;font-size:15px;margin:2px 0 8px;font-family:inherit}
+  .lixo{border:0;background:transparent;color:var(--sub);font-size:13px;padding:0 0 0 8px;cursor:pointer}
+  #lista .lixo{width:auto;height:auto;border:0;background:transparent;font-size:16px;padding:6px}
   #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(200px);background:#000;color:#fff;
     border:1px solid var(--borda);padding:12px 16px;border-radius:12px;font-size:14px;max-width:90vw;z-index:50;transition:transform .25s;text-align:center}
   #toast.on{transform:translateX(-50%) translateY(0)}
@@ -300,6 +302,8 @@
         <button class="btn sec" id="btnLimpar">🧹 Limpar conversa</button>
         <button class="btn perigo" id="btnApagarCanal">🗑️ Apagar canal</button>
       </div>
+      <h4>MODERADORES <span style="font-weight:400;letter-spacing:0">• silenciam, removem e apagam mensagens</span></h4>
+      <ul class="lista-adm" id="lstMods"></ul>
       <h4>SILENCIADOS</h4>
       <ul class="lista-adm" id="lstMudos"></ul>
       <h4>BANIDOS</h4>
@@ -325,6 +329,7 @@
     <button class="btn sec" id="pMutarLocal"></button>
     <button class="btn sec" id="pMutarTodos" hidden></button>
     <button class="btn perigo" id="pBanir" hidden>Banir do canal</button>
+    <button class="btn sec" id="pMod" hidden></button>
     <button class="btn sec" id="pFechar">Fechar</button>
   </div>
 </div>
@@ -346,7 +351,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 8;
+const APP_VERSAO = 9;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -456,6 +461,11 @@ let mutadosLocal = {};
 try{ mutadosLocal = JSON.parse(LS.get('radinho_mutlocal') || '{}') || {}; }catch(e){}
 const agora = () => Date.now() + offset;
 const souAdmin = () => !!adminUid && adminUid === uid;
+let mods = {};
+const ehMod = id => !!mods[id];
+const souMod = () => ehMod(uid);
+const possoModerar = () => souAdmin() || souMod();
+const podeAgirEm = id => souAdmin() ? id !== uid : (souMod() && id !== uid && id !== adminUid && !ehMod(id));
 
 /* migra dados da versão Câmbio */
 if (!LS.get('radinho_nome') && LS.get('cambio_nome')) LS.set('radinho_nome', LS.get('cambio_nome'));
@@ -680,13 +690,20 @@ async function conectarCanal(){
   refCanal.child('mudos').on('value', s => {
     mudos = s.val() || {};
     const antes = souMudo; souMudo = !!mudos[uid];
-    if (souMudo && !antes){ aviso('O administrador silenciou você.', 4000); if (gravando) parar(); }
+    if (souMudo && !antes){ aviso('Você foi silenciado neste canal.', 4000); if (gravando) parar(); }
     if (!souMudo && antes) aviso('Você pode falar de novo!');
     $('inMsg').disabled = souMudo;
     $('inMsg').placeholder = souMudo ? 'Você está silenciado' : 'Mensagem';
     renderOnline(onlineAtual); renderAdmin(); textoPTT(); atualizarVisor();
   }, () => {});
   if (souAdmin()) refCanal.child('banidos').on('value', s => { banidos = s.val() || {}; renderAdmin(); });
+  refCanal.child('mods').on('value', s => {
+    const antes = souMod();
+    mods = s.val() || {};
+    if (souMod() && !antes && carregado) aviso('⭐ Você virou moderador do canal: pode silenciar, remover e apagar mensagens.', 6000);
+    if (!souMod() && antes) aviso('Você não é mais moderador.');
+    renderOnline(onlineAtual); renderAdmin(); atualizarLixeiras();
+  }, () => {});
 
   const q = refCanal.child('msgs').orderByChild('ts').limitToLast(HIST);
   q.on('child_added', s => chegou(s.key, s.val()), falhou);
@@ -712,7 +729,7 @@ function renderOnline(lista){
     const mudo = mudos[id] || mutadosLocal[id];
     const c = document.createElement('div');
     c.className = 'chip' + (p.falando ? ' fala' : '') + (id === uid ? ' eu' : '') + (mudo ? ' mudo' : '');
-    c.innerHTML = '<i></i>' + esc(p.nome || '?') + (id === uid ? ' (você)' : '') + (mudo ? ' 🔇' : '') +
+    c.innerHTML = '<i></i>' + (id === adminUid ? '👑 ' : ehMod(id) ? '⭐ ' : '') + esc(p.nome || '?') + (id === uid ? ' (você)' : '') + (mudo ? ' 🔇' : '') +
       (souAdmin() ? ' <small style="color:var(--sub)">v' + (p.v || '?') + '</small>' : '');
     if (id !== uid) c.onclick = () => abrirPessoa(id, p.nome);
     el.appendChild(c);
@@ -767,6 +784,9 @@ function adicionarHistorico(key, m){
                  hora(m.ts) + ' • ' + (m.dur || 0).toFixed(1) + 's</small></div><button aria-label="Ouvir">▶</button>';
   li.querySelector('button').onclick = () => { destravarAudio(); fila.unshift({ key, nome: m.nome, mime: m.mime, manual: true }); tocarProx(); };
   if (m.uid !== uid) li.querySelector('b').onclick = () => abrirPessoa(m.uid, m.nome);
+  const lx = document.createElement('button'); lx.className = 'lixo'; lx.textContent = '🗑'; lx.setAttribute('aria-label', 'Apagar');
+  lx.hidden = !possoModerar(); lx.onclick = () => apagarItem('msgs', key);
+  li.appendChild(lx);
   const ul = $('lista');
   ul.insertBefore(li, ul.firstChild);
   checarVazio();
@@ -1003,7 +1023,8 @@ function addChat(key, m){
   if (m.tipo === 'audio') corpo = '<div class="midia"><button aria-label="Ouvir">▶</button><small>🎤 Áudio • ' + (m.dur || 0).toFixed(0) + 's</small></div>';
   if (m.tipo === 'foto')  corpo = '<img class="foto" alt="Foto">';
   el.innerHTML = (!minha && !cont ? '<div class="nm">' + esc(m.nome) + '</div>' : '') +
-                 corpo + '<div class="hr">' + hora(ts) + '</div>';
+                 corpo + '<div class="hr">' + hora(ts) + '<button class="lixo" aria-label="Apagar">🗑</button></div>';
+  const lxc = el.querySelector('.lixo'); lxc.hidden = !possoModerar(); lxc.onclick = () => apagarItem('chat', key);
   if (m.tipo === 'audio'){ const bt = el.querySelector('.midia button'); bt.onclick = () => ouvirAudioChat(key, m, bt); }
   if (m.tipo === 'foto') carregarFoto(key, el.querySelector('img.foto'));
   const nm = el.querySelector('.nm'); if (nm) nm.onclick = () => abrirPessoa(m.uid, m.nome);
@@ -1175,11 +1196,27 @@ function abrirPessoa(id, n){
   $('pInfo').textContent = (mudoTodos ? 'Silenciado pelo administrador. ' : (mudoLocal ? 'Silenciado só pra você. ' : '')) +
     (ver ? 'App na versão ' + ver + '.' : (onlineAtual[id] ? 'Versão do app: antiga (antes da 5).' : ''));
   $('pMutarLocal').textContent = mudoLocal ? '🔊 Voltar a ouvir (só pra mim)' : '🔇 Silenciar só pra mim';
-  const adm = souAdmin();
-  $('pMutarTodos').hidden = !adm;
+  const pode = podeAgirEm(id);
+  if (id === adminUid) $('pInfo').textContent = '👑 Dono do Radinho. ' + $('pInfo').textContent;
+  else if (ehMod(id)) $('pInfo').textContent = '⭐ Moderador. ' + $('pInfo').textContent;
+  $('pMutarTodos').hidden = !pode;
   $('pMutarTodos').textContent = mudoTodos ? '🔊 Tirar o silêncio (pra todos)' : '🔇 Silenciar pra todos';
-  $('pBanir').hidden = !adm;
+  $('pBanir').hidden = !pode;
+  $('pBanir').textContent = 'Remover do canal';
+  $('pMod').hidden = !souAdmin();
+  $('pMod').textContent = ehMod(id) ? '✖ Tirar de moderador' : '⭐ Tornar moderador';
   $('fundoP').hidden = false;
+}
+function atualizarLixeiras(){ const v = possoModerar(); document.querySelectorAll('.lixo').forEach(b => b.hidden = !v); }
+async function apagarItem(onde, key){
+  if (!possoModerar()) return;
+  if (!(await confirmar('🗑 Apagar mensagem', 'Apaga essa ' + (onde === 'msgs' ? 'transmissão' : 'mensagem') + ' pra todo mundo.', 'Apagar', true))) return;
+  try{
+    const upd = {}; upd[onde + '/' + key] = null; upd['audios/' + key] = null;
+    await refCanal.update(upd);
+    const el = document.getElementById((onde === 'msgs' ? 'm_' : 'c_') + key); if (el) el.remove();
+    checarVazio(); aviso('Apagado.');
+  }catch(e){ aviso('Não deu pra apagar: ' + (e.message || e), 5000); }
 }
 function fecharPessoa(){ $('fundoP').hidden = true; pessoaAtual = null; }
 function salvarMutLocal(){ LS.set('radinho_mutlocal', JSON.stringify(mutadosLocal)); }
@@ -1194,7 +1231,7 @@ function prepararPessoa(){
     renderOnline(onlineAtual); fecharPessoa();
   };
   $('pMutarTodos').onclick = async () => {
-    const p = pessoaAtual; if (!p || !souAdmin()) return;
+    const p = pessoaAtual; if (!p || !podeAgirEm(p.id)) return;
     try{
       if (mudos[p.id]) { await refCanal.child('mudos/' + p.id).remove(); aviso(p.nome + ' pode falar de novo.'); }
       else { await refCanal.child('mudos/' + p.id).set({ nome: p.nome, ts: TS() }); aviso(p.nome + ' foi silenciado pra todos.'); }
@@ -1202,16 +1239,27 @@ function prepararPessoa(){
     fecharPessoa();
   };
   $('pBanir').onclick = async () => {
-    const p = pessoaAtual; if (!p || !souAdmin()) return;
-    if (!(await confirmar('Banir ' + p.nome + '?', 'Ele sai do canal e não consegue mais entrar.', 'Banir', true))) return;
+    const p = pessoaAtual; if (!p || !podeAgirEm(p.id)) return;
+    if (!(await confirmar('Remover ' + p.nome + '?', 'Ele sai do canal e não consegue mais entrar.', 'Remover', true))) return;
     try{
       const upd = {};
       upd['banidos/' + p.id] = { nome: p.nome, ts: TS() };
       upd['membros/' + p.id] = null;
       upd['online/' + p.id]  = null;
       await refCanal.update(upd);
-      aviso(p.nome + ' foi banido.');
+      aviso(p.nome + ' foi removido.');
     }catch(e){ aviso('Erro: ' + (e.message || e)); }
+    fecharPessoa();
+  };
+  $('pMod').onclick = async () => {
+    const p = pessoaAtual; if (!p || !souAdmin()) return;
+    try{
+      if (ehMod(p.id)){ await refCanal.child('mods/' + p.id).remove(); aviso(p.nome + ' não é mais moderador.'); }
+      else {
+        if (!(await confirmar('⭐ Tornar ' + p.nome + ' moderador?', 'Ele vai poder silenciar, remover pessoas e apagar mensagens neste canal. O resto continua só com você.', 'Confirmar'))) return;
+        await refCanal.child('mods/' + p.id).set({ nome: p.nome, ts: TS() }); aviso(p.nome + ' agora é moderador.');
+      }
+    }catch(e){ aviso('Erro: ' + (e.message || e) + ' — confira as regras do Firebase.', 6000); }
     fecharPessoa();
   };
 }
@@ -1223,6 +1271,15 @@ function renderAdmin(){
   if (!adm) return;
   $('infoCanal').innerHTML = '<b>' + esc(nomeCanal()) + '</b> • código <b>' + esc(canal) + '</b> • ' + (infoCanal && infoCanal.temSenha ? '🔒 com senha' : 'sem senha');
   renderCanais();
+  const lmd = $('lstMods'); lmd.innerHTML = '';
+  const kmd = Object.keys(mods);
+  if (!kmd.length) lmd.innerHTML = '<li class="vz">Ninguém. Toque no nome de alguém e em "Tornar moderador".</li>';
+  kmd.forEach(id => {
+    const li = document.createElement('li');
+    li.innerHTML = '<span>⭐ ' + esc((mods[id] && mods[id].nome) || id) + '</span><button>Tirar</button>';
+    li.querySelector('button').onclick = () => refCanal.child('mods/' + id).remove().catch(e => aviso('Erro: ' + e.message));
+    lmd.appendChild(li);
+  });
   const lm = $('lstMudos'); lm.innerHTML = '';
   const km = Object.keys(mudos);
   if (!km.length) lm.innerHTML = '<li class="vz">Ninguém silenciado.</li>';
