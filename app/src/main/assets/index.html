@@ -586,15 +586,18 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
 
   function netApplyRack(m){
-    balls = m.b.map(([n, x, y]) => ({n, x, y, vx:0, vy:0, in:true, dirty:true, q:[1,0,0,0]}));
+    balls = m.b.map(([n, x, y]) => ({n, x, y, px:x, py:y, vx:0, vy:0, rx:0, ry:0, sz:0, in:true, dirty:true, q:[1,0,0,0]}));
     turn = m.turn; aimAtNearest();
   }
-  let rackSeq = 0;                                                        // online: as duas mesas arrumam na mesma ordem (o anfitrião manda o triângulo)
+  let rackSeq = 0, netDiff = 0;                                             // netDiff: quanto a mesa daqui diferiu da do amigo (teste)                                                        // online: as duas mesas arrumam na mesma ordem (o anfitrião manda o triângulo)
   function rack(breaker = 0){
     rackCore(breaker);
     if (!net) return;
     rackSeq++;
-    if (net.host) net.send({t: "rack", g: rackSeq, b: balls.map(b => [b.n, +b.x.toFixed(3), +b.y.toFixed(3)]), turn});
+    if (net.host){
+      for (const b of balls){ b.x = b.px = +b.x.toFixed(3); b.y = b.py = +b.y.toFixed(3); }   // as duas mesas com os mesmos números exatos
+      net.send({t: "rack", g: rackSeq, b: balls.map(b => [b.n, b.x, b.y]), turn});
+    }
     else if (netPendingRack && netPendingRack.g === rackSeq){ netApplyRack(netPendingRack); netPendingRack = null; }
   }
   function rackCore(breaker = 0){
@@ -976,7 +979,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     try { endShotCore(); }
     finally {
       const ev = netCap; netCap = null;
-      for (const b of balls){ b.x = b.px = +b.x.toFixed(2); b.y = b.py = +b.y.toFixed(2); }   // os dois celulares ficam com a mesma posição exata
+      for (const b of balls){ b.x = b.px = +b.x.toFixed(2); b.y = b.py = +b.y.toFixed(2); b.vx = b.vy = 0; b.rx = b.ry = b.sz = 0; }   // os dois celulares ficam com a mesma posição exata
       net.send({t: "end", s: {b: balls.map(b => [b.n, +b.x.toFixed(2), +b.y.toFixed(2), b.in ? 1 : 0]), turn, groups, scores, chalk, pots, inHand, breakShot, lastChance}, ev});
     }
   }
@@ -2319,9 +2322,11 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function netApplyEnd(m){
     netPendingEnd = null; clearTimeout(netEndTimer);
     moving = false; strike = null; sinkFx = []; chalkFixed = false; chalkAcc = 0; renderAlpha = 1; pocketedThisShot = []; power = 0; chalkShot = null;
-    const s = m.s;
+    const s = m.s; let diff = 0;
     for (const [n, x, y, i] of s.b){
       const b = balls.find(o => o.n === n); if (!b) continue;
+      diff = Math.max(diff, (!!i !== b.in) ? 999 : Math.hypot(b.x - x, b.y - y));
+      netDiff = diff;
       b.x = b.px = x; b.y = b.py = y; b.vx = b.vy = 0; b.rx = b.ry = b.sz = 0; b.in = !!i; b.dirty = true;
     }
     turn = s.turn; groups = s.groups; scores = s.scores; chalk = s.chalk; pots = s.pots; inHand = s.inHand; breakShot = s.breakShot; lastChance = s.lastChance;
@@ -2361,7 +2366,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     else if (m.t === "end"){
       if (moving || strike){
         netPendingEnd = m; clearTimeout(netEndTimer);
-        netEndTimer = setTimeout(() => { if (netPendingEnd === m) netApplyEnd(m); }, 2500);   // celular atrasado: encaixa no resultado certo
+        netEndTimer = setTimeout(() => { if (netPendingEnd === m) netApplyEnd(m); }, 8000);   // celular atrasado: encaixa no resultado certo
       } else netApplyEnd(m);
     }
     else if (m.t === "next"){ if (gameOver && m.n === gameNo) doNext(!!m.r); }   // o amigo clicou em "próxima": as duas mesas seguem juntas
@@ -2385,7 +2390,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (performance.now() - net.lastRx > 15000) netLost("Conexão perdida com seu amigo");
   }, 2000);
   window.addEventListener("pagehide", () => { if (net) net.send({t: "bye"}); });
-  window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq,
+  window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq, netDiff,
     balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p)};
   function startOnline(){
     net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
@@ -2582,14 +2587,20 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // ---------- Loop ----------
   let last = performance.now();
   function loop(now){
-    const dt = Math.min(0.033, (now-last)/1000); last = now;
+    const raw = (now-last)/1000, dt = Math.min(0.033, raw); last = now;
     if (moving){
       // física sempre no mesmo passo do simulador (a tacada sai igualzinho ao previsto) e o desenho
       // é suavizado entre um passo e outro, para as bolas andarem lisinhas em todo quadro
-      if (chalkFixed){                                                    // tacada do giz: mesmo passo do simulador (sai igualzinho), desenho suavizado
-        chalkAcc += dt;
-        while (chalkAcc >= 1/30){ for (const b of balls){ b.px = b.x; b.py = b.y; } physics(1/30); chalkAcc -= 1/30; }
-        renderAlpha = chalkAcc*30;
+      // passo fixo: giz (igual ao simulador) e partida com amigo (os dois celulares calculam a MESMA tacada, passo a passo)
+      const step = chalkFixed ? 1/30 : net ? 1/120 : 0;
+      if (step){
+        chalkAcc += Math.min(0.1, raw);                                   // celular mais lento recupera o atraso em vez de ficar para trás
+        while (chalkAcc >= step){
+          for (const b of balls){ b.px = b.x; b.py = b.y; }
+          physics(step); chalkAcc -= step;
+          if (allStopped()){ chalkAcc = 0; break; }
+        }
+        renderAlpha = chalkAcc/step;
       } else { physics(dt); renderAlpha = 1; }                            // tacada normal: física no ritmo da tela (giro e movimento lisinhos)
       if (allStopped() && sinkFx.length === 0){
         chalkFixed = false; chalkAcc = 0; renderAlpha = 1; balls.forEach(b => { b.px = b.x; b.py = b.y; });
