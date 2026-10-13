@@ -468,7 +468,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 20;
+const APP_VERSAO = 21;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1023,7 +1023,7 @@ async function tocarProx(){
 /* ---------------- gravação / transmissão ---------------- */
 function mimeSuportado(){
   if (!window.MediaRecorder) return null;
-  const ops = ['audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/webm','audio/mp4'];
+  const ops = ['audio/mp4;codecs=mp4a.40.2','audio/webm;codecs=opus','audio/ogg;codecs=opus','audio/webm','audio/mp4'];   // AAC primeiro: toca até no Radinho Lite (Android 4.4)
   for (const m of ops) if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m)) return m;
   return '';
 }
