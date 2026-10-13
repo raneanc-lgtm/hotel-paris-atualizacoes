@@ -18,6 +18,7 @@ import android.webkit.WebViewClient;
 /** Sinuca Mobile — Slim Creative. O jogo roda dentro do app, em tela cheia, deitado e com a tela sempre acesa. */
 public class MainActivity extends Activity {
     private WebView web;
+    private BluetoothMesa mesa;
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -43,6 +44,7 @@ public class MainActivity extends Activity {
         s.setBuiltInZoomControls(false);
         s.setTextZoom(100);
 
+        mesa = new BluetoothMesa(this, web);
         web.addJavascriptInterface(new Ponte(), "SinucaApp");   // jogo online: mandar o código da sala pelo WhatsApp etc.
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new WebChromeClient());
@@ -96,6 +98,32 @@ public class MainActivity extends Activity {
                 startActivity(Intent.createChooser(i, "Convidar para a sala"));
             });
         }
+        // ---- jogo via Bluetooth ----
+        @JavascriptInterface public boolean btDisponivel() { return mesa.disponivel(); }
+        @JavascriptInterface public void btHospedar() { runOnUiThread(() -> mesa.iniciar("hospedar")); }
+        @JavascriptInterface public void btProcurar() { runOnUiThread(() -> mesa.iniciar("procurar")); }
+        @JavascriptInterface public void btConectar(String endereco) { mesa.conectar(endereco); }
+        @JavascriptInterface public void btEnviar(String texto) { mesa.enviar(texto); }
+        @JavascriptInterface public void btFechar() { mesa.fechar(); }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int pedido, String[] permissoes, int[] resultado) {
+        super.onRequestPermissionsResult(pedido, permissoes, resultado);
+        if (pedido == BluetoothMesa.PEDIDO_PERM) mesa.resultadoPermissao(resultado);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    protected void onActivityResult(int pedido, int resultado, Intent dados) {
+        super.onActivityResult(pedido, resultado, dados);
+        mesa.resultadoAtividade(pedido);
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mesa != null) mesa.fechar();
+        super.onDestroy();
     }
 
     /** botão voltar: abre o menu do jogo (☰); no menu inicial, sai do app */

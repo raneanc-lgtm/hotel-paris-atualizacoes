@@ -121,6 +121,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .menucard, .resetcard{position:relative}
 .onlinecard .onbox{display:flex; flex-direction:column; gap:10px}
 .onjoin{display:flex; gap:8px}
+.btlist{display:flex; flex-direction:column; gap:6px; max-height:34cqh; overflow-y:auto}
+.btlist:empty{display:none}
+.btlist .btn{display:flex; justify-content:space-between; align-items:center; gap:10px; border-color:var(--brass)}
+.ontr .chip{flex:1}
 .onjoin input{flex:1; min-width:0; font:800 1.3rem var(--body); letter-spacing:.35em; text-transform:uppercase; text-align:center; color:var(--chalk); background:#141414; border:1px solid var(--line); border-radius:9px; padding:8px 6px}
 .onjoin input:focus{outline:2px solid var(--brass); outline-offset:1px}
 .oncode{font:800 2.6rem var(--body); letter-spacing:.3em; text-align:center; color:var(--brass); background:#141414; border:1px dashed var(--brass); border-radius:12px; padding:8px 0 8px .3em}
@@ -216,7 +220,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <div class="s2grid">
         <div class="opt notrain"><span>Adversário</span>
           <div class="lvls opp" role="radiogroup" aria-label="Adversário">
-            <button class="chip" data-o="cpu" type="button">Computador</button><button class="chip" data-o="2p" type="button">2 jogadores</button><button class="chip" data-o="online" type="button">Online</button>
+            <button class="chip" data-o="cpu" type="button">Computador</button><button class="chip" data-o="2p" type="button">2 jogadores</button><button class="chip" data-o="online" type="button">Online / BT</button>
           </div>
         </div>
         <div class="opt notrain"><span>Partida</span>
@@ -302,8 +306,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 <div class="overlay" id="online" hidden>
   <div class="card resetcard onlinecard">
     <button class="xbtn" id="onClose" type="button" aria-label="Fechar" title="Fechar">✕</button>
-    <h2>Jogar online</h2>
+    <h2>Jogar com um amigo</h2>
     <small id="onSub"></small>
+    <div class="lvls ontr" role="radiogroup" aria-label="Como conectar"><button class="chip on" data-t="net" type="button">Internet</button><button class="chip" data-t="bt" type="button">Bluetooth</button></div>
     <div id="onChoose" class="onbox">
       <button class="btn" id="onCreate" type="button">Criar sala <em>você é o P-1 e sai primeiro</em></button>
       <div class="onjoin"><input id="onCode" maxlength="4" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Código da sala"><button class="btn main" id="onJoin" type="button">Entrar</button></div>
@@ -312,6 +317,11 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <div class="oncode" id="onBig">····</div>
       <button class="btn main" id="onShare" type="button">Mandar convite</button>
       <button class="btn" id="onBack" type="button">‹ Voltar</button>
+    </div>
+    <div id="onBt" class="onbox" hidden>
+      <button class="btn" id="btHost" type="button">Abrir mesa <em>você é o P-1 e sai primeiro</em></button>
+      <button class="btn" id="btFind" type="button">Procurar mesa <em>entrar na mesa do amigo</em></button>
+      <div class="btlist" id="btList"></div>
     </div>
     <small id="onStatus" class="onstatus"></small>
   </div>
@@ -2162,7 +2172,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
       return;
     }
-    const rows = [["Modo", RULE_NAME()], ["Adversário", net ? `Online · sala ${net.code}` : vsCPU ? `Computador · ${LEVELS[cpuLevel].name}` : "2 jogadores"],
+    const rows = [["Modo", RULE_NAME()], ["Adversário", net ? (net.code === "BT" ? "Amigo via Bluetooth" : `Online · sala ${net.code}`) : vsCPU ? `Computador · ${LEVELS[cpuLevel].name}` : "2 jogadores"],
       ["Partida", matchFmt === "bo3" ? "Melhor de 3" : "Jogo contínuo"], [matchFmt === "bo3" ? "Série" : "Placar", `${NAME(0)} ${wins[0]} × ${wins[1]} ${NAME(1)}`]];
     if (matchFmt === "bo3") rows.push(["Séries ganhas", `${NAME(0)} ${series[0]} × ${series[1]} ${NAME(1)}`]);
     if (BET()) rows.push(["Aposta", `${wager} ficha${wager > 1 ? "s" : ""} ${matchFmt === "bo3" ? "pela série" : "por partida"}`], ["Suas fichas", String(ficha[net ? net.me : 0])]);
@@ -2269,7 +2279,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     document.getElementById("menuSub").textContent = "Jogo pausado";
     netMenuButtons();
     if (TREINO){ flash("Treino · arraste a branca para onde quiser e treine as matadas"); return; }
-    if (net){ flash(`Online · ${RULE_NAME()}` + (matchFmt === "bo3" ? " · melhor de 3" : "") + ` · aposta ${wager} — ${net.me === 0 ? "você sai" : "seu amigo sai"}`); return; }
+    if (net){ flash(`${net.code === "BT" ? "Bluetooth" : "Online"} · ${RULE_NAME()}` + (matchFmt === "bo3" ? " · melhor de 3" : "") + ` · aposta ${wager} — ${net.me === 0 ? "você sai" : "seu amigo sai"}`); return; }
     flash(RULE_NAME() + " · " + (cpuMode ? `Contra o computador (${LEVELS[cpuLevel].name})` : "2 jogadores") + (matchFmt === "bo3" ? " · melhor de 3" : " · jogo contínuo") + " — " + (cpuMode ? "você sai" : "Jogador 1 sai"));
   }
   // menu inicial: adversário, nível, aposta e formato (lembra a última escolha)
@@ -2419,14 +2429,55 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   const wrapConn = c => ({send: m => c.send(m), close: () => c.close(), on: (ev, fn) => c.on(ev, fn)});
   const onlineBox = document.getElementById("online");
   function onStatus(t, bad){ const el = document.getElementById("onStatus"); el.textContent = t; el.classList.toggle("bad", !!bad); }
+  // ---- Bluetooth (só no app: o Android faz a conexão, o jogo usa as mesmas mensagens da internet) ----
+  const BT = () => { try { return !!(window.SinucaApp && window.SinucaApp.btDisponivel && window.SinucaApp.btDisponivel()); } catch(e){ return false; } };
+  let onTrans = "net", btH = {};
+  function btStop(){ if (!net && BT()) try { window.SinucaApp.btFechar(); } catch(e){} }
+  function btLink(){
+    btH = {};
+    return {send: m => window.SinucaApp.btEnviar(JSON.stringify(m)), close: () => { try { window.SinucaApp.btFechar(); } catch(e){} }, on: (ev, fn) => { btH[ev] = fn; }};
+  }
+  window.__btRecv = t => { if (btH.data) btH.data(t); };
+  window.__btEvento = (tipo, dados) => {
+    if (tipo === "host" || tipo === "guest"){
+      if (net) return;
+      onStatus(`Conectado com ${dados || "o amigo"}! Começando…`);
+      netLink(btLink(), tipo === "host", "BT"); return;
+    }
+    if (tipo === "fechado"){ if (btH.close) btH.close(); else if (!onlineBox.hidden) onStatus("A conexão caiu · tente de novo", true); return; }
+    if (onlineBox.hidden || onTrans !== "bt") return;
+    const list = document.getElementById("btList");
+    if (tipo === "visivel") onStatus(`Mesa aberta · este celular aparece como "${dados || "este celular"}". Agora seu amigo toca em Procurar mesa.`);
+    else if (tipo === "buscando") onStatus("Procurando mesas por perto… toque no celular do seu amigo.");
+    else if (tipo === "busca-fim") onStatus(list.children.length ? "Toque no celular do seu amigo (ele precisa estar com a mesa aberta)." : "Nenhum celular achado · seu amigo abriu a mesa? Toque em Procurar mesa de novo.", !list.children.length);
+    else if (tipo === "conectando") onStatus("Conectando…");
+    else if (tipo === "erro") onStatus(dados, true);
+    else if (tipo === "aparelho"){
+      let d; try { d = JSON.parse(dados); } catch(e){ return; }
+      const b = document.createElement("button"); b.className = "btn"; b.type = "button";
+      const em = document.createElement("em"); em.textContent = d.p ? "pareado" : "por perto";
+      b.append(document.createTextNode(d.n), em);
+      b.onclick = () => { onStatus(`Conectando em ${d.n}…`); window.SinucaApp.btConectar(d.a); };
+      list.appendChild(b);
+    }
+  };
+  function setTrans(t){
+    onTrans = t; mark(".ontr", "t", t); btStop(); netClosePeer(); onTry++;
+    document.getElementById("onChoose").hidden = t !== "net"; document.getElementById("onWait").hidden = true;
+    document.getElementById("onBt").hidden = t !== "bt" || !BT();
+    document.getElementById("btList").textContent = "";
+    if (t === "net") onStatus("Crie a sala e passe o código, ou digite o código do seu amigo.");
+    else onStatus(BT() ? "Celulares perto um do outro: um abre a mesa e o outro procura." : "O Bluetooth funciona só no app Sinuca Mobile (APK).", !BT());
+  }
+  chipGroup(".ontr", ch => setTrans(ch.dataset.t));
+  document.getElementById("btHost").onclick = () => { document.getElementById("btList").textContent = ""; onStatus("Abrindo a mesa… aceite os avisos do Bluetooth"); window.SinucaApp.btHospedar(); };
+  document.getElementById("btFind").onclick = () => { document.getElementById("btList").textContent = ""; onStatus("Preparando a busca… aceite os avisos do Bluetooth"); window.SinucaApp.btProcurar(); };
   function openOnline(){
-    netClosePeer(); onTry++;
-    document.getElementById("onChoose").hidden = false; document.getElementById("onWait").hidden = true;
     document.getElementById("onSub").textContent = `${RULE_NAME()} · ${matchFmt === "bo3" ? "melhor de 3" : "jogo contínuo"} · aposta ${initialWager}`;
-    onStatus("Crie a sala e passe o código, ou digite o código do seu amigo.");
+    setTrans(onTrans);
     onlineBox.hidden = false;
   }
-  function closeOnline(){ onTry++; netClosePeer(); onlineBox.hidden = true; }
+  function closeOnline(){ onTry++; netClosePeer(); btStop(); onlineBox.hidden = true; }
   async function createRoom(){
     const tryId = ++onTry;
     document.getElementById("onChoose").hidden = true; document.getElementById("onWait").hidden = false;
@@ -2475,7 +2526,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   document.getElementById("onCode").addEventListener("keydown", e => { if (e.key === "Enter") joinRoom(); });
   document.getElementById("onCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4); });
   document.getElementById("onClose").onclick = closeOnline;
-  document.getElementById("onBack").onclick = () => { onTry++; netClosePeer(); openOnline(); };
+  document.getElementById("onBack").onclick = () => { onTry++; netClosePeer(); setTrans("net"); };
   document.getElementById("onShare").onclick = () => {
     const code = document.getElementById("onBig").textContent, txt = `Bora jogar Sinuca Mobile! Entre em Online › Entrar e digite o código ${code}`;
     if (window.SinucaApp && window.SinucaApp.compartilhar) window.SinucaApp.compartilhar(txt);   // no app: abre o "compartilhar" do Android (WhatsApp etc.)
