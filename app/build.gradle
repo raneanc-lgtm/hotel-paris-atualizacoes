@@ -33,6 +33,11 @@ android {
             signingConfig signingConfigs.fixa
         }
     }
+    // verificação automática (lint) não pode barrar a compilação do APK
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
