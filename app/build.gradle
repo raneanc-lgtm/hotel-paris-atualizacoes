@@ -1,0 +1,40 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.slimcreative.sinucamobile'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.slimcreative.sinucamobile"
+        minSdk 24
+        targetSdk 34
+        // a automação do GitHub passa o número da compilação: cada APK novo instala por cima do anterior
+        versionCode (System.getenv("BUILD_NUMBER") ?: "1").toInteger()
+        versionName "1." + (System.getenv("BUILD_NUMBER") ?: "1")
+    }
+
+    // chave fixa do projeto: assim toda atualização instala por cima, sem precisar desinstalar
+    signingConfigs {
+        fixa {
+            storeFile file("sinuca.keystore")
+            storePassword "sinucamobile"
+            keyAlias "sinuca"
+            keyPassword "sinucamobile"
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.fixa
+        }
+        debug {
+            signingConfig signingConfigs.fixa
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
