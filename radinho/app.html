@@ -439,7 +439,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 14;
+const APP_VERSAO = 15;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1559,7 +1559,7 @@ async function convidar(c){
     senha = r.senha;
   }
   const titulo = info.titulo || c;
-  const txt = '📻 Bora pro Radinho! Canal: ' + titulo + '\n\n1. Instala o app Radinho\n2. Abre, toca em "Colar convite" e entra\n\nradinho:' + c + (senha ? '\nsenha: ' + senha : (info.temSenha ? '\n(peça a senha pra quem te convidou)' : ''));
+  const txt = '📻 Bora pro Radinho! Canal: ' + titulo + '\n\n1. Instala o Radinho\n   Android: pede o APK pra quem te convidou\n   iPhone: abre no Safari https://raneanc-lgtm.github.io/hotel-paris-atualizacoes/radinho/ e toca em Compartilhar > Adicionar à Tela de Início\n2. Abre, toca em "Colar convite" e entra\n\nradinho:' + c + (senha ? '\nsenha: ' + senha : (info.temSenha ? '\n(peça a senha pra quem te convidou)' : ''));
   const copiou = await copiarTexto(txt);
   if (navigator.share){ try{ await navigator.share({ text: txt }); return; }catch(e){} }
   await janela({ titulo: copiou ? 'Convite copiado ✅' : 'Convite pronto', texto: (copiou ? 'É só colar no WhatsApp e mandar.\n\n' : 'Copie o texto abaixo e mande:\n\n') + txt, ok: 'Fechar', cancelar: false });
