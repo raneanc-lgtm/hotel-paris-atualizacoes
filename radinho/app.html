@@ -319,7 +319,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 6;
+const APP_VERSAO = 7;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -395,7 +395,7 @@ const confirmar = (titulo, texto, ok, perigo) => janela({ titulo, texto, ok: ok 
 let db, uid, nome, canal, refCanal, offset = 0, carregado = false;
 let ctx = null, ganho = null, toqueBuf = null;
 let stream = null, rec = null, chunks = [], gravando = false, apertado = false, tIni = 0;
-let timerInt = null, limiteTO = null, micTO = null;
+let timerInt = null, limiteTO = null, micTO = null, micUsado = false;
 let fila = [], tocando = false, fonteAtual = null, audioAtual = null;
 let vivoSrc = null, wakeLock = null;
 let aba = 'radio', naoLidas = 0, chatCarregado = false, ultimoChat = null;
@@ -452,12 +452,24 @@ function destravarAudio(){
   atualizarVisor();
 }
 function ligarVivo(){
+  if (document.visibilityState !== 'visible') return;
   garantirCtx();
   if (vivoSrc) return;
   const o = ctx.createOscillator(), g = ctx.createGain();
   o.frequency.value = 20; g.gain.value = 0.0002;
   o.connect(g).connect(ctx.destination); o.start();
   vivoSrc = o;
+}
+function dormirAudio(){           // minimizado e sem nada tocando: solta o áudio do celular
+  if (document.visibilityState === 'visible' || gravando || tocando || fila.length) return;
+  desligarVivo();
+  if (ctx && ctx.state === 'running') ctx.suspend().catch(()=>{});
+}
+async function acordarAudio(){
+  garantirCtx();
+  if (ctx.state !== 'running'){
+    try{ await Promise.race([ctx.resume(), new Promise(r => setTimeout(r, 1500))]); }catch(e){}
+  }
 }
 function desligarVivo(){ if (vivoSrc){ try{ vivoSrc.stop(); }catch(e){} vivoSrc = null; } }
 function b64ParaBuf(b64){
@@ -763,6 +775,7 @@ async function tocarProx(){
   try{
     const b64 = await buscarAudio(item.key);
     if (b64){
+      await acordarAudio();
       await (item.manual ? bip('in') : tocarToque());
       await tocarAudio(b64, item.mime);
       await bip('roger');
@@ -772,6 +785,7 @@ async function tocarProx(){
   }catch(e){ console.warn(e); }
   tocando = false;
   atualizarVisor();
+  if (!fila.length){ resetarAudio(); setTimeout(dormirAudio, 400); }
   tocarProx();
 }
 
@@ -786,15 +800,25 @@ async function pegarMic(){
   clearTimeout(micTO);
   if (stream && stream.getTracks().some(t => t.readyState === 'live')) return stream;
   stream = await navigator.mediaDevices.getUserMedia({
-    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 }
+    audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true, channelCount: 1 }
   });
   return stream;
 }
-function soltarMicDepois(){
+function soltarMic(){
   clearTimeout(micTO);
-  micTO = setTimeout(() => {
-    if (!gravando && stream){ stream.getTracks().forEach(t => t.stop()); stream = null; }
-  }, 30000);
+  if (stream){ try{ stream.getTracks().forEach(t => t.stop()); }catch(e){} stream = null; micUsado = true; }
+}
+function soltarMicDepois(){ if (!gravando) soltarMic(); }
+const naTela = () => document.visibilityState === 'visible';
+function resetarAudio(){          // reabre o som em modo mídia depois de usar o microfone
+  if (!micUsado || gravando || tocando || fila.length || !naTela()) return;
+  micUsado = false;
+  const velho = ctx;
+  desligarVivo(); ctx = null; ganho = null; toqueBuf = null;
+  if (velho){ try{ velho.close(); }catch(e){} }
+  garantirCtx();
+  if (cfgLocal.vivo) ligarVivo();
+  carregarToque();
 }
 function textoPTT(){
   $('pttTxt').textContent = souMudo ? 'VOCÊ ESTÁ SILENCIADO'
@@ -804,6 +828,7 @@ function textoPTT(){
 }
 async function comecar(){
   if (gravando) return;
+  if (!naTela()){ apertado = false; return; }
   destravarAudio();
   if (souMudo){ aviso('O administrador silenciou você neste canal.'); vibrar(40); apertado = false; return; }
   if (Object.keys(falandoAgora).some(k => k !== uid)){
@@ -813,7 +838,7 @@ async function comecar(){
   if (mime === null){ aviso('Este aparelho não suporta gravação.'); apertado = false; return; }
   try{ await pegarMic(); }
   catch(e){ aviso('Sem acesso ao microfone. Libere a permissão do Radinho nas configurações do Android.', 5000); apertado = false; return; }
-  if (!apertado) { soltarMicDepois(); return; }
+  if (!apertado || !naTela()) { soltarMic(); apertado = false; return; }
 
   pararTocar();
   const opts = { audioBitsPerSecond: BITRATE }; if (mime) opts.mimeType = mime;
@@ -821,7 +846,7 @@ async function comecar(){
   catch(e){ rec = new MediaRecorder(stream); }
   chunks = [];
   rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
-  rec.onstop = enviar;
+  rec.onstop = () => { soltarMic(); enviar(); };
   rec.start();
   gravando = true; tIni = Date.now();
   refCanal.child('online/' + uid + '/falando').set(true).catch(()=>{});
@@ -867,10 +892,11 @@ async function enviar(){
     const key = refCanal.child('msgs').push().key;
     await refCanal.child('audios/' + key).set(b64);
     await refCanal.child('msgs/' + key).set({ uid, nome, mime: tipo, dur: Math.round(dur * 10) / 10, ts: TS() });
-    bip('out');
+    await bip('out');
   }catch(e){
     aviso(souMudo ? 'Você está silenciado.' : 'Falha ao enviar: ' + (e.message || e), 5000);
   }
+  setTimeout(resetarAudio, 400);
 }
 function prepararPTT(){
   const b = $('ptt');
@@ -927,7 +953,7 @@ function addChat(key, m){
       if (aba !== 'chat') aviso('💬 ' + m.nome + ': ' + String(m.txt).slice(0, 60));
     }
     vibrar(60);
-    if (cfgLocal.somChat && !tocando && !gravando){ try{ bip('msg'); }catch(e){} }
+    if (cfgLocal.somChat && !tocando && !gravando){ try{ bip('msg').then(() => setTimeout(dormirAudio, 300)); }catch(e){} }
   }
 }
 async function enviarChat(){
@@ -1294,12 +1320,22 @@ document.addEventListener('pointerdown', () => { if (!ctx || ctx.state !== 'runn
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible'){
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(()=>{});
+    resetarAudio();
+    if (cfgLocal.vivo && ctx) ligarVivo();
     if (cfgLocal.tela && !wakeLock) ligarTela();
     if (aba === 'chat'){ naoLidas = 0; atualizarBadge(); }
     varrerExpirados();
     atualizarVisor();
-  } else if (attPronta) aplicarSeLivre();
+  } else {
+    // minimizou: encerra a transmissão e libera microfone e áudio pros outros apps
+    if (gravando) parar(); else apertado = false;
+    if (rec && rec.state === 'recording'){ try{ rec.stop(); }catch(e){} }
+    else soltarMic();
+    setTimeout(dormirAudio, 500);
+    if (attPronta) aplicarSeLivre();
+  }
 });
+window.addEventListener('pagehide', () => { if (gravando) parar(); soltarMic(); });
 
 (async function iniciar(){
   prepararPTT();
