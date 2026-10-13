@@ -423,8 +423,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       Object.assign(WHEEL, {x: left ? TOT_W - 150 - w : 150, y: 694, w, h: 64, dir: "h"});
     } else Object.assign(WHEEL, {x: left ? TOT_W - 66 : 6, y: 150, w: 60, h: 460, dir: "v"});
   }
+  let naturalExtra = 0, forcedExtra = null;                               // jogo com amigo: os dois usam a MESMA mesa (celular x tablet)
   function setLayout(aspect){
-    const extra = Math.max(0, Math.round(TOT_H*aspect) - BASE_W);
+    naturalExtra = Math.max(0, Math.round(TOT_H*aspect) - BASE_W);
+    const extra = forcedExtra !== null ? forcedExtra : naturalExtra;
     if (extra === EXTRA && LAMPS.length) return;
     const oldW = W;
     EXTRA = extra; TOT_W = BASE_W + extra; W = 1228 + extra; SIDE_X = 627.7 + extra/2;
@@ -2344,10 +2346,12 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       if (net.host) return;
       ruleMode = m.rules; TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = false;
       matchFmt = m.fmt === "bo3" ? "bo3" : "cont"; initialWager = m.wager | 0 || 1; net.peerFicha = m.ficha | 0;
-      net.send({t: "hi", ficha: parseInt(store.get("ficha0", "0")) || 0});
+      // mesa do tamanho que cabe nas DUAS telas (a menor das duas); a tela maior ganha uma bordinha
+      forcedExtra = Math.min(naturalExtra, Math.max(0, m.ex | 0)); resize();
+      net.send({t: "hi", ficha: parseInt(store.get("ficha0", "0")) || 0, ex: forcedExtra});
       startOnline();
     }
-    else if (m.t === "hi"){ if (!net.host || net.live) return; net.peerFicha = m.ficha | 0; startOnline(); }
+    else if (m.t === "hi"){ if (!net.host || net.live) return; net.peerFicha = m.ficha | 0; forcedExtra = Math.max(0, m.ex | 0); resize(); startOnline(); }
     else if (m.t === "rack"){
       if (net.host) return;
       if (m.g === rackSeq) netApplyRack(m); else if (m.g > rackSeq) netPendingRack = m;
@@ -2380,7 +2384,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     net.lastRx = performance.now();
     link.on("data", m => { if (net === mine) net.lastRx = performance.now(); if (net === mine) try { onNetMsg(typeof m === "string" ? JSON.parse(m) : m); } catch(e){ console.error(e); } });
     link.on("close", () => { if (net === mine) netLost("Conexão perdida"); });
-    if (host) net.send({t: "hello", rules: ruleMode, fmt: matchFmt, wager: initialWager, ficha: parseInt(store.get("ficha0", "0")) || 0});
+    if (host) net.send({t: "hello", rules: ruleMode, fmt: matchFmt, wager: initialWager, ficha: parseInt(store.get("ficha0", "0")) || 0, ex: naturalExtra});
   }
   window.__netLink = netLink;
   // sinal de vida: se o celular do amigo some (sem internet, app fechado), a partida encerra sozinha
@@ -2401,7 +2405,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function netLost(why){
     if (!net) return;
     if (why) fillMenuInfo();                                             // mostra como ficou a partida antes de desligar
-    const n = net; net = null; netCap = null; netPendingEnd = null; netPendingRack = null; clearTimeout(netEndTimer);
+    const n = net; net = null; netCap = null;
+    if (forcedExtra !== null){ forcedExtra = null; resize(); }              // volta a mesa do tamanho da tela netPendingEnd = null; netPendingRack = null; clearTimeout(netEndTimer);
     n.close(); netClosePeer();
     ruleMode = store.get("rules", "reg"); TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = ruleMode === "treino";
     matchFmt = store.get("fmt", "cont"); initialWager = +store.get("bet", "3");
