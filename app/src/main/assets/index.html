@@ -121,6 +121,21 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .menucard, .resetcard{position:relative}
 .onlinecard .onbox{display:flex; flex-direction:column; gap:10px}
 .onjoin{display:flex; gap:8px}
+.frhead{display:flex; justify-content:space-between; align-items:center; gap:10px}
+.frhead b{font:700 .8rem var(--body); letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.nick{display:flex; align-items:center; gap:6px; font:600 .78rem var(--body); color:var(--muted)}
+.nick input{width:9.5em; font:700 .9rem var(--body); color:var(--chalk); background:#141414; border:1px solid var(--line); border-radius:8px; padding:5px 8px}
+.frlist{display:flex; flex-direction:column; gap:6px; max-height:30cqh; overflow-y:auto}
+.frlist .fr{display:flex; align-items:center; gap:8px; background:#2a1f15; border:1px solid var(--line); border-radius:9px; padding:5px 6px 5px 10px}
+.frlist .fr .dot{width:9px; height:9px; border-radius:50%; background:#666; flex:none}
+.frlist .fr .dot.on{background:#3ddc6a; box-shadow:0 0 6px #3ddc6a}
+.frlist .fr .dot.busy{background:var(--brass)}
+.frlist .fr .nm{flex:1; min-width:0; font:600 .95rem var(--body); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.frlist .fr .nm em{display:block; font:500 .72rem var(--body); font-style:normal; color:var(--muted)}
+.frlist .fr .btn{padding:6px 12px}
+.frlist .fr .rm{background:none; border:0; color:var(--muted); font:700 1rem var(--body); padding:4px 6px; cursor:pointer}
+.frlist .hint{font:500 .8rem var(--body); color:var(--muted)}
+.invitecard{text-align:center}
 .btlist{display:flex; flex-direction:column; gap:6px; max-height:34cqh; overflow-y:auto}
 .btlist:empty{display:none}
 .btlist .btn{display:flex; justify-content:space-between; align-items:center; gap:10px; border-color:var(--brass)}
@@ -310,6 +325,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     <small id="onSub"></small>
     <div class="lvls ontr" role="radiogroup" aria-label="Como conectar"><button class="chip on" data-t="net" type="button">Internet</button><button class="chip" data-t="bt" type="button">Bluetooth</button></div>
     <div id="onChoose" class="onbox">
+      <div class="frhead"><b>Amigos</b><label class="nick">Seu nome <input id="onNick" maxlength="14" autocomplete="off" spellcheck="false" aria-label="Seu nome no jogo"></label></div>
+      <div class="frlist" id="frList"></div>
       <button class="btn" id="onCreate" type="button">Criar sala <em>você é o P-1 e sai primeiro</em></button>
       <div class="onjoin"><input id="onCode" maxlength="4" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Código da sala"><button class="btn main" id="onJoin" type="button">Entrar</button></div>
     </div>
@@ -324,6 +341,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <div class="btlist" id="btList"></div>
     </div>
     <small id="onStatus" class="onstatus"></small>
+  </div>
+</div>
+
+<div class="overlay" id="invite" hidden>
+  <div class="card resetcard invitecard">
+    <h2 id="invWho">Convite</h2>
+    <small id="invWhat"></small>
+    <button class="btn main" id="invYes" type="button">Aceitar e jogar</button>
+    <button class="btn" id="invNo" type="button">Agora não</button>
   </div>
 </div>
 
@@ -865,7 +891,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   const allStopped = () => balls.every(b => !b.in || (b.vx === 0 && b.vy === 0 && !(Math.abs(b.rx || 0) > 4 || Math.abs(b.ry || 0) > 4)));
 
   // ---------- Regras (sinuca de Minas: par ou ímpar, bolas 2 a 15) ----------
-  const NAME0 = i => net ? (i === net.me ? "Você" : "Amigo") : vsCPU ? (i === 0 ? "Você" : "Computador") : `Jogador ${i+1}`;
+  const PEER = () => net && net.peerNick ? String(net.peerNick).slice(0, 14) : "Amigo";
+  const NAME0 = i => net ? (i === net.me ? "Você" : PEER()) : vsCPU ? (i === 0 ? "Você" : "Computador") : `Jogador ${i+1}`;
   const NAME = i => netCap ? "\u0001" + i : NAME0(i);                          // online: nome vira marcador e cada celular escreve o seu ("Você"/"Amigo")
   const unTok = t => typeof t === "string" ? t.replace(/\u0001(\d)/g, (_, i) => NAME0(+i))
     .replace(/([Vv])ez de Você/g, (_, v) => v === "V" ? "Sua vez" : "sua vez").replace(/([Vv])ez de Amigo/g, "$1ez do seu amigo") : t;
@@ -945,8 +972,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         }
         if (seriesOver) series[i]++;                                     // ponto geral: séries ganhas
         const ME = net ? net.me : 0;
-        const who = vsCPU ? (i === 0 ? "Você" : "O computador") : net ? (i === ME ? "Você" : "Seu amigo") : NAME0(i);
-        const winLine = vsCPU ? (i === 0 ? "Você venceu!" : "O computador venceu") : net ? (i === ME ? "Você venceu!" : "Seu amigo venceu") : `${who} venceu!`;
+        const who = vsCPU ? (i === 0 ? "Você" : "O computador") : net ? (i === ME ? "Você" : PEER()) : NAME0(i);
+        const winLine = vsCPU ? (i === 0 ? "Você venceu!" : "O computador venceu") : net ? (i === ME ? "Você venceu!" : `${PEER()} venceu`) : `${who} venceu!`;
         const placar = `${NAME0(0)} ${wins[0]} x ${wins[1]} ${NAME0(1)}`;
         const fichasTxt = pays ? ` · ${i === ME ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}` : "";
         document.getElementById("foul").classList.remove("show"); document.getElementById("msg").classList.remove("show");
@@ -2163,6 +2190,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // botão "voltar" do celular (no app): fecha a janela aberta; na mesa abre o menu ☰; no menu inicial deixa sair
   window.__voltar = () => {
     if (!document.getElementById("lines").hidden){ document.getElementById("lines").hidden = true; optsBox.hidden = false; return true; }
+    if (!inviteBox.hidden){ answerInvite(false); return true; }
     if (!document.getElementById("online").hidden){ closeOnline(); return true; }
     for (const id of ["opts", "reset", "spin"]){ const el = document.getElementById(id); if (!el.hidden){ el.hidden = true; return true; } }
     if (!menu.hidden){ menu.hidden = true; return true; }
@@ -2177,7 +2205,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
       return;
     }
-    const rows = [["Modo", RULE_NAME()], ["Adversário", net ? (net.code === "BT" ? "Amigo via Bluetooth" : `Online · sala ${net.code}`) : vsCPU ? `Computador · ${LEVELS[cpuLevel].name}` : "2 jogadores"],
+    const rows = [["Modo", RULE_NAME()], ["Adversário", net ? (net.code === "BT" ? `${PEER()} · Bluetooth` : net.code === "AMIGO" ? `${PEER()} · online` : `${PEER()} · sala ${net.code}`) : vsCPU ? `Computador · ${LEVELS[cpuLevel].name}` : "2 jogadores"],
       ["Partida", matchFmt === "bo3" ? "Melhor de 3" : "Jogo contínuo"], [matchFmt === "bo3" ? "Série" : "Placar", `${NAME(0)} ${wins[0]} × ${wins[1]} ${NAME(1)}`]];
     if (matchFmt === "bo3") rows.push(["Séries ganhas", `${NAME(0)} ${series[0]} × ${series[1]} ${NAME(1)}`]);
     if (BET()) rows.push(["Aposta", `${wager} ficha${wager > 1 ? "s" : ""} ${matchFmt === "bo3" ? "pela série" : "por partida"}`], ["Suas fichas", String(ficha[net ? net.me : 0])]);
@@ -2284,7 +2312,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     document.getElementById("menuSub").textContent = "Jogo pausado";
     netMenuButtons();
     if (TREINO){ flash("Treino · arraste a branca para onde quiser e treine as matadas"); return; }
-    if (net){ flash(`${net.code === "BT" ? "Bluetooth" : "Online"} · ${RULE_NAME()}` + (matchFmt === "bo3" ? " · melhor de 3" : "") + ` · aposta ${wager} — ${net.me === 0 ? "você sai" : "seu amigo sai"}`); return; }
+    if (net){ flash(`${net.code === "BT" ? "Bluetooth" : "Online"} · ${RULE_NAME()}` + (matchFmt === "bo3" ? " · melhor de 3" : "") + ` · aposta ${wager} — ${net.me === 0 ? "você sai" : `${PEER()} sai`}`); return; }
     flash(RULE_NAME() + " · " + (cpuMode ? `Contra o computador (${LEVELS[cpuLevel].name})` : "2 jogadores") + (matchFmt === "bo3" ? " · melhor de 3" : " · jogo contínuo") + " — " + (cpuMode ? "você sai" : "Jogador 1 sai"));
   }
   // menu inicial: adversário, nível, aposta e formato (lembra a última escolha)
@@ -2348,10 +2376,11 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       matchFmt = m.fmt === "bo3" ? "bo3" : "cont"; initialWager = m.wager | 0 || 1; net.peerFicha = m.ficha | 0;
       // mesa do tamanho que cabe nas DUAS telas (a menor das duas); a tela maior ganha uma bordinha
       forcedExtra = Math.min(naturalExtra, Math.max(0, m.ex | 0)); resize();
-      net.send({t: "hi", ficha: parseInt(store.get("ficha0", "0")) || 0, ex: forcedExtra});
+      net.peerUid = m.uid; net.peerNick = m.nick;
+      net.send({t: "hi", ficha: parseInt(store.get("ficha0", "0")) || 0, ex: forcedExtra, uid: UID, nick: myNick()});
       startOnline();
     }
-    else if (m.t === "hi"){ if (!net.host || net.live) return; net.peerFicha = m.ficha | 0; forcedExtra = Math.max(0, m.ex | 0); resize(); startOnline(); }
+    else if (m.t === "hi"){ if (!net.host || net.live) return; net.peerFicha = m.ficha | 0; net.peerUid = m.uid; net.peerNick = m.nick; forcedExtra = Math.max(0, m.ex | 0); resize(); startOnline(); }
     else if (m.t === "rack"){
       if (net.host) return;
       if (m.g === rackSeq) netApplyRack(m); else if (m.g > rackSeq) netPendingRack = m;
@@ -2384,7 +2413,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     net.lastRx = performance.now();
     link.on("data", m => { if (net === mine) net.lastRx = performance.now(); if (net === mine) try { onNetMsg(typeof m === "string" ? JSON.parse(m) : m); } catch(e){ console.error(e); } });
     link.on("close", () => { if (net === mine) netLost("Conexão perdida"); });
-    if (host) net.send({t: "hello", rules: ruleMode, fmt: matchFmt, wager: initialWager, ficha: parseInt(store.get("ficha0", "0")) || 0, ex: naturalExtra});
+    if (host) net.send({t: "hello", rules: ruleMode, fmt: matchFmt, wager: initialWager, ficha: parseInt(store.get("ficha0", "0")) || 0, ex: naturalExtra, uid: UID, nick: myNick()});
   }
   window.__netLink = netLink;
   // sinal de vida: se o celular do amigo some (sem internet, app fechado), a partida encerra sozinha
@@ -2399,7 +2428,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function startOnline(){
     net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
     ficha[net.me] = parseInt(store.get("ficha0", "0")) || 0; ficha[1 - net.me] = net.peerFicha;
-    document.getElementById("online").hidden = true;
+    addFriend(net.peerUid, net.peerNick);                                // jogou uma vez: vira amigo pra chamar direto depois
+    ["online", "invite", "modes", "opts", "lines", "reset", "spin"].forEach(id => document.getElementById(id).hidden = true);
     startGame(false);
   }
   function netLost(why){
@@ -2482,12 +2512,149 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   chipGroup(".ontr", ch => setTrans(ch.dataset.t));
   document.getElementById("btHost").onclick = () => { document.getElementById("btList").textContent = ""; onStatus("Abrindo a mesa… aceite os avisos do Bluetooth"); window.SinucaApp.btHospedar(); };
   document.getElementById("btFind").onclick = () => { document.getElementById("btList").textContent = ""; onStatus("Preparando a busca… aceite os avisos do Bluetooth"); window.SinucaApp.btProcurar(); };
+
+  // ---------- Amigos: quem já jogou com você fica salvo e dá pra chamar direto (os dois com o jogo aberto) ----------
+  const UID_PREFIX = "sinucamobile-v1-u-", UID = (() => {
+    let u = store.get("uid", "");
+    if (!/^[a-z0-9]{10}$/.test(u)){ u = Array.from({length: 10}, () => "abcdefghijkmnpqrstuvwxyz23456789"[Math.floor(Math.random()*32)]).join(""); store.set("uid", u); }
+    return u;
+  })();
+  const myNick = () => (store.get("nick", "") || "").trim() || "Jogador " + UID.slice(0, 4).toUpperCase();
+  let friends = []; try { friends = JSON.parse(store.get("friends", "[]")) || []; } catch(e){ friends = []; }
+  const frState = {};                                                     // id -> "on" | "off" | "busy" | "?"
+  function addFriend(id, nick){
+    if (!id || id === UID || !/^[a-z0-9]{10}$/.test(id)) return;
+    const name = String(nick || "Amigo").slice(0, 14), f = friends.find(x => x.id === id);
+    if (f){ f.name = name; f.t = Date.now(); } else friends.push({id, name, t: Date.now()});
+    friends.sort((a, b) => b.t - a.t); friends = friends.slice(0, 30);
+    store.set("friends", JSON.stringify(friends)); frState[id] = "busy";
+  }
+  function renderFriends(){
+    const box = document.getElementById("frList"); if (!box) return; box.textContent = "";
+    if (!friends.length){ const h = document.createElement("div"); h.className = "hint"; h.textContent = "Quem jogar com você pela sala ou Bluetooth aparece aqui pra chamar direto."; box.appendChild(h); return; }
+    for (const f of friends){
+      const st = frState[f.id] || "?";
+      const row = document.createElement("div"); row.className = "fr";
+      const dot = document.createElement("span"); dot.className = "dot" + (st === "on" ? " on" : st === "busy" ? " busy" : "");
+      const nm = document.createElement("span"); nm.className = "nm"; nm.textContent = f.name;
+      const em = document.createElement("em"); em.textContent = st === "on" ? "online agora" : st === "busy" ? "jogando" : st === "off" ? "offline" : "procurando…"; nm.appendChild(em);
+      const call = document.createElement("button"); call.type = "button"; call.className = "btn" + (st === "on" ? " main" : ""); call.textContent = "Chamar";
+      call.disabled = st === "off" || st === "busy"; call.onclick = () => callFriend(f);
+      const rm = document.createElement("button"); rm.type = "button"; rm.className = "rm"; rm.textContent = "✕"; rm.title = "Tirar da lista"; rm.setAttribute("aria-label", "Tirar " + f.name + " da lista");
+      rm.onclick = () => { friends = friends.filter(x => x !== f); store.set("friends", JSON.stringify(friends)); renderFriends(); };
+      row.append(dot, nm, call, rm); box.appendChild(row);
+    }
+  }
+  const setFr = (id, st) => { if (frState[id] === st) return; frState[id] = st; if (!onlineBox.hidden) renderFriends(); };
+  // presença: cada jogo aberto fica "escutando" no próprio número; reconecta sozinho se cair
+  let homePeer = null, homeOk = false, homeT = 0, calling = null;
+  function homeStart(){
+    clearTimeout(homeT);
+    if (homePeer) return;
+    loadPeer().then(() => {
+      if (homePeer) return;
+      const p = homePeer = new window.Peer(UID_PREFIX + UID, PEER_OPT);
+      p.on("open", () => { if (homePeer === p){ homeOk = true; if (!onlineBox.hidden) probeAll(); } });
+      p.on("connection", homeIncoming);
+      p.on("disconnected", () => { if (homePeer !== p) return; homeOk = false; setTimeout(() => { if (homePeer === p && !p.destroyed) try { p.reconnect(); } catch(e){} }, 3000); });
+      p.on("error", err => {
+        if (homePeer !== p) return;
+        const t = err && err.type;
+        if (t === "peer-unavailable"){                                  // amigo offline
+          const id = (String(err.message || "").match(/sinucamobile-v1-u-([a-z0-9]{10})/) || [])[1];
+          if (id){ setFr(id, "off"); if (calling && calling.id === id){ const nm = calling.name; calling = null; onStatus(`${nm} não está com o jogo aberto agora`, true); } }
+          return;
+        }
+        if (["network", "server-error", "socket-error", "socket-closed", "unavailable-id", "browser-incompatible"].includes(t)) homeRetry(t === "unavailable-id" ? 8000 : 20000);
+      });
+    }).catch(() => homeRetry(30000));
+  }
+  function homeRetry(ms){ const p = homePeer; homePeer = null; homeOk = false; if (p) try { p.destroy(); } catch(e){} clearTimeout(homeT); homeT = setTimeout(homeStart, ms); }
+  window.addEventListener("online", () => { if (!homeOk) homeRetry(500); });
+  function probeAll(){ if (homePeer && homeOk) friends.forEach(f => probe(f.id)); }
+  function probe(id){
+    if (!frState[id]) frState[id] = "?";
+    let c; try { c = homePeer.connect(UID_PREFIX + id, {reliable: true, serialization: "json"}); } catch(e){ return; }
+    if (!c) return;
+    const t = setTimeout(() => { if (frState[id] === "?") setFr(id, "off"); try { c.close(); } catch(e){} }, 8000);
+    c.on("open", () => c.send({t: "probe"}));
+    c.on("data", m => {
+      if (!m || m.t !== "here") return;
+      clearTimeout(t); setFr(id, m.busy ? "busy" : "on");
+      const f = friends.find(x => x.id === id); if (f && m.nick && f.name !== m.nick){ f.name = String(m.nick).slice(0, 14); store.set("friends", JSON.stringify(friends)); if (!onlineBox.hidden) renderFriends(); }
+      setTimeout(() => { try { c.close(); } catch(e){} }, 200);
+    });
+  }
+  setInterval(() => { if (!onlineBox.hidden && onTrans === "net") probeAll(); }, 15000);
+  // alguém chamou
+  const inviteBox = document.getElementById("invite");
+  let inviteConn = null, inviteT = 0;
+  function homeIncoming(c){
+    let handled = false;
+    const bye = () => setTimeout(() => { try { c.close(); } catch(e){} }, 300);
+    c.on("data", m => {
+      if (handled || !m) return;
+      if (m.t === "probe"){ handled = true; c.send({t: "here", busy: !!net || !!inviteConn, nick: myNick()}); bye(); }
+      else if (m.t === "invite"){
+        handled = true;
+        if (net || inviteConn || calling){ c.send({t: "busy"}); bye(); return; }
+        showInvite(c, m);
+      }
+    });
+    setTimeout(() => { if (!handled) try { c.close(); } catch(e){} }, 10000);
+  }
+  function showInvite(c, m){
+    inviteConn = c;
+    const name = String(m.nick || "Um amigo").slice(0, 14), RN = {reg: "Sinuca Regional", trad: "Sinuca Tradicional", bol: "Bolinho"};
+    document.getElementById("invWho").textContent = `${name} te chamou pra jogar!`;
+    document.getElementById("invWhat").textContent = `${RN[m.rules] || "Sinuca"} · ${m.fmt === "bo3" ? "melhor de 3" : "jogo contínuo"} · aposta ${m.wager | 0} ficha${(m.wager | 0) > 1 ? "s" : ""}`;
+    inviteBox.hidden = false; buzz(300); if (soundOn) sfx.cue(0.6);
+    c.on("close", () => { if (inviteConn === c){ inviteConn = null; inviteBox.hidden = true; clearTimeout(inviteT); if (!net) flash(`${name} cancelou o convite`); } });
+    clearTimeout(inviteT); inviteT = setTimeout(() => { if (inviteConn === c) answerInvite(false); }, 30000);
+  }
+  function answerInvite(yes){
+    const c = inviteConn; inviteConn = null; clearTimeout(inviteT); inviteBox.hidden = true;
+    if (!c) return;
+    if (yes && !net){
+      c.send({t: "accept"});
+      cpu = null; netClosePeer(); btStop(); onlineBox.hidden = true; menu.hidden = true;
+      netLink(wrapConn(c), false, "AMIGO");                              // quem chamou é o anfitrião (manda as regras)
+    } else { c.send({t: "decline"}); setTimeout(() => { try { c.close(); } catch(e){} }, 300); }
+  }
+  document.getElementById("invYes").onclick = () => answerInvite(true);
+  document.getElementById("invNo").onclick = () => answerInvite(false);
+  // chamar um amigo
+  function callFriend(f){
+    if (net) return;
+    if (!homePeer || !homeOk){ onStatus("Sem conexão com a internet agora · tente de novo", true); homeRetry(300); return; }
+    if (calling) try { calling.c.close(); } catch(e){}
+    const tryId = ++onTry; let linked = false;
+    const c = homePeer.connect(UID_PREFIX + f.id, {reliable: true, serialization: "json"});
+    calling = {id: f.id, name: f.name, c};
+    onStatus(`Chamando ${f.name}… (ele precisa estar com o Sinuca Mobile aberto)`);
+    const stop = (msg) => { if (calling && calling.c === c) calling = null; try { c.close(); } catch(e){} if (tryId === onTry) onStatus(msg, true); };
+    c.on("open", () => c.send({t: "invite", uid: UID, nick: myNick(), rules: ruleMode, fmt: matchFmt, wager: initialWager}));
+    c.on("data", m => {
+      if (linked || !m) return;
+      if (tryId !== onTry || !calling || calling.c !== c){ try { c.close(); } catch(e){} return; }
+      if (m.t === "accept"){ linked = true; calling = null; onStatus(`${f.name} aceitou! Começando…`); netLink(wrapConn(c), true, "AMIGO"); }
+      else if (m.t === "decline") stop(`${f.name} não aceitou agora`);
+      else if (m.t === "busy"){ setFr(f.id, "busy"); stop(`${f.name} está jogando agora`); }
+    });
+    setTimeout(() => { if (!linked && calling && calling.c === c) stop(`${f.name} não respondeu`); }, 35000);
+  }
+  const nickIn = document.getElementById("onNick");
+  nickIn.value = store.get("nick", "");
+  nickIn.placeholder = myNick();
+  nickIn.addEventListener("change", () => { store.set("nick", nickIn.value.trim().slice(0, 14)); nickIn.placeholder = myNick(); });
+  setTimeout(homeStart, 1500);                                           // fica disponível pros amigos assim que abre o jogo
   function openOnline(){
+    renderFriends(); probeAll(); if (!homePeer) homeStart();
     document.getElementById("onSub").textContent = `${RULE_NAME()} · ${matchFmt === "bo3" ? "melhor de 3" : "jogo contínuo"} · aposta ${initialWager}`;
     setTrans(onTrans);
     onlineBox.hidden = false;
   }
-  function closeOnline(){ onTry++; netClosePeer(); btStop(); onlineBox.hidden = true; }
+  function closeOnline(){ onTry++; netClosePeer(); btStop(); if (calling){ try { calling.c.close(); } catch(e){} calling = null; } onlineBox.hidden = true; }
   async function createRoom(){
     const tryId = ++onTry;
     document.getElementById("onChoose").hidden = true; document.getElementById("onWait").hidden = false;
