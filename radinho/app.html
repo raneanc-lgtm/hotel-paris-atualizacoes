@@ -154,6 +154,21 @@
   .lista-adm .vz{color:var(--sub);font-size:13px}
   .pessoa h2{display:flex;align-items:center;gap:8px}
   textarea:disabled{opacity:.5}
+  .canais{list-style:none;margin:6px 0 0;padding:0}
+  .canais li{display:flex;align-items:center;gap:10px;padding:10px 12px;margin-bottom:6px;background:var(--corpo2);border:1px solid var(--borda);border-radius:12px}
+  .canais li.atual{border-color:var(--verde)}
+  .canais li div{flex:1;min-width:0}
+  .canais li b{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .canais li small{color:var(--sub);font-size:12px}
+  .canais li button{border:0;background:var(--verde);color:#062012;font-weight:800;border-radius:10px;padding:8px 12px}
+  .canais li em{font-style:normal;color:var(--verde);font-size:12px;font-weight:700}
+  .grade{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .grade .btn{margin-top:0;font-size:14px;padding:12px 8px}
+  #fundoD{z-index:60;align-items:center;padding:16px}
+  #fundoD .painel-aj{border-radius:20px;border:1px solid var(--borda);max-width:420px}
+  #dTxt{color:var(--sub);font-size:14px;line-height:1.5;margin:4px 0 4px;white-space:pre-line}
+  .dBtns{display:flex;gap:8px;margin-top:6px}
+  .dBtns .btn{margin-top:12px}
   #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%) translateY(200px);background:#000;color:#fff;
     border:1px solid var(--borda);padding:12px 16px;border-radius:12px;font-size:14px;max-width:90vw;z-index:50;transition:transform .25s;text-align:center}
   #toast.on{transform:translateX(-50%) translateY(0)}
@@ -247,9 +262,18 @@
     </div>
 
     <div id="secAdmin" hidden>
-      <h4>GERENCIAR CANAL</h4>
+      <h4>MEUS CANAIS</h4>
+      <ul class="canais" id="lstCanais"></ul>
+      <button class="btn" id="btnNovoCanal">➕ Criar canal novo</button>
+
+      <h4>EDITAR ESTE CANAL</h4>
       <div class="info" id="infoCanal"></div>
-      <button class="btn sec" id="btnSenha">Trocar / tirar a senha do canal</button>
+      <div class="grade">
+        <button class="btn sec" id="btnNomeCanal">✏️ Nome</button>
+        <button class="btn sec" id="btnSenha">🔒 Senha</button>
+        <button class="btn sec" id="btnLimpar">🧹 Limpar conversa</button>
+        <button class="btn perigo" id="btnApagarCanal">🗑️ Apagar canal</button>
+      </div>
       <h4>SILENCIADOS</h4>
       <ul class="lista-adm" id="lstMudos"></ul>
       <h4>BANIDOS</h4>
@@ -279,6 +303,15 @@
   </div>
 </div>
 
+<div class="fundo" id="fundoD" hidden>
+  <div class="painel-aj">
+    <h2 id="dTit"></h2>
+    <div id="dTxt"></div>
+    <div id="dCampos"></div>
+    <div class="dBtns"><button class="btn sec" id="dNao">Cancelar</button><button class="btn" id="dSim">OK</button></div>
+  </div>
+</div>
+
 <div id="faixa" hidden><span id="faixaTxt"></span><button id="faixaBtn">Atualizar</button></div>
 <div id="toast"></div>
 
@@ -286,7 +319,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 5;
+const APP_VERSAO = 6;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -327,6 +360,36 @@ async function hashSenha(c, senha){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('radinho:' + c + ':' + senha));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
+
+/* ---------------- janelas do app (no lugar das caixinhas do Android) ---------------- */
+function janela({ titulo, texto, campos, ok, cancelar, perigo }){
+  return new Promise(res => {
+    $('dTit').textContent = titulo || '';
+    $('dTxt').textContent = texto || ''; $('dTxt').hidden = !texto;
+    const box = $('dCampos'); box.innerHTML = '';
+    (campos || []).forEach(c => {
+      const l = document.createElement('label'); l.textContent = c.label; box.appendChild(l);
+      const i = document.createElement('input'); i.type = 'text'; i.id = 'dc_' + c.id;
+      i.placeholder = c.placeholder || ''; i.value = c.valor || ''; i.maxLength = c.max || 40;
+      i.autocomplete = 'off'; i.setAttribute('autocapitalize', c.minusculo ? 'none' : 'sentences');
+      if (c.senha) i.style.webkitTextSecurity = 'disc';
+      box.appendChild(i);
+    });
+    $('dSim').textContent = ok || 'OK';
+    $('dSim').className = 'btn' + (perigo ? ' perigo' : '');
+    $('dNao').textContent = cancelar || 'Cancelar';
+    $('dNao').hidden = cancelar === false;
+    const fim = v => { $('fundoD').hidden = true; $('dSim').onclick = $('dNao').onclick = null; res(v); };
+    $('dSim').onclick = () => {
+      if (!campos) return fim(true);
+      const r = {}; campos.forEach(c => r[c.id] = $('dc_' + c.id).value.trim()); fim(r);
+    };
+    $('dNao').onclick = () => fim(campos ? null : false);
+    $('fundoD').hidden = false;
+    const primeiro = box.querySelector('input'); if (primeiro) setTimeout(() => primeiro.focus(), 50);
+  });
+}
+const confirmar = (titulo, texto, ok, perigo) => janela({ titulo, texto, ok: ok || 'Confirmar', perigo });
 
 /* ---------------- estado ---------------- */
 let db, uid, nome, canal, refCanal, offset = 0, carregado = false;
@@ -495,16 +558,17 @@ function atualizarBadge(){
 async function estaBanido(c){
   try{ return (await db.ref('canais/' + c + '/banidos/' + uid).once('value')).exists(); }catch(e){ return false; }
 }
-async function criarCanal(c, senha){
+async function criarCanal(c, senha, titulo){
   const temSenha = !!senha;
-  await db.ref('canais/' + c + '/info').set({ criador: uid, temSenha, criado: TS() });
+  const info = { criador: uid, temSenha, criado: TS() }; if (titulo) info.titulo = titulo;
+  await db.ref('canais/' + c + '/info').set(info);
   await db.ref('segredos/' + c + '/hash').set(temSenha ? await hashSenha(c, senha) : null);
 }
 async function entrarNoCanal(n, c, senha){
   let info = (await db.ref('canais/' + c + '/info').once('value')).val();
   if (!info){
     if (!souAdmin()){ aviso('Esse canal não existe. Confere o código com o administrador.', 4500); return false; }
-    if (!confirm('O canal "' + c + '" ainda não existe.\n\nCriar agora ' + (senha ? 'COM a senha digitada?' : 'SEM senha?'))) return false;
+    if (!(await confirmar('Criar canal?', 'O canal "' + c + '" ainda não existe.\nCriar agora ' + (senha ? 'COM a senha digitada?' : 'SEM senha?'), 'Criar'))) return false;
     await criarCanal(c, senha);
     aviso('Canal criado!');
     return true;
@@ -540,7 +604,7 @@ async function removido(){
 /* ---------------- canal / presença ---------------- */
 async function conectarCanal(){
   refCanal = db.ref('canais/' + canal);
-  $('lblCanal').textContent = 'Canal: ' + canal + ' • ' + nome;
+  $('lblCanal').textContent = 'Canal: ' + nomeCanal() + ' • ' + nome;
   telas('tRadio');
   carregado = false;
   const falhou = () => removido();
@@ -555,7 +619,11 @@ async function conectarCanal(){
     }
   });
   refCanal.child('online').on('value', s => renderOnline(s.val() || {}), falhou);
-  refCanal.child('info').on('value', s => { infoCanal = s.val(); if (!infoCanal) falhou(); renderAdmin(); }, () => {});
+  refCanal.child('info').on('value', s => {
+    infoCanal = s.val(); if (!infoCanal){ falhou(); return; }
+    if (souAdmin()) guardarCanal(canal, infoCanal.titulo);
+    renderOnline(onlineAtual); renderAdmin();
+  }, () => {});
   refCanal.child('mudos').on('value', s => {
     mudos = s.val() || {};
     const antes = souMudo; souMudo = !!mudos[uid];
@@ -596,7 +664,7 @@ function renderOnline(lista){
     if (id !== uid) c.onclick = () => abrirPessoa(id, p.nome);
     el.appendChild(c);
   });
-  $('lblCanal').textContent = 'Canal: ' + canal + ' • ' + ids.length + ' online' + (infoCanal && infoCanal.temSenha ? ' • 🔒' : '');
+  $('lblCanal').textContent = nomeCanal() + ' • ' + ids.length + ' online' + (infoCanal && infoCanal.temSenha ? ' • 🔒' : '');
   atualizarVisor();
 }
 
@@ -922,7 +990,7 @@ function prepararPessoa(){
   };
   $('pBanir').onclick = async () => {
     const p = pessoaAtual; if (!p || !souAdmin()) return;
-    if (!confirm('Banir ' + p.nome + ' do canal? Ele não vai conseguir mais entrar.')) return;
+    if (!(await confirmar('Banir ' + p.nome + '?', 'Ele sai do canal e não consegue mais entrar.', 'Banir', true))) return;
     try{
       const upd = {};
       upd['banidos/' + p.id] = { nome: p.nome, ts: TS() };
@@ -940,7 +1008,8 @@ function renderAdmin(){
   const adm = souAdmin() && !!refCanal;
   $('secAdmin').hidden = !adm;
   if (!adm) return;
-  $('infoCanal').innerHTML = 'Canal <b>' + esc(canal) + '</b> • ' + (infoCanal && infoCanal.temSenha ? '🔒 com senha' : 'sem senha');
+  $('infoCanal').innerHTML = '<b>' + esc(nomeCanal()) + '</b> • código <b>' + esc(canal) + '</b> • ' + (infoCanal && infoCanal.temSenha ? '🔒 com senha' : 'sem senha');
+  renderCanais();
   const lm = $('lstMudos'); lm.innerHTML = '';
   const km = Object.keys(mudos);
   if (!km.length) lm.innerHTML = '<li class="vz">Ninguém silenciado.</li>';
@@ -965,16 +1034,91 @@ function renderAdmin(){
 }
 async function trocarSenha(){
   if (!souAdmin()) return;
-  const nova = prompt('Nova senha do canal "' + canal + '".\n\nDeixe vazio pra tirar a senha.', '');
-  if (nova === null) return;
-  const s = nova.trim();
-  if (s && !confirm('Colocar a senha nova? Todo mundo vai precisar entrar de novo com ela.')) return;
+  const r = await janela({ titulo: '🔒 Senha do canal', texto: (infoCanal && infoCanal.temSenha ? 'O canal tem senha.' : 'O canal está sem senha.') + '\nDeixe vazio pra tirar a senha. Quando você coloca senha nova, todo mundo precisa entrar de novo com ela.',
+    campos: [{ id: 'senha', label: 'Senha nova', placeholder: 'vazio = sem senha', senha: true, minusculo: true }], ok: 'Salvar' });
+  if (!r) return;
+  const s = r.senha;
   try{
     await db.ref('segredos/' + canal + '/hash').set(s ? await hashSenha(canal, s) : null);
     await refCanal.child('info/temSenha').set(!!s);
     if (s) await refCanal.child('membros').remove();
     aviso(s ? 'Senha trocada! Passe a senha nova pra galera.' : 'Senha removida.', 4500);
   }catch(e){ aviso('Erro: ' + (e.message || e), 5000); }
+}
+
+/* ---------------- meus canais (administrador) ---------------- */
+function meusCanais(){ try{ return JSON.parse(LS.get('radinho_meuscanais') || '{}') || {}; }catch(e){ return {}; } }
+function guardarCanal(c, titulo){ const m = meusCanais(); m[c] = titulo || m[c] || ''; LS.set('radinho_meuscanais', JSON.stringify(m)); }
+function esquecerCanal(c){ const m = meusCanais(); delete m[c]; LS.set('radinho_meuscanais', JSON.stringify(m)); }
+const nomeCanal = () => (infoCanal && infoCanal.titulo) || canal;
+function renderCanais(){
+  const ul = $('lstCanais'); if (!ul) return; ul.innerHTML = '';
+  const m = meusCanais();
+  Object.keys(m).sort((a,b) => (a === canal ? -1 : b === canal ? 1 : a.localeCompare(b))).forEach(c => {
+    const li = document.createElement('li'); if (c === canal) li.className = 'atual';
+    li.innerHTML = '<div><b>' + esc(m[c] || c) + '</b><small>' + esc(c) + '</small></div>' +
+      (c === canal ? '<em>● VOCÊ ESTÁ AQUI</em>' : '<button>Entrar</button>');
+    const b = li.querySelector('button'); if (b) b.onclick = () => trocarPara(c);
+    ul.appendChild(li);
+  });
+}
+async function trocarPara(c){
+  saindo = true;
+  try{ await refCanal.child('online/' + uid).remove(); }catch(e){}
+  LS.set('radinho_canal', c);
+  location.reload();
+}
+async function novoCanal(){
+  if (!souAdmin()) return;
+  const r = await janela({ titulo: '➕ Canal novo', texto: 'O código é o que a galera digita pra entrar (mínimo 6, só letras, números, - ou _).',
+    campos: [
+      { id: 'codigo', label: 'Código do canal', placeholder: 'ex: familia-2026', minusculo: true },
+      { id: 'titulo', label: 'Nome que aparece (opcional)', placeholder: 'ex: Família', max: 30 },
+      { id: 'senha',  label: 'Senha (opcional)', placeholder: 'vazio = sem senha', senha: true, minusculo: true }
+    ], ok: 'Criar' });
+  if (!r) return;
+  const c = r.codigo.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+  if (c.length < 6){ aviso('O código precisa ter pelo menos 6 caracteres.', 4000); return; }
+  try{
+    if ((await db.ref('canais/' + c + '/info').once('value')).exists()){
+      guardarCanal(c); renderCanais();
+      if (await confirmar('Esse canal já existe', 'Quer entrar no "' + c + '"?', 'Entrar')) trocarPara(c);
+      return;
+    }
+    await criarCanal(c, r.senha, r.titulo);
+    guardarCanal(c, r.titulo); renderCanais();
+    if (await confirmar('Canal criado! ✅', 'Código: ' + c + (r.senha ? '\nCom senha.' : '\nSem senha.') + '\n\nEntrar nele agora?', 'Entrar')) trocarPara(c);
+  }catch(e){ aviso('Erro ao criar: ' + (e.message || e), 5000); }
+}
+async function editarNome(){
+  const r = await janela({ titulo: '✏️ Nome do canal', texto: 'É o nome que aparece no topo pra galera. O código (' + canal + ') continua o mesmo.',
+    campos: [{ id: 'titulo', label: 'Nome', valor: (infoCanal && infoCanal.titulo) || '', placeholder: canal, max: 30 }], ok: 'Salvar' });
+  if (!r) return;
+  try{ await refCanal.child('info/titulo').set(r.titulo || null); guardarCanal(canal, r.titulo); renderCanais(); aviso('Nome salvo.'); }
+  catch(e){ aviso('Erro: ' + (e.message || e)); }
+}
+async function limparConversa(){
+  if (!(await confirmar('🧹 Limpar conversa', 'Apaga agora todos os áudios e mensagens deste canal, pra todo mundo.', 'Limpar', true))) return;
+  try{
+    await refCanal.update({ msgs: null, audios: null, chat: null });
+    $('lista').innerHTML = ''; checarVazio();
+    $('msgs').innerHTML = '<div class="vazio" id="chatVazio">Nenhuma mensagem agora. Manda a primeira!</div>'; ultimoChat = null;
+    aviso('Conversa limpa.');
+  }catch(e){ aviso('Erro: ' + (e.message || e)); }
+}
+async function apagarCanal(){
+  const r = await janela({ titulo: '🗑️ Apagar canal', texto: 'Isso apaga o canal "' + canal + '" de vez e tira todo mundo dele.\nPra confirmar, digite o código do canal:',
+    campos: [{ id: 'cod', label: 'Código', placeholder: canal, minusculo: true }], ok: 'Apagar', perigo: true });
+  if (!r) return;
+  if (r.cod.toLowerCase() !== canal){ aviso('Código não confere. Nada foi apagado.'); return; }
+  try{
+    saindo = true;
+    await db.ref('segredos/' + canal).remove();
+    await refCanal.remove();
+    esquecerCanal(canal);
+    LS.del('radinho_canal'); LS.set('radinho_aviso', 'Canal apagado.');
+    location.reload();
+  }catch(e){ saindo = false; aviso('Erro: ' + (e.message || e)); }
 }
 
 /* ---------------- atualização online ---------------- */
@@ -1048,7 +1192,7 @@ async function publicar(arquivo){
     if (c.indexOf('RADINHO_APP') < 0 || !v){ aviso('Esse arquivo não é uma versão do Radinho.', 4000); return; }
     const atual = Math.max(APP_VERSAO, versaoRemota);
     if (v <= atual){ aviso('Esse arquivo é a versão ' + v + '. Precisa ser maior que ' + atual + '.', 5000); return; }
-    if (!confirm('Publicar a versão ' + v + ' pra todo mundo?')) return;
+    if (!(await confirmar('Publicar atualização', 'Publicar a versão ' + v + ' pra todo mundo?', 'Publicar'))) return;
     await db.ref('app/codigo').set(c);
     await db.ref('app/versao').set(v);
     aviso('Versão ' + v + ' publicada! A galera recebe ao abrir o app.', 5000);
@@ -1098,13 +1242,17 @@ function prepararAjustes(){
   $('swSomChat').onchange = e => { cfgLocal.somChat = e.target.checked; LS.set('radinho_somchat', cfgLocal.somChat ? '1' : '0'); };
 
   $('btnSenha').onclick = trocarSenha;
+  $('btnNovoCanal').onclick = novoCanal;
+  $('btnNomeCanal').onclick = editarNome;
+  $('btnLimpar').onclick = limparConversa;
+  $('btnApagarCanal').onclick = apagarCanal;
   $('btnBuscarAtt').onclick = async () => {
     if (!db) return;
     const v = parseInt((await db.ref('app/versao').once('value')).val()) || 0;
     if (v > APP_VERSAO) baixarAtualizacao(v, true); else checarGitHub(true);
   };
   $('btnVirarAdmin').onclick = async () => {
-    if (!confirm('Tornar ESTE aparelho o administrador? Só ele vai poder publicar atualizações, criar canais, silenciar e banir.')) return;
+    if (!(await confirmar('Virar administrador', 'Só este aparelho vai poder criar canais, silenciar, banir e publicar atualizações.', 'Confirmar'))) return;
     try{ await db.ref('app/admin').set(uid); aviso('Pronto, você é o administrador.'); }
     catch(e){ aviso('Não deu: ' + (e.message || e) + ' — confira as regras do Firebase.', 6000); }
   };
@@ -1133,6 +1281,7 @@ $('btnEntrar').onclick = async () => {
     if (await entrarNoCanal(n, c, senha)){
       nome = n; canal = c;
       LS.set('radinho_nome', nome); LS.set('radinho_canal', canal);
+      if (souAdmin()) guardarCanal(c);
       $('inSenha').value = '';
       await conectarCanal();
     }
