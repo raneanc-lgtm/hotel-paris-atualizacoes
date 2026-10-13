@@ -432,7 +432,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 11;
+const APP_VERSAO = 12;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1274,13 +1274,16 @@ function fotoParaB64(file){
 let camStream = null, camFrente = false;
 async function abrirCamera(){
   if (souMudo){ aviso('Você está silenciado.'); return; }
+  aviso('Abrindo a câmera...', 2500);
   try{
-    camStream = await navigator.mediaDevices.getUserMedia({ audio: false,
+    const pedido = navigator.mediaDevices.getUserMedia({ audio: false,
       video: { facingMode: camFrente ? 'user' : 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } });
+    camStream = await Promise.race([pedido, new Promise((_, rej) => setTimeout(() => rej(new Error('tempo')), 4000))]);
+    pedido.then(st => { if (st !== camStream) st.getTracks().forEach(t => t.stop()); }).catch(() => {});
   }catch(e){
     camStream = null;
-    aviso('Câmera bloqueada neste APK. Abrindo a escolha de foto.', 4000);
-    $('inCam').value = ''; $('inCam').click();
+    const ok = await confirmar('Câmera indisponível', 'Este APK do Radinho ainda não tem permissão de câmera do Android. Por enquanto dá pra mandar uma foto escolhendo pelo sistema (galeria ou câmera do celular, se ele oferecer).', 'Escolher foto');
+    if (ok){ $('inCam').value = ''; $('inCam').click(); }
     return;
   }
   const v = $('camVideo'); v.srcObject = camStream;
