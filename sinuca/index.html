@@ -130,6 +130,19 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .appbar{position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:6; display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--brass); border-radius:12px; padding:6px 8px 6px 14px; font:600 .85rem var(--body); color:var(--chalk); box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .appbar a{background:var(--brass); color:#1a1209; text-decoration:none; font-weight:800; padding:6px 12px; border-radius:8px}
 .appbar button{background:none; border:0; color:var(--muted); font:700 1rem var(--body); cursor:pointer}
+.chatfeed{position:absolute; top:78px; left:50%; transform:translateX(-50%); width:min(560px, 70%); display:flex; flex-direction:column; align-items:center; gap:5px; pointer-events:none; z-index:3}
+.chatmsg{max-width:100%; background:rgba(15,10,6,.86); border:1px solid var(--line); border-radius:14px; padding:5px 12px; font:600 .9rem var(--body); color:var(--chalk); animation:chatIn .25s ease-out; transition:opacity .5s}
+.chatmsg b{color:var(--brass); margin-right:6px}
+.chatmsg.me b{color:#8fd3ff}
+.chatmsg.out{opacity:0}
+@keyframes chatIn{from{opacity:0; transform:translateY(-8px)} to{opacity:1; transform:none}}
+.chatbox{position:absolute; top:6px; left:50%; transform:translateX(-50%); width:min(620px, 92%); z-index:6; background:var(--panel); border:1px solid var(--brass); border-radius:14px; padding:8px; display:flex; flex-direction:column; gap:7px; box-shadow:0 6px 18px rgba(0,0,0,.6)}
+.chatquick{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none}
+.chatquick button{flex:none; font:600 .82rem var(--body); color:var(--chalk); background:#2a1f15; border:1px solid var(--line); border-radius:16px; padding:5px 10px; cursor:pointer}
+.chatrow{display:flex; gap:6px; align-items:center}
+.chatrow input{flex:1; min-width:0; font:600 .95rem var(--body); color:var(--chalk); background:#141414; border:1px solid var(--line); border-radius:9px; padding:8px 10px}
+.chatrow .btn{padding:8px 14px}
+.chx{background:none; border:0; color:var(--muted); font:700 1.1rem var(--body); cursor:pointer; padding:4px 8px}
 .frhead{display:flex; justify-content:space-between; align-items:center; gap:10px}
 .frhead b{font:700 .8rem var(--body); letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
 .nick{display:flex; align-items:center; gap:6px; font:600 .78rem var(--body); color:var(--muted)}
@@ -209,6 +222,11 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 <canvas id="table" aria-label="Mesa de sinuca"></canvas>
 <div class="msg" id="msg"></div>
 <div class="viewers" id="viewers" hidden></div>
+<div class="chatfeed" id="chatFeed" aria-live="polite"></div>
+<div class="chatbox" id="chatBox" hidden>
+  <div class="chatquick" id="chatQuick"><button type="button">Boa! 👏</button><button type="button">Que sorte 😂</button><button type="button">Vai logo! ⏳</button><button type="button">Quase! 😮</button><button type="button">Revanche? 🔁</button><button type="button">GG 🤝</button></div>
+  <div class="chatrow"><input id="chatIn" maxlength="80" placeholder="Mensagem…" autocomplete="off" aria-label="Mensagem"><button type="button" class="btn main" id="chatSend">Enviar</button><button type="button" class="chx" id="chatX" aria-label="Fechar chat">✕</button></div>
+</div>
 <div class="reacts" id="reacts" hidden><button type="button" data-e="👏">👏</button><button type="button" data-e="🔥">🔥</button><button type="button" data-e="😮">😮</button><button type="button" data-e="😂">😂</button><button type="button" data-e="😱">😱</button></div>
 <div class="appbar" id="appbar" hidden><span>Tem o Sinuca Mobile?</span><a id="appLink" href="#">Abrir no app</a><button type="button" id="appbarX" aria-label="Fechar">✕</button></div>
 <div class="foul win" id="win" aria-live="assertive"><b id="winTitle">VITÓRIA!</b><span class="why" id="winWho"></span><div class="rem" id="winScore"></div></div>
@@ -451,6 +469,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   const WHEEL = {x: 0, y: 152, w: 36, h: 456};
   const MENU = {x: 152, y: 6, w: 46, h: 44};
   const SPINB = {x: 0, y: 29, r: 22};
+  const CHAT = {x: 152 + 46 + 10, y: 6, w: 46, h: 44};                 // botão do chat (só no jogo com amigo)
+  const chatOn = () => !!(net && net.live);
   function placeControls(){
     const left = barSide === "left";
     const railW = Math.min(560, FX + SIDE_X - 95 - 150);                  // trecho do trilho de baixo até antes da caçapa do meio
@@ -630,7 +650,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     balls = m.b.map(([n, x, y]) => ({n, x, y, px:x, py:y, vx:0, vy:0, rx:0, ry:0, sz:0, in:true, dirty:true, q:[1,0,0,0]}));
     turn = m.turn; aimAtNearest();
   }
-  let rackSeq = 0, netDiff = 0;                                             // netDiff: quanto a mesa daqui diferiu da do amigo (teste)                                                        // online: as duas mesas arrumam na mesma ordem (o anfitrião manda o triângulo)
+  let rackSeq = 0, netDiff = 0, netAimTo = null;                                             // netDiff: quanto a mesa daqui diferiu da do amigo (teste)                                                        // online: as duas mesas arrumam na mesma ordem (o anfitrião manda o triângulo)
   function rack(breaker = 0){
     rackCore(breaker);
     if (!net) return;
@@ -1552,7 +1572,14 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     ctx.fillStyle = "rgba(0,0,0,.45)"; rr(MENU.x, MENU.y, MENU.w, MENU.h, 9); ctx.fill();
     ctx.fillStyle = "#d8d8d8"; for (let i = 0; i < 3; i++){ rr(MENU.x+11, MENU.y+11+i*9, MENU.w-22, 4.5, 2); ctx.fill(); }
     // jogadores: P-1 / P-2, par ou ímpar e as bolas já matadas (o placar fica lá embaixo, junto das fichas)
-    const zones = [MENU.x + MENU.w + 18, FX + SIDE_X + 92], winsTop = !fichaSlot();
+    if (chatOn()){                                                      // 💬 ao lado do menu
+      ctx.fillStyle = "rgba(0,0,0,.45)"; rr(CHAT.x, CHAT.y, CHAT.w, CHAT.h, 9); ctx.fill();
+      ctx.fillStyle = "#e9e9e9"; rr(CHAT.x + 9, CHAT.y + 10, CHAT.w - 18, 19, 6); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(CHAT.x + 15, CHAT.y + 27); ctx.lineTo(CHAT.x + 13, CHAT.y + 36); ctx.lineTo(CHAT.x + 23, CHAT.y + 28); ctx.fill();
+      ctx.fillStyle = "#3a2b1d"; for (let k = 0; k < 3; k++){ ctx.beginPath(); ctx.arc(CHAT.x + 16 + k*7, CHAT.y + 19.5, 2, 0, Math.PI*2); ctx.fill(); }
+      if (chatUnread){ ctx.fillStyle = "#e8553d"; ctx.beginPath(); ctx.arc(CHAT.x + CHAT.w - 6, CHAT.y + 7, 6, 0, Math.PI*2); ctx.fill(); }
+    }
+    const zones = [MENU.x + MENU.w + 18 + (chatOn() ? 56 : 0), FX + SIDE_X + 92], winsTop = !fichaSlot();
     ctx.textBaseline = "middle";
     for (let i = 0; i < (TREINO ? 1 : 2); i++){
       const x0 = zones[i], on = turn === i, pad = winsTop && !TREINO ? 34 : 0;
@@ -2118,6 +2145,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (activePtr !== null && mode) return;
     const p = toL(e);
     if (inRect(p, MENU, 8)){ openMenu(); return; }
+    if (chatOn() && inRect(p, CHAT, 8)){ openChat(); return; }
     if (Math.hypot(p.x-SPINB.x, p.y-SPINB.y) < SPINB.r+12){ if (!busy()) openSpin(); return; }
     if (panelRect && !moving && inRect(p, panelRect, 6)){ openReset(); return; }
     if (inMatch && Math.hypot(p.x - CHALK.x, p.y - CHALK.y) < CHALK.r){ useChalk(); return; }
@@ -2205,6 +2233,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   window.__voltar = () => {
     if (!document.getElementById("lines").hidden){ document.getElementById("lines").hidden = true; optsBox.hidden = false; return true; }
     if (!inviteBox.hidden){ answerInvite(false); return true; }
+    if (!chatBox.hidden){ closeChat(); return true; }
     if (!document.getElementById("online").hidden){ closeOnline(); return true; }
     for (const id of ["opts", "reset", "spin"]){ const el = document.getElementById(id); if (!el.hidden){ el.hidden = true; return true; } }
     if (!menu.hidden){ menu.hidden = true; return true; }
@@ -2371,7 +2400,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       const b = balls.find(o => o.n === n); if (!b) continue;
       diff = Math.max(diff, (!!i !== b.in) ? 999 : Math.hypot(b.x - x, b.y - y));
       netDiff = diff;
-      b.x = b.px = x; b.y = b.py = y; b.vx = b.vy = 0; b.rx = b.ry = b.sz = 0; b.in = !!i; b.dirty = true;
+      b.x = b.px = x; b.y = b.py = y; b.vx = b.vy = 0; b.rx = b.ry = b.sz = 0; b.in = !!i;   // (sem redesenhar a textura da bola: só a posição muda)
     }
     turn = s.turn; groups = s.groups; scores = s.scores; chalk = s.chalk; pots = s.pots; inHand = s.inHand; breakShot = s.breakShot; lastChance = s.lastChance;
     spin = {x:0, y:0}; updateDot();
@@ -2401,13 +2430,12 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     }
     else if (m.t === "aim"){
       if (turn === net.me || moving || strike || gameOver) return;
-      aim = m.a; power = m.p || 0;
-      if (inHand && m.cx != null){ const c = cue(); if (c){ c.x = c.px = m.cx; c.y = c.py = m.cy; } }
+      netAimTo = {a: m.a, p: m.p || 0, cx: m.cx, cy: m.cy};               // a mira do amigo desliza até aqui (sem "pulos")
     }
     else if (m.t === "shot"){
       if (turn === net.me) return;
       const c = cue(); if (c){ c.x = c.px = m.cx; c.y = c.py = m.cy; }
-      aim = m.a; spin = {x: m.sp.x, y: m.sp.y}; power = 0; chalkFixed = !!m.fx; chalkAcc = 0;
+      aim = m.a; spin = {x: m.sp.x, y: m.sp.y}; power = 0; chalkFixed = !!m.fx; chalkAcc = 0; netAimTo = null;
       strike = {p: m.p, t: 0}; inHand = false; breakShot = false; shotCleared = TRAD && groupClear(turn);
     }
     else if (m.t === "end"){
@@ -2421,6 +2449,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     else if (m.t === "wcode") net.watchCode = m.code;
     else if (m.t === "viewers") showViewers(m.n | 0);
     else if (m.t === "react") floatEmoji(m.e);
+    else if (m.t === "chat") chatRecv(m);
   }
   // liga um "canal" (internet hoje, Bluetooth depois): precisa de send, close e on("data"/"close")
   function netLink(link, host, code){
@@ -2437,7 +2466,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   window.__netLink = netLink;
   // ---------- Modo espectador: quem tem o código/link assiste ao vivo (a mesa calcula igualzinho) ----------
-  const RELAY = new Set(["rack", "aim", "shot", "end", "next", "ping", "bye", "viewers", "react"]);
+  const RELAY = new Set(["rack", "aim", "shot", "end", "next", "ping", "bye", "viewers", "react", "chat"]);
   const W_PREFIX = "sinucamobile-v1-w-", WATCH_URL = "https://raneanc-lgtm.github.io/hotel-paris-atualizacoes/sinuca/";
   let watchPeer = null, watchers = [];
   function relay(m){ for (const c of watchers) try { c.send(m); } catch(e){} }
@@ -2544,6 +2573,37 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     flash(`👁 Assistindo ao vivo · ${NAME0(0)} x ${NAME0(1)}`);
   }
   window.__assistir = code => watchJoin(code);
+  // ---------- Mini chat (jogadores conversam; quem assiste lê) ----------
+  let chatUnread = false, chatLast = 0;
+  const chatBox = document.getElementById("chatBox"), chatIn = document.getElementById("chatIn");
+  function chatShow(name, text, me){
+    const feed = document.getElementById("chatFeed");
+    const el = document.createElement("div"); el.className = "chatmsg" + (me ? " me" : "");
+    const b = document.createElement("b"); b.textContent = name; el.append(b, document.createTextNode(text));
+    feed.appendChild(el);
+    while (feed.children.length > 4) feed.firstChild.remove();
+    setTimeout(() => el.classList.add("out"), 7000); setTimeout(() => el.remove(), 7600);
+  }
+  function chatRecv(m){
+    const text = String(m.s || "").slice(0, 80); if (!text) return;
+    const name = net && net.spect ? NAME0(m.i | 0) : PEER();
+    chatShow(name, text, false);
+    if (chatBox.hidden) chatUnread = true;
+    buzz(20);
+  }
+  function chatSend(text){
+    text = String(text || "").replace(/\s+/g, " ").trim().slice(0, 80);
+    if (!text || !net || net.spect) return;
+    const now = performance.now(); if (now - chatLast < 700) return; chatLast = now;
+    net.send({t: "chat", s: text, i: net.me});
+    chatShow("Você", text, true);
+  }
+  function openChat(){ chatUnread = false; chatBox.hidden = false; setTimeout(() => { try { chatIn.focus(); } catch(e){} }, 50); }
+  function closeChat(){ chatBox.hidden = true; chatIn.blur(); }
+  document.getElementById("chatSend").onclick = () => { chatSend(chatIn.value); chatIn.value = ""; closeChat(); };
+  chatIn.addEventListener("keydown", e => { if (e.key === "Enter"){ chatSend(chatIn.value); chatIn.value = ""; closeChat(); } });
+  document.getElementById("chatX").onclick = closeChat;
+  document.querySelectorAll("#chatQuick button").forEach(b => b.onclick = () => { chatSend(b.textContent); closeChat(); });
   document.getElementById("onWatch").onclick = () => watchJoin(document.getElementById("onCode").value);
   document.getElementById("p-watch").onclick = () => {
     const code = net && net.watchCode;
@@ -2576,7 +2636,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }, 2000);
   window.addEventListener("pagehide", () => { if (net) net.send({t: "bye"}); });
   window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq, netDiff, watchCode: net && net.watchCode, spect: !!(net && net.spect),
-    balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p)};
+    balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p), chat: t => chatSend(t), aim: () => aim};
   function startOnline(){
     net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
     ficha[net.me] = parseInt(store.get("ficha0", "0")) || 0; ficha[1 - net.me] = net.peerFicha;
@@ -2588,7 +2648,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function netLost(why){
     if (!net) return;
     if (why) fillMenuInfo();                                             // mostra como ficou a partida antes de desligar
-    watchStop(); showViewers(0); document.getElementById("reacts").hidden = true;
+    watchStop(); showViewers(0); document.getElementById("reacts").hidden = true; chatBox.hidden = true; chatUnread = false;
     const n = net; net = null; netCap = null;
     if (forcedExtra !== null){ forcedExtra = null; resize(); }              // volta a mesa do tamanho da tela netPendingEnd = null; netPendingRack = null; clearTimeout(netEndTimer);
     n.close(); netClosePeer();
@@ -3019,7 +3079,12 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       }
     }
     else cpuStep(dt);
-    if (net && net.live && turn === net.me && !moving && !strike && !gameOver && (netAimT += dt) >= 0.09){   // mira ao vivo pro amigo ver
+    if (netAimTo && net && turn !== net.me && !moving && !strike){        // mira do amigo: suaviza entre uma mensagem e outra
+      const k = Math.min(1, dt*16), T = netAimTo;
+      let d = T.a - aim; d = Math.atan2(Math.sin(d), Math.cos(d)); aim += d*k; power += (T.p - power)*k;
+      if (inHand && T.cx != null){ const c = cue(); if (c){ c.x += (T.cx - c.x)*k; c.y += (T.cy - c.y)*k; c.px = c.x; c.py = c.y; } }
+    }
+    if (net && net.live && turn === net.me && !moving && !strike && !gameOver && (netAimT += dt) >= 0.033){   // mira ao vivo pro amigo ver
       netAimT = 0; const c = cue();
       const sig = aim.toFixed(3) + "," + power.toFixed(2) + (inHand && c ? "," + c.x.toFixed(1) + "," + c.y.toFixed(1) : "");
       if (sig !== netAimSig){ netAimSig = sig; net.send({t: "aim", a: +aim.toFixed(4), p: +power.toFixed(3), cx: inHand && c ? +c.x.toFixed(2) : null, cy: inHand && c ? +c.y.toFixed(2) : null}); }
