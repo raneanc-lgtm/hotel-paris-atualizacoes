@@ -2454,6 +2454,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         : Array.from({length: 4}, () => CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join("");
       watchStart.tried = true;
       const p = watchPeer = new window.Peer(W_PREFIX + code, peerOpt());
+      keepAlive(p, () => watchPeer === p);
       p.on("open", () => { if (watchPeer === p && net === mine){ mine.watchCode = code; mine.send({t: "wcode", code}); } });
       p.on("connection", c => {
         c.on("data", m => {
@@ -2645,6 +2646,22 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       {urls: ["turn:eu-0.turn.peerjs.com:3478", "turn:us-0.turn.peerjs.com:3478"], username: "peerjs", credential: "peerjsp"}
     ];
   }
+  // quando o app vai pro fundo (compartilhar no WhatsApp) o Android corta a internet do jogo: reconecta sozinho com o MESMO código
+  const NET_ERR = new Set(["network", "socket-error", "socket-closed", "server-error", "disconnected"]);
+  const alive = [];
+  function keepAlive(p, mine){
+    const fix = () => { if (mine() && !p.destroyed && p.disconnected) try { p.reconnect(); } catch(e){} };
+    let tries = 0;
+    const loop = () => { if (!mine() || p.destroyed) return; if (p.disconnected){ fix(); if (++tries < 40) setTimeout(loop, document.hidden ? 8000 : 2500); } else tries = 0; };
+    p.on("disconnected", () => setTimeout(loop, 800));
+    p.on("open", () => { tries = 0; });
+    alive.push({p, fix});
+  }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) return;
+    for (let i = alive.length - 1; i >= 0; i--){ const a = alive[i]; if (a.p.destroyed){ alive.splice(i, 1); continue; } a.fix(); }
+  });
+  window.addEventListener("online", () => alive.forEach(a => a.fix()));
   const peerOpt = () => Object.assign({host: "0.peerjs.com", port: 443, path: "/", secure: true, debug: 0}, window.__peerOpt || {}, {config: {iceServers: iceServers(), sdpSemantics: "unified-plan"}});
   let peer = null, peerLib = null, onTry = 0;
   function loadPeer(){
@@ -2747,6 +2764,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     loadPeer().then(() => {
       if (homePeer) return;
       const p = homePeer = new window.Peer(UID_PREFIX + UID, peerOpt());
+      keepAlive(p, () => homePeer === p);
       p.on("open", () => { if (homePeer === p){ homeOk = true; if (!onlineBox.hidden) probeAll(); } });
       p.on("connection", homeIncoming);
       p.on("disconnected", () => { if (homePeer !== p) return; homeOk = false; setTimeout(() => { if (homePeer === p && !p.destroyed) try { p.reconnect(); } catch(e){} }, 3000); });
@@ -2758,7 +2776,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
           if (id){ setFr(id, "off"); if (calling && calling.id === id){ const nm = calling.name; calling = null; onStatus(`${nm} não está com o jogo aberto agora`, true); } }
           return;
         }
-        if (["network", "server-error", "socket-error", "socket-closed", "unavailable-id", "browser-incompatible"].includes(t)) homeRetry(t === "unavailable-id" ? 8000 : 20000);
+        if (NET_ERR.has(t)){ homeOk = false; return; }                   // o keepAlive reconecta
+        if (t === "unavailable-id" || t === "browser-incompatible") homeRetry(t === "unavailable-id" ? 8000 : 20000);
       });
     }).catch(() => homeRetry(30000));
   }
@@ -2857,10 +2876,13 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (tryId !== onTry) return;
     const code = Array.from({length: 4}, () => CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join("");
     const p = peer = new window.Peer(PEER_PREFIX + code, peerOpt());
+    let opened = false;
+    keepAlive(p, () => peer === p);
     p.on("open", () => {
       if (peer !== p) return;
+      opened = true;
       document.getElementById("onBig").textContent = code; document.getElementById("onShare").hidden = false;
-      onStatus("Sala aberta · esperando seu amigo entrar com esse código…");
+      if (!net) onStatus("Sala aberta · esperando seu amigo entrar com esse código…");
     });
     p.on("connection", c => {
       if (peer !== p){ try { c.close(); } catch(e){} return; }
@@ -2871,8 +2893,13 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     });
     p.on("error", err => {
       if (peer !== p) return;
-      if (err && err.type === "unavailable-id"){ netClosePeer(); createRoom(); return; }   // código já em uso: sorteia outro
-      if (!net) onStatus("Não deu para abrir a sala (" + (err && err.type || "erro") + ") · tente de novo", true);
+      const t = err && err.type;
+      if (t === "unavailable-id" && !opened){ netClosePeer(); createRoom(); return; }   // código já em uso: sorteia outro
+      if (NET_ERR.has(t) || t === "unavailable-id"){                       // saiu do app (WhatsApp) e a internet do jogo caiu: reabre a MESMA sala sozinho
+        if (!net) onStatus("Reconectando a sala " + (opened ? code : "") + "…");
+        return;
+      }
+      if (!net) onStatus("Não deu para abrir a sala (" + (t || "erro") + ") · tente de novo", true);
     });
   }
   async function joinRoom(){
@@ -2884,8 +2911,11 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (tryId !== onTry) return;
     netClosePeer();
     const p = peer = new window.Peer(peerOpt());
+    keepAlive(p, () => peer === p);
+    let asked = false;
     p.on("open", () => {
-      if (peer !== p) return;
+      if (peer !== p || asked || net) return;
+      asked = true;
       const c = p.connect(PEER_PREFIX + code, {reliable: true, serialization: "json"});
       let opened = false, first = true;
       onStatus("Sala achada · ligando os dois celulares…");
@@ -2900,7 +2930,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     });
     p.on("error", err => {
       if (peer !== p) return;
-      if (!net) onStatus(err && err.type === "peer-unavailable" ? "Sala " + code + " não encontrada · confira o código" : "Não deu para conectar (" + (err && err.type || "erro") + ")", true);
+      if (net) return;
+      if (err && NET_ERR.has(err.type)){ onStatus("A internet oscilou · reconectando…"); return; }
+      onStatus(err && err.type === "peer-unavailable" ? "Sala " + code + " não encontrada · confira o código (se seu amigo saiu do jogo pra mandar o código, peça pra ele voltar pro jogo e tente de novo)" : "Não deu para conectar (" + (err && err.type || "erro") + ")", true);
     });
   }
   document.getElementById("onCreate").onclick = createRoom;
