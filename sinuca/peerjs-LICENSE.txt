@@ -1,0 +1,1 @@
+peerjs.min.js — PeerJS 1.5.4 (https://peerjs.com), licença MIT, Copyright (c) 2015 Michelle Bu and Eric Zhang, http://peerjs.com
