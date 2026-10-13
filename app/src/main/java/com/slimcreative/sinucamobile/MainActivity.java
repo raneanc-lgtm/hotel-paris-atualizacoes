@@ -2,12 +2,14 @@ package com.slimcreative.sinucamobile;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -41,6 +43,7 @@ public class MainActivity extends Activity {
         s.setBuiltInZoomControls(false);
         s.setTextZoom(100);
 
+        web.addJavascriptInterface(new Ponte(), "SinucaApp");   // jogo online: mandar o código da sala pelo WhatsApp etc.
         web.setWebViewClient(new WebViewClient());
         web.setWebChromeClient(new WebChromeClient());
         setContentView(web);
@@ -81,6 +84,19 @@ public class MainActivity extends Activity {
 
     @Override protected void onPause() { super.onPause(); web.onPause(); }
     @Override protected void onResume() { super.onResume(); web.onResume(); telaCheia(); }
+
+    /** ponte com o jogo: abre o "compartilhar" do Android com o convite da sala */
+    private class Ponte {
+        @JavascriptInterface
+        public void compartilhar(String texto) {
+            runOnUiThread(() -> {
+                Intent i = new Intent(Intent.ACTION_SEND);
+                i.setType("text/plain");
+                i.putExtra(Intent.EXTRA_TEXT, texto);
+                startActivity(Intent.createChooser(i, "Convidar para a sala"));
+            });
+        }
+    }
 
     /** botão voltar: abre o menu do jogo (☰); no menu inicial, sai do app */
     @Override

@@ -119,6 +119,13 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .resetcard .btn{display:flex; justify-content:space-between; align-items:center; gap:10px}
 .resetcard .btn em{font:500 .8rem var(--body); color:var(--muted); font-style:normal}
 .menucard, .resetcard{position:relative}
+.onlinecard .onbox{display:flex; flex-direction:column; gap:10px}
+.onjoin{display:flex; gap:8px}
+.onjoin input{flex:1; min-width:0; font:800 1.3rem var(--body); letter-spacing:.35em; text-transform:uppercase; text-align:center; color:var(--chalk); background:#141414; border:1px solid var(--line); border-radius:9px; padding:8px 6px}
+.onjoin input:focus{outline:2px solid var(--brass); outline-offset:1px}
+.oncode{font:800 2.6rem var(--body); letter-spacing:.3em; text-align:center; color:var(--brass); background:#141414; border:1px dashed var(--brass); border-radius:12px; padding:8px 0 8px .3em}
+.onlinecard small.onstatus{color:var(--muted); min-height:1.2em; text-transform:none; letter-spacing:normal; font-size:.85rem}
+.onlinecard small.onstatus.bad{color:var(--alert)}
 .xbtn{position:absolute; top:-14px; right:-14px; width:38px; height:38px; box-shadow:0 2px 8px rgba(0,0,0,.6); border-radius:50%; border:1px solid var(--line); background:#2a1f15; color:var(--chalk); font:700 1rem var(--body); cursor:pointer; display:grid; place-items:center; z-index:1}
 .xbtn:active{background:#3a2b1d}
 .menucard, .resetcard{overflow:visible}
@@ -209,7 +216,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <div class="s2grid">
         <div class="opt notrain"><span>Adversário</span>
           <div class="lvls opp" role="radiogroup" aria-label="Adversário">
-            <button class="chip" data-o="cpu" type="button">Computador</button><button class="chip" data-o="2p" type="button">2 jogadores</button><button class="chip" type="button" disabled>Online <small class="soontag">em breve</small></button>
+            <button class="chip" data-o="cpu" type="button">Computador</button><button class="chip" data-o="2p" type="button">2 jogadores</button><button class="chip" data-o="online" type="button">Online</button>
           </div>
         </div>
         <div class="opt notrain"><span>Partida</span>
@@ -222,7 +229,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
             <button class="chip" data-l="0" type="button">Fácil</button><button class="chip on" data-l="1" type="button">Médio</button><button class="chip" data-l="2" type="button">Difícil</button><button class="chip" data-l="3" type="button">Pro</button>
           </div>
         </div>
-        <div class="opt cpuonly"><span>Aposta · você tem <b id="balance">0</b> fichas</span>
+        <div class="opt betonly"><span>Aposta · você tem <b id="balance">0</b> fichas</span>
           <div class="lvls bet" role="radiogroup" aria-label="Aposta">
             <button class="chip" data-w="1" type="button">1</button><button class="chip" data-w="2" type="button">2</button><button class="chip on" data-w="3" type="button">3</button><button class="chip" data-w="5" type="button">5</button><button class="chip" data-w="10" type="button">10</button>
           </div>
@@ -289,6 +296,24 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       </div>
     </div>
     <button class="btn main" id="optsok" type="button">Pronto</button>
+  </div>
+</div>
+
+<div class="overlay" id="online" hidden>
+  <div class="card resetcard onlinecard">
+    <button class="xbtn" id="onClose" type="button" aria-label="Fechar" title="Fechar">✕</button>
+    <h2>Jogar online</h2>
+    <small id="onSub"></small>
+    <div id="onChoose" class="onbox">
+      <button class="btn" id="onCreate" type="button">Criar sala <em>você é o P-1 e sai primeiro</em></button>
+      <div class="onjoin"><input id="onCode" maxlength="4" placeholder="CÓDIGO" autocapitalize="characters" autocomplete="off" spellcheck="false" inputmode="text" aria-label="Código da sala"><button class="btn main" id="onJoin" type="button">Entrar</button></div>
+    </div>
+    <div id="onWait" class="onbox" hidden>
+      <div class="oncode" id="onBig">····</div>
+      <button class="btn main" id="onShare" type="button">Mandar convite</button>
+      <button class="btn" id="onBack" type="button">‹ Voltar</button>
+    </div>
+    <small id="onStatus" class="onstatus"></small>
   </div>
 </div>
 
@@ -427,6 +452,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = store.get("rules", "reg"), TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
+  let net = null;                                                              // partida online: {host, me, code, send, close}
+  let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
+  const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
+  const BET = () => vsCPU || !!net;                                              // tem aposta de fichas?
   let cueRails = 0, lastChance = null;                                          // tabelas da branca na tacada · última chance (regional)
   let tShots = 0, tPots = 0, series = [0, 0];                                 // series: pontos gerais (séries de melhor de 3 ganhas)                                                    // contadores do treino   // "bol" = Bolinho (3 bolas, quem matar a última vence)   // "reg" = Sinuca Regional (2 a 15) · "trad" = Sinuca Tradicional (bola 1 de castigo)
   let shotCleared = false;                                                     // (tradicional) o jogador da vez já tinha limpado o grupo quando tacou?
@@ -546,7 +575,19 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     b.cx.putImageData(b.img, 0, 0); b.dirty = false; b.cvR = rr;
   }
 
+  function netApplyRack(m){
+    balls = m.b.map(([n, x, y]) => ({n, x, y, vx:0, vy:0, in:true, dirty:true, q:[1,0,0,0]}));
+    turn = m.turn; aimAtNearest();
+  }
+  let rackSeq = 0;                                                        // online: as duas mesas arrumam na mesma ordem (o anfitrião manda o triângulo)
   function rack(breaker = 0){
+    rackCore(breaker);
+    if (!net) return;
+    rackSeq++;
+    if (net.host) net.send({t: "rack", g: rackSeq, b: balls.map(b => [b.n, +b.x.toFixed(3), +b.y.toFixed(3)]), turn});
+    else if (netPendingRack && netPendingRack.g === rackSeq){ netApplyRack(netPendingRack); netPendingRack = null; }
+  }
+  function rackCore(breaker = 0){
     balls = [];
     const nums = [2,3,4,5,6,7,8,9,10,11,12,13,14,15];
     for (let i = nums.length-1; i > 0; i--){ const j = Math.floor(Math.random()*(i+1)); [nums[i],nums[j]] = [nums[j],nums[i]]; }
@@ -809,7 +850,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   const allStopped = () => balls.every(b => !b.in || (b.vx === 0 && b.vy === 0 && !(Math.abs(b.rx || 0) > 4 || Math.abs(b.ry || 0) > 4)));
 
   // ---------- Regras (sinuca de Minas: par ou ímpar, bolas 2 a 15) ----------
-  const NAME = i => vsCPU ? (i === 0 ? "Você" : "Computador") : `Jogador ${i+1}`;
+  const NAME0 = i => net ? (i === net.me ? "Você" : "Amigo") : vsCPU ? (i === 0 ? "Você" : "Computador") : `Jogador ${i+1}`;
+  const NAME = i => netCap ? "\u0001" + i : NAME0(i);                          // online: nome vira marcador e cada celular escreve o seu ("Você"/"Amigo")
+  const unTok = t => typeof t === "string" ? t.replace(/\u0001(\d)/g, (_, i) => NAME0(+i))
+    .replace(/([Vv])ez de Você/g, (_, v) => v === "V" ? "Sua vez" : "sua vez").replace(/([Vv])ez de Amigo/g, "$1ez do seu amigo") : t;
   const parity = n => n === 1 ? "um" : n % 2 === 0 ? "par" : "impar";     // a bola 1 (castigo) não é de ninguém
   const RULE_NAME = () => TREINO ? "Treino" : BOL ? "Bolinho" : TRAD ? "Sinuca Tradicional" : "Sinuca Regional";
   // grupo limpo: no tradicional, aí o alvo passa a ser a bola 1
@@ -853,8 +897,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   let foulT;
   function showFoul(reason, removed, adv, extra){
+    if (netCap) netCap.push({t: "foul", a: [reason, removed, adv, extra]});
     const box = document.getElementById("foul"), rem = document.getElementById("foulRem");
-    document.getElementById("foulWhy").textContent = reason + (extra.length ? " · " + extra.join(" · ") : "");
+    document.getElementById("foulWhy").textContent = unTok(reason + (extra.length ? " · " + extra.join(" · ") : ""));
     rem.textContent = "";
     const list = Array.isArray(removed) ? removed : removed ? [removed] : [];
     if (list.length){
@@ -863,8 +908,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const c = document.createElement("canvas"); c.width = fb.cv.width; c.height = fb.cv.height; c.getContext("2d").drawImage(fb.cv, 0, 0);
         rem.appendChild(c);
       }
-      rem.appendChild(document.createTextNode(`${list.length > 1 ? "Bolas " + list.join(" e ") + " removidas" : "Bola " + list[0] + " removida"} da mesa · conta para ${NAME(adv)}`));
-    } else rem.appendChild(document.createTextNode(`Vez de ${NAME(adv)}`));
+      rem.appendChild(document.createTextNode(`${list.length > 1 ? "Bolas " + list.join(" e ") + " removidas" : "Bola " + list[0] + " removida"} da mesa · conta para ${NAME0(adv)}`));
+    } else rem.appendChild(document.createTextNode(unTok(`Vez de ${NAME0(adv)}`)));
     document.getElementById("msg").classList.remove("show"); clearTimeout(msgT);
     box.classList.add("show"); clearTimeout(foulT); foulT = setTimeout(() => box.classList.remove("show"), 2800);
   }
@@ -876,22 +921,26 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         lastWinner = i;                                                  // quem ganha sai na próxima
         const bo3 = matchFmt === "bo3", seriesOver = bo3 && wins[i] >= 2, loser = 1 - i;
         // fichas: no jogo contínuo cada partida vale a aposta; na melhor de 3 só a série vale
-        const pays = vsCPU && (!bo3 || seriesOver);
+        if (netCap) netCap.push({t: "win", i, why: force && force.why});
+        const pays = BET() && (!bo3 || seriesOver);
         if (pays){
           ficha[i] += wager; ficha[loser] = Math.max(0, ficha[loser] - wager);
-          store.set("ficha0", String(ficha[0])); store.set("ficha1", String(ficha[1]));
+          if (net) store.set("ficha0", String(ficha[net.me]));
+          else { store.set("ficha0", String(ficha[0])); store.set("ficha1", String(ficha[1])); }
         }
         if (seriesOver) series[i]++;                                     // ponto geral: séries ganhas
-        const who = vsCPU ? (i === 0 ? "Você" : "O computador") : NAME(i);
-        const winLine = vsCPU ? (i === 0 ? "Você venceu!" : "O computador venceu") : `${who} venceu!`;
-        const placar = `${NAME(0)} ${wins[0]} x ${wins[1]} ${NAME(1)}`;
-        const fichasTxt = pays ? ` · ${i === 0 ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}` : "";
+        const ME = net ? net.me : 0;
+        const who = vsCPU ? (i === 0 ? "Você" : "O computador") : net ? (i === ME ? "Você" : "Seu amigo") : NAME0(i);
+        const winLine = vsCPU ? (i === 0 ? "Você venceu!" : "O computador venceu") : net ? (i === ME ? "Você venceu!" : "Seu amigo venceu") : `${who} venceu!`;
+        const placar = `${NAME0(0)} ${wins[0]} x ${wins[1]} ${NAME0(1)}`;
+        const fichasTxt = pays ? ` · ${i === ME ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}` : "";
         document.getElementById("foul").classList.remove("show"); document.getElementById("msg").classList.remove("show");
         document.getElementById("winTitle").textContent = seriesOver ? "CAMPEÃO DA SÉRIE!" : "VITÓRIA!";
-        document.getElementById("winWho").textContent = winLine + (force && force.why ? ` · ${force.why}` : "");
+        document.getElementById("winWho").textContent = winLine + (force && force.why ? ` · ${unTok(force.why)}` : "");
         document.getElementById("winScore").textContent = (bo3 ? `Série: ${placar}` : `Placar: ${placar}`) + fichasTxt;
         document.getElementById("win").classList.add("show");
         setTimeout(() => {
+          if (!gameOver) return;                                          // (online) o amigo já puxou a próxima
           document.getElementById("win").classList.remove("show");
           if (bo3 && !seriesOver){                                       // melhor de 3 no meio: segue direto, só avisa
             newGame(`Próxima partida · ${placar}`);
@@ -899,7 +948,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
           }
           document.getElementById("menuTitle").textContent = seriesOver ? `${who} venceu a série!` : winLine;
           document.getElementById("menuSub").textContent = seriesOver
-            ? `Séries: ${NAME(0)} ${series[0]} x ${series[1]} ${NAME(1)}` + (pays ? ` · ${i === 0 ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}` : "")
+            ? `Séries: ${NAME0(0)} ${series[0]} x ${series[1]} ${NAME0(1)}` + (pays ? ` · ${i === ME ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}` : "")
             : `Placar: ${placar}` + fichasTxt;
           const nx = document.getElementById("next");
           nx.hidden = false; nx.textContent = seriesOver ? "Continuar · nova série" : "Próxima partida";
@@ -912,6 +961,16 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     return false;
   }
   function endShot(){
+    if (!net) return endShotCore();
+    netCap = [];
+    try { endShotCore(); }
+    finally {
+      const ev = netCap; netCap = null;
+      for (const b of balls){ b.x = b.px = +b.x.toFixed(2); b.y = b.py = +b.y.toFixed(2); }   // os dois celulares ficam com a mesma posição exata
+      net.send({t: "end", s: {b: balls.map(b => [b.n, +b.x.toFixed(2), +b.y.toFixed(2), b.in ? 1 : 0]), turn, groups, scores, chalk, pots, inHand, breakShot, lastChance}, ev});
+    }
+  }
+  function endShotCore(){
     moving = false;
     const pc = pocketedThisShot; pocketedThisShot = [];
     const objs = pc.filter(n => n !== 0);
@@ -1301,7 +1360,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       if (p >= chalkShot.lo - 0.04 && p <= chalkShot.hi + 0.04){ p = chalkShot.good.reduce((x, y) => Math.abs(y - p) < Math.abs(x - p) ? y : x); chalkFixed = true; }
       chalkShot = null;
     }
-    strike = {p, t:0}; inHand = false; breakShot = false; shotCleared = TRAD && groupClear(turn); }
+    strike = {p, t:0}; inHand = false; breakShot = false; shotCleared = TRAD && groupClear(turn);
+    if (net && turn === net.me){ const c = cue(); net.send({t: "shot", p, a: aim, sp: {x: spin.x, y: spin.y}, cx: c.x, cy: c.y, fx: chalkFixed}); }
+  }
 
   // ---------- Desenho ----------
   function rr(x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
@@ -1569,8 +1630,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     }
   }
   const CHALK = {x: 0, y: 29, r: 30};
-  const chalkOwner = () => vsCPU ? 0 : turn;
-  const chalkReady = () => inMatch && !gameOver && !moving && !strike && !cpu && chalk[chalkOwner()] > 0 && (!vsCPU || turn === 0);
+  const chalkOwner = () => net ? net.me : vsCPU ? 0 : turn;
+  const chalkReady = () => inMatch && !gameOver && !moving && !strike && !cpu && chalk[chalkOwner()] > 0 && myTurn();
   function drawChalk(){
     if (!inMatch) return;
     CHALK.x = SPINB.x - 86;
@@ -1621,7 +1682,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       return;
     }
     if (!slot){                                                       // sem trilho livre: só a aposta, ao lado do giz
-      if (vsCPU) drawChip(CHALK.x - 78, 27, 21, wager, 2);
+      if (BET()) drawChip(CHALK.x - 78, 27, 21, wager, 2);
       return;
     }
     const {cx, cy} = slot;
@@ -1631,16 +1692,16 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       ctx.strokeStyle = "rgba(26,18,9,.7)"; ctx.lineWidth = 1.5; ctx.stroke();
       ctx.fillStyle = "#1a1209"; ctx.font = `900 21px ${font}`; ctx.textAlign = "center"; ctx.fillText(String(n), x, cy + 1);
     };
-    const mid = vsCPU ? 34 : 18;                                      // meia-largura do miolo (aposta ou "x")
+    const mid = BET() ? 34 : 18;                                      // meia-largura do miolo (aposta ou "x")
     const sideW = (name, bal) => {
       ctx.font = `italic 800 22px ${font}`; let w = 12 + 32 + 14 + 4 + ctx.measureText(name).width;
-      if (vsCPU){ ctx.font = `900 26px ${font}`; w += 26 + 6 + ctx.measureText(String(bal)).width + 16; }
+      if (BET()){ ctx.font = `900 26px ${font}`; w += 26 + 6 + ctx.measureText(String(bal)).width + 16; }
       return w;
     };
     let names = [NAME(0), NAME(1)];
     const widthOf = nm => 2*(mid + Math.max(sideW(nm[0], ficha[0]), sideW(nm[1], ficha[1])) + 22);   // painel simétrico
     let W2 = widthOf(names);
-    if (W2 > slot.w - 10){ names = vsCPU ? ["Você", "CPU"] : ["P-1", "P-2"]; W2 = widthOf(names); }
+    if (W2 > slot.w - 10){ names = net ? ["Você", "Amigo"] : vsCPU ? ["Você", "CPU"] : ["P-1", "P-2"]; W2 = widthOf(names); }
     panelRect = {x: cx - W2/2, y: cy - 23, w: W2, h: 46};
     ctx.fillStyle = "rgba(0,0,0,.52)"; rr(cx - W2/2, cy - 23, W2, 46, 23); ctx.fill();
     ctx.strokeStyle = "rgba(242,196,90,.35)"; ctx.lineWidth = 1.5; rr(cx - W2/2, cy - 23, W2, 46, 23); ctx.stroke();
@@ -1649,7 +1710,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       const d = i ? 1 : -1;                                           // -1 = esquerda (P-1), +1 = direita (P-2)
       let x = cx + d*(mid + 12 + 16);
       badge(x, wins[i]); x += d*(16 + 14);
-      if (vsCPU){
+      if (BET()){
         ctx.font = `900 26px ${font}`; const bw = ctx.measureText(String(ficha[i])).width;
         ctx.textAlign = i ? "left" : "right"; ctx.fillStyle = "#ffffff"; ctx.fillText(String(ficha[i]), x, cy + 1);
         x += d*(bw + 6 + 13); drawChip(x, cy, 13); x += d*(13 + 20);
@@ -1657,7 +1718,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       ctx.textAlign = i ? "left" : "right"; ctx.font = `italic 800 22px ${font}`;
       ctx.fillStyle = turn === i ? "#f2c45a" : "#d8d8d8"; ctx.fillText(names[i], x, cy + 1);
     }
-    if (vsCPU) drawChip(cx, cy - 4, 27, wager, 2);                     // meio: a aposta (pilha de fichas)
+    if (BET()) drawChip(cx, cy - 4, 27, wager, 2);                     // meio: a aposta (pilha de fichas)
     else { ctx.font = `900 22px ${font}`; ctx.textAlign = "center"; ctx.fillStyle = "#f2c45a"; ctx.fillText("×", cx, cy + 1); }
   }
 
@@ -1956,7 +2017,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         firstContact = null; cueRails = 0; moving = true; strike = null;
       }
     } else if (!moving && !gameOver){
-      if (inHand && !cpu && (!vsCPU || turn === 0)){
+      if (inHand && !cpu && myTurn()){
         const c = cue(), pulse = 0.5 + 0.5*Math.sin(performance.now()/220);
         ctx.save(); ctx.translate(FX, FY);
         ctx.fillStyle = "rgba(255,255,255,.06)"; ctx.strokeStyle = `rgba(255,255,255,${0.25 + 0.2*pulse})`; ctx.lineWidth = 2.5;
@@ -1972,12 +2033,13 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // ---------- Mensagens ----------
   let msgT;
   function flash(text, bad){
-    const m = document.getElementById("msg"); m.textContent = text; m.classList.toggle("bad", !!bad); m.classList.add("show");
+    if (netCap) netCap.push({t: "flash", text, bad: !!bad});
+    const m = document.getElementById("msg"); m.textContent = unTok(text); m.classList.toggle("bad", !!bad); m.classList.add("show");
     clearTimeout(msgT); msgT = setTimeout(() => m.classList.remove("show"), 1800);
   }
 
   // ---------- Toques ----------
-  const busy = () => moving || !!strike || !!cpu;
+  const busy = () => moving || !!strike || !!cpu || (!!net && turn !== net.me);
   const toL = e => {
     const r = cv.getBoundingClientRect(); let x, y;
     if (ROT){ x = e.clientY - r.top; y = r.right - e.clientX; } else { x = e.clientX - r.left; y = e.clientY - r.top; }
@@ -2005,7 +2067,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (inMatch && Math.hypot(p.x - CHALK.x, p.y - CHALK.y) < CHALK.r){ useChalk(); return; }
     if (busy()) return;
     cv.setPointerCapture(e.pointerId); activePtr = e.pointerId;
-    if (inHand && !gameOver && (!vsCPU || turn === 0)){
+    if (inHand && !gameOver && myTurn()){
       const c = cue();
       if (c.in && Math.hypot(p.x - FX - c.x, p.y - FY - c.y) < R*2.4){
         if (chalkShot){ chalk[chalkOwner()]++; chalkShot = null; }        // mexeu a branca: o giz volta
@@ -2067,6 +2129,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // tocar no placar: zerar pontuação
   const resetBox = document.getElementById("reset");
   function openReset(){
+    if (net){ flash("No online o placar é da sala · saia pelo Menu inicial para zerar"); return; }
     document.getElementById("rsScore").hidden = TREINO;
     document.getElementById("rsChips").hidden = TREINO || !vsCPU;
     document.getElementById("rsTrain").hidden = !TREINO;
@@ -2085,6 +2148,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // botão "voltar" do celular (no app): fecha a janela aberta; na mesa abre o menu ☰; no menu inicial deixa sair
   window.__voltar = () => {
     if (!document.getElementById("lines").hidden){ document.getElementById("lines").hidden = true; optsBox.hidden = false; return true; }
+    if (!document.getElementById("online").hidden){ closeOnline(); return true; }
     for (const id of ["opts", "reset", "spin"]){ const el = document.getElementById(id); if (!el.hidden){ el.hidden = true; return true; } }
     if (!menu.hidden){ menu.hidden = true; return true; }
     if (!modes.hidden){ if (!document.getElementById("step2").hidden){ showStep(1); return true; } return false; }
@@ -2098,10 +2162,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
       return;
     }
-    const rows = [["Modo", RULE_NAME()], ["Adversário", vsCPU ? `Computador · ${LEVELS[cpuLevel].name}` : "2 jogadores"],
+    const rows = [["Modo", RULE_NAME()], ["Adversário", net ? `Online · sala ${net.code}` : vsCPU ? `Computador · ${LEVELS[cpuLevel].name}` : "2 jogadores"],
       ["Partida", matchFmt === "bo3" ? "Melhor de 3" : "Jogo contínuo"], [matchFmt === "bo3" ? "Série" : "Placar", `${NAME(0)} ${wins[0]} × ${wins[1]} ${NAME(1)}`]];
     if (matchFmt === "bo3") rows.push(["Séries ganhas", `${NAME(0)} ${series[0]} × ${series[1]} ${NAME(1)}`]);
-    if (vsCPU) rows.push(["Aposta", `${wager} ficha${wager > 1 ? "s" : ""} ${matchFmt === "bo3" ? "pela série" : "por partida"}`], ["Suas fichas", String(ficha[0])]);
+    if (BET()) rows.push(["Aposta", `${wager} ficha${wager > 1 ? "s" : ""} ${matchFmt === "bo3" ? "pela série" : "por partida"}`], ["Suas fichas", String(ficha[net ? net.me : 0])]);
     const dl = document.getElementById("menuInfo"); dl.textContent = "";
     rows.forEach(([k, v]) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
   }
@@ -2187,10 +2251,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     flash(TREINO ? "Mesa rearrumada · bom treino!" : `${note || "Partida " + (gameNo + 1)} — ${NAME(breaker)} sai`);
     if (vsCPU && breaker === 1) startCPU();
   }
-  document.getElementById("next").onclick = () => {
-    const reset = !!document.getElementById("next").dataset.reset;
+  function doNext(reset){
+    document.getElementById("win").classList.remove("show");
     if (reset){ wins = [0, 0]; gameNo = 0; }   // nova série: zera o placar da série (fichas e pontos gerais ficam)
     newGame(reset ? `Nova série · geral ${series[0]} x ${series[1]}` : undefined);
+  }
+  document.getElementById("next").onclick = () => {
+    const r = !!document.getElementById("next").dataset.reset;
+    if (net) net.send({t: "next", n: gameNo, r});
+    doNext(r);
   };
   function startGame(cpuMode){
     inMatch = true;
@@ -2198,7 +2267,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     document.getElementById("resume").hidden = false; document.getElementById("next").hidden = true;
     document.getElementById("menuTitle").textContent = "Sinuca Mobile";
     document.getElementById("menuSub").textContent = "Jogo pausado";
+    netMenuButtons();
     if (TREINO){ flash("Treino · arraste a branca para onde quiser e treine as matadas"); return; }
+    if (net){ flash(`Online · ${RULE_NAME()}` + (matchFmt === "bo3" ? " · melhor de 3" : "") + ` · aposta ${wager} — ${net.me === 0 ? "você sai" : "seu amigo sai"}`); return; }
     flash(RULE_NAME() + " · " + (cpuMode ? `Contra o computador (${LEVELS[cpuLevel].name})` : "2 jogadores") + (matchFmt === "bo3" ? " · melhor de 3" : " · jogo contínuo") + " — " + (cpuMode ? "você sai" : "Jogador 1 sai"));
   }
   // menu inicial: adversário, nível, aposta e formato (lembra a última escolha)
@@ -2212,6 +2283,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function dimStart(){                                                  // apaga (não some) o que não vale: o menu não muda de tamanho
     document.querySelectorAll("#modes .cpuonly").forEach(el => el.classList.toggle("off", oppMode !== "cpu" || TREINO));
     document.querySelectorAll("#modes .notrain").forEach(el => el.classList.toggle("off", TREINO));
+    document.querySelectorAll("#modes .betonly").forEach(el => el.classList.toggle("off", oppMode === "2p" || TREINO));
+    document.getElementById("m-play").textContent = oppMode === "online" && !TREINO ? "Jogar online ›" : "Jogar";
   }
   chipGroup(".opp", ch => setOpp(ch.dataset.o));
   chipGroup(".lvl", ch => { cpuLevel = +ch.dataset.l; store.set("lvl", String(cpuLevel)); });
@@ -2223,8 +2296,195 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     showStep(1); modes.hidden = false;
   }
   document.getElementById("balance").textContent = ficha[0];
-  document.getElementById("m-play").onclick = () => startGame(oppMode === "cpu" && !TREINO);
-  document.getElementById("tomodes").onclick = () => { menu.hidden = true; inMatch = false; cpu = null; showStart(); };
+  document.getElementById("m-play").onclick = () => { if (oppMode === "online" && !TREINO) openOnline(); else startGame(oppMode === "cpu" && !TREINO); };
+  document.getElementById("tomodes").onclick = () => {
+    if (net){ net.send({t: "bye"}); netLost(); }
+    menu.hidden = true; inMatch = false; cpu = null; netMenuButtons(); showStart(); rack(0);
+  };
+
+
+  // ---------- Online (sala com código) ----------
+  // quem taca é o "dono" da tacada: manda força/mira/efeito, os dois celulares animam,
+  // e no fim o dele manda a posição final das bolas + o que aconteceu (falta, vez, vitória)
+  function netApplyEnd(m){
+    netPendingEnd = null; clearTimeout(netEndTimer);
+    moving = false; strike = null; sinkFx = []; chalkFixed = false; chalkAcc = 0; renderAlpha = 1; pocketedThisShot = []; power = 0; chalkShot = null;
+    const s = m.s;
+    for (const [n, x, y, i] of s.b){
+      const b = balls.find(o => o.n === n); if (!b) continue;
+      b.x = b.px = x; b.y = b.py = y; b.vx = b.vy = 0; b.rx = b.ry = b.sz = 0; b.in = !!i; b.dirty = true;
+    }
+    turn = s.turn; groups = s.groups; scores = s.scores; chalk = s.chalk; pots = s.pots; inHand = s.inHand; breakShot = s.breakShot; lastChance = s.lastChance;
+    spin = {x:0, y:0}; updateDot();
+    for (const e of m.ev || []){
+      if (e.t === "flash") flash(e.text, e.bad);
+      else if (e.t === "foul") showFoul(...e.a);
+      else if (e.t === "win" && !gameOver) checkWin({i: e.i, why: e.why});
+    }
+    if (!gameOver && turn === net.me) aimAtNearest();
+  }
+  function onNetMsg(m){
+    if (!net || !m || !m.t) return;
+    if (m.t === "hello"){                                                 // convidado recebe as regras do anfitrião
+      if (net.host) return;
+      ruleMode = m.rules; TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = false;
+      matchFmt = m.fmt === "bo3" ? "bo3" : "cont"; initialWager = m.wager | 0 || 1; net.peerFicha = m.ficha | 0;
+      net.send({t: "hi", ficha: parseInt(store.get("ficha0", "0")) || 0});
+      startOnline();
+    }
+    else if (m.t === "hi"){ if (!net.host || net.live) return; net.peerFicha = m.ficha | 0; startOnline(); }
+    else if (m.t === "rack"){
+      if (net.host) return;
+      if (m.g === rackSeq) netApplyRack(m); else if (m.g > rackSeq) netPendingRack = m;
+    }
+    else if (m.t === "aim"){
+      if (turn === net.me || moving || strike || gameOver) return;
+      aim = m.a; power = m.p || 0;
+      if (inHand && m.cx != null){ const c = cue(); if (c){ c.x = c.px = m.cx; c.y = c.py = m.cy; } }
+    }
+    else if (m.t === "shot"){
+      if (turn === net.me) return;
+      const c = cue(); if (c){ c.x = c.px = m.cx; c.y = c.py = m.cy; }
+      aim = m.a; spin = {x: m.sp.x, y: m.sp.y}; power = 0; chalkFixed = !!m.fx; chalkAcc = 0;
+      strike = {p: m.p, t: 0}; inHand = false; breakShot = false; shotCleared = TRAD && groupClear(turn);
+    }
+    else if (m.t === "end"){
+      if (moving || strike){
+        netPendingEnd = m; clearTimeout(netEndTimer);
+        netEndTimer = setTimeout(() => { if (netPendingEnd === m) netApplyEnd(m); }, 2500);   // celular atrasado: encaixa no resultado certo
+      } else netApplyEnd(m);
+    }
+    else if (m.t === "next"){ if (gameOver && m.n === gameNo) doNext(!!m.r); }   // o amigo clicou em "próxima": as duas mesas seguem juntas
+    else if (m.t === "bye") netLost("Seu amigo saiu da partida");
+  }
+  // liga um "canal" (internet hoje, Bluetooth depois): precisa de send, close e on("data"/"close")
+  function netLink(link, host, code){
+    net = {host, me: host ? 0 : 1, code, peerFicha: 0, live: false,
+      send: m => { try { link.send(m); } catch(e){} }, close: () => { try { link.close(); } catch(e){} }};
+    const mine = net;
+    net.lastRx = performance.now();
+    link.on("data", m => { if (net === mine) net.lastRx = performance.now(); if (net === mine) try { onNetMsg(typeof m === "string" ? JSON.parse(m) : m); } catch(e){ console.error(e); } });
+    link.on("close", () => { if (net === mine) netLost("Conexão perdida"); });
+    if (host) net.send({t: "hello", rules: ruleMode, fmt: matchFmt, wager: initialWager, ficha: parseInt(store.get("ficha0", "0")) || 0});
+  }
+  window.__netLink = netLink;
+  // sinal de vida: se o celular do amigo some (sem internet, app fechado), a partida encerra sozinha
+  setInterval(() => {
+    if (!net || !net.live) return;
+    net.send({t: "ping"});
+    if (performance.now() - net.lastRx > 15000) netLost("Conexão perdida com seu amigo");
+  }, 2000);
+  window.addEventListener("pagehide", () => { if (net) net.send({t: "bye"}); });
+  window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq,
+    balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p)};
+  function startOnline(){
+    net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
+    ficha[net.me] = parseInt(store.get("ficha0", "0")) || 0; ficha[1 - net.me] = net.peerFicha;
+    document.getElementById("online").hidden = true;
+    startGame(false);
+  }
+  function netLost(why){
+    if (!net) return;
+    if (why) fillMenuInfo();                                             // mostra como ficou a partida antes de desligar
+    const n = net; net = null; netCap = null; netPendingEnd = null; netPendingRack = null; clearTimeout(netEndTimer);
+    n.close(); netClosePeer();
+    ruleMode = store.get("rules", "reg"); TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = ruleMode === "treino";
+    matchFmt = store.get("fmt", "cont"); initialWager = +store.get("bet", "3");
+    ficha = [parseInt(store.get("ficha0", "0")) || 0, parseInt(store.get("ficha1", "0")) || 0];
+    if (why){
+      cpu = null; strike = null; moving = false; gameOver = true; inMatch = false;
+      document.getElementById("win").classList.remove("show");
+      document.getElementById("menuTitle").textContent = why;
+      document.getElementById("menuSub").textContent = "Partida online encerrada";
+      document.getElementById("next").hidden = true; document.getElementById("resume").hidden = true;
+      document.getElementById("restart").hidden = true; menu.hidden = false;
+    }
+  }
+  // PeerJS (servidor público gratuito só para os dois celulares se acharem; o jogo vai direto de um pro outro)
+  const PEER_PREFIX = "sinucamobile-v1-", CODE_ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const PEER_OPT = window.__peerOpt || {host: "0.peerjs.com", port: 443, path: "/", secure: true, debug: 0};
+  let peer = null, peerLib = null, onTry = 0;
+  function loadPeer(){
+    if (window.Peer) return Promise.resolve();
+    const add = src => new Promise((ok, fail) => {
+      const sc = document.createElement("script"); sc.src = src;
+      sc.onload = () => window.Peer ? ok() : fail(new Error("lib")); sc.onerror = () => { sc.remove(); fail(new Error("lib")); };
+      document.head.appendChild(sc);
+    });
+    // no app a biblioteca já vem junto (peerjs.min.js); no navegador busca na internet
+    if (!peerLib) peerLib = add("peerjs.min.js").catch(() => add("https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js")).catch(e => { peerLib = null; throw e; });
+    return peerLib;
+  }
+  function netClosePeer(){ if (peer){ const p = peer; peer = null; setTimeout(() => { try { p.destroy(); } catch(e){} }, 300); } }
+  const wrapConn = c => ({send: m => c.send(m), close: () => c.close(), on: (ev, fn) => c.on(ev, fn)});
+  const onlineBox = document.getElementById("online");
+  function onStatus(t, bad){ const el = document.getElementById("onStatus"); el.textContent = t; el.classList.toggle("bad", !!bad); }
+  function openOnline(){
+    netClosePeer(); onTry++;
+    document.getElementById("onChoose").hidden = false; document.getElementById("onWait").hidden = true;
+    document.getElementById("onSub").textContent = `${RULE_NAME()} · ${matchFmt === "bo3" ? "melhor de 3" : "jogo contínuo"} · aposta ${initialWager}`;
+    onStatus("Crie a sala e passe o código, ou digite o código do seu amigo.");
+    onlineBox.hidden = false;
+  }
+  function closeOnline(){ onTry++; netClosePeer(); onlineBox.hidden = true; }
+  async function createRoom(){
+    const tryId = ++onTry;
+    document.getElementById("onChoose").hidden = true; document.getElementById("onWait").hidden = false;
+    document.getElementById("onBig").textContent = "····"; document.getElementById("onShare").hidden = true;
+    onStatus("Abrindo a sala…");
+    try { await loadPeer(); } catch(e){ if (tryId === onTry) onStatus("Sem internet: não deu para abrir a sala", true); return; }
+    if (tryId !== onTry) return;
+    const code = Array.from({length: 4}, () => CODE_ABC[Math.floor(Math.random()*CODE_ABC.length)]).join("");
+    const p = peer = new window.Peer(PEER_PREFIX + code, PEER_OPT);
+    p.on("open", () => {
+      if (peer !== p) return;
+      document.getElementById("onBig").textContent = code; document.getElementById("onShare").hidden = false;
+      onStatus("Sala aberta · esperando seu amigo entrar com esse código…");
+    });
+    p.on("connection", c => {
+      if (peer !== p || net){ try { c.close(); } catch(e){} return; }
+      c.on("open", () => { if (peer === p && !net){ onStatus("Amigo conectado! Começando…"); netLink(wrapConn(c), true, code); } });
+    });
+    p.on("error", err => {
+      if (peer !== p) return;
+      if (err && err.type === "unavailable-id"){ netClosePeer(); createRoom(); return; }   // código já em uso: sorteia outro
+      if (!net) onStatus("Não deu para abrir a sala (" + (err && err.type || "erro") + ") · tente de novo", true);
+    });
+  }
+  async function joinRoom(){
+    const code = document.getElementById("onCode").value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (code.length !== 4){ onStatus("O código tem 4 letras/números", true); return; }
+    const tryId = ++onTry;
+    onStatus("Procurando a sala " + code + "…");
+    try { await loadPeer(); } catch(e){ if (tryId === onTry) onStatus("Sem internet: não deu para entrar", true); return; }
+    if (tryId !== onTry) return;
+    netClosePeer();
+    const p = peer = new window.Peer(PEER_OPT);
+    p.on("open", () => {
+      if (peer !== p) return;
+      const c = p.connect(PEER_PREFIX + code, {reliable: true, serialization: "json"});
+      c.on("open", () => { if (peer === p && !net){ onStatus("Conectado! Recebendo a mesa…"); netLink(wrapConn(c), false, code); } });
+    });
+    p.on("error", err => {
+      if (peer !== p) return;
+      if (!net) onStatus(err && err.type === "peer-unavailable" ? "Sala " + code + " não encontrada · confira o código" : "Não deu para conectar (" + (err && err.type || "erro") + ")", true);
+    });
+  }
+  document.getElementById("onCreate").onclick = createRoom;
+  document.getElementById("onJoin").onclick = joinRoom;
+  document.getElementById("onCode").addEventListener("keydown", e => { if (e.key === "Enter") joinRoom(); });
+  document.getElementById("onCode").addEventListener("input", e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4); });
+  document.getElementById("onClose").onclick = closeOnline;
+  document.getElementById("onBack").onclick = () => { onTry++; netClosePeer(); openOnline(); };
+  document.getElementById("onShare").onclick = () => {
+    const code = document.getElementById("onBig").textContent, txt = `Bora jogar Sinuca Mobile! Entre em Online › Entrar e digite o código ${code}`;
+    if (window.SinucaApp && window.SinucaApp.compartilhar) window.SinucaApp.compartilhar(txt);   // no app: abre o "compartilhar" do Android (WhatsApp etc.)
+    else if (navigator.share) navigator.share({text: txt}).catch(() => {});
+    else if (navigator.clipboard) navigator.clipboard.writeText(txt).then(() => onStatus("Convite copiado · cole no WhatsApp"), () => {});
+  };
+  function netMenuButtons(){                                              // online não tem "rearrumar"
+    document.getElementById("restart").hidden = !!net;
+  }
 
   // ---------- Efeito ----------
   const spinBox = document.getElementById("spin"), ball = document.getElementById("cueball"), dot = document.getElementById("dot");
@@ -2280,9 +2540,18 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         while (chalkAcc >= 1/30){ for (const b of balls){ b.px = b.x; b.py = b.y; } physics(1/30); chalkAcc -= 1/30; }
         renderAlpha = chalkAcc*30;
       } else { physics(dt); renderAlpha = 1; }                            // tacada normal: física no ritmo da tela (giro e movimento lisinhos)
-      if (allStopped() && sinkFx.length === 0){ chalkFixed = false; chalkAcc = 0; renderAlpha = 1; balls.forEach(b => { b.px = b.x; b.py = b.y; }); endShot(); }
+      if (allStopped() && sinkFx.length === 0){
+        chalkFixed = false; chalkAcc = 0; renderAlpha = 1; balls.forEach(b => { b.px = b.x; b.py = b.y; });
+        if (net && turn !== net.me){ moving = false; if (netPendingEnd) netApplyEnd(netPendingEnd); }   // online: quem decide é o celular de quem tacou
+        else endShot();
+      }
     }
     else cpuStep(dt);
+    if (net && net.live && turn === net.me && !moving && !strike && !gameOver && (netAimT += dt) >= 0.09){   // mira ao vivo pro amigo ver
+      netAimT = 0; const c = cue();
+      const sig = aim.toFixed(3) + "," + power.toFixed(2) + (inHand && c ? "," + c.x.toFixed(1) + "," + c.y.toFixed(1) : "");
+      if (sig !== netAimSig){ netAimSig = sig; net.send({t: "aim", a: +aim.toFixed(4), p: +power.toFixed(3), cx: inHand && c ? +c.x.toFixed(2) : null, cy: inHand && c ? +c.y.toFixed(2) : null}); }
+    }
     draw(dt);
     requestAnimationFrame(loop);
   }
@@ -2324,4 +2593,5 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   start();
 })();
 </script>
+
 </body></html>
