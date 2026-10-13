@@ -129,6 +129,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 @keyframes emoUp{0%{opacity:0; transform:translateY(0) scale(.6)} 12%{opacity:1; transform:translateY(-20px) scale(1.15)} 100%{opacity:0; transform:translateY(-220px) scale(1)}}
 .appbar{position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:6; display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--brass); border-radius:12px; padding:6px 8px 6px 14px; font:600 .85rem var(--body); color:var(--chalk); box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .appbar a{background:var(--brass); color:#1a1209; text-decoration:none; font-weight:800; padding:6px 12px; border-radius:8px}
+.updbar{top:auto; bottom:70px}
+.verline{flex-direction:row; align-items:center; justify-content:space-between; gap:10px}
+.opt.verline span{font:500 .8rem var(--body); color:var(--muted); text-transform:none; letter-spacing:normal}
 .appbar button{background:none; border:0; color:var(--muted); font:700 1rem var(--body); cursor:pointer}
 .chatfeed{position:absolute; top:78px; left:50%; transform:translateX(-50%); width:min(560px, 70%); display:flex; flex-direction:column; align-items:center; gap:5px; pointer-events:none; z-index:3}
 .chatmsg{max-width:100%; background:rgba(15,10,6,.86); border:1px solid var(--line); border-radius:14px; padding:5px 12px; font:600 .9rem var(--body); color:var(--chalk); animation:chatIn .25s ease-out; transition:opacity .5s}
@@ -233,6 +236,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   <div class="chatrow"><input id="chatIn" maxlength="80" placeholder="Mensagem…" autocomplete="off" aria-label="Mensagem"><button type="button" class="btn main" id="chatSend">Enviar</button><button type="button" class="chx" id="chatX" aria-label="Fechar chat">✕</button></div>
 </div>
 <div class="reacts" id="reacts" hidden><button type="button" data-e="👏">👏</button><button type="button" data-e="🔥">🔥</button><button type="button" data-e="😮">😮</button><button type="button" data-e="😂">😂</button><button type="button" data-e="😱">😱</button></div>
+<div class="appbar updbar" id="updbar" hidden><span id="updTxt"></span><a id="updGo" href="#">Atualizar</a><button type="button" id="updX" aria-label="Fechar">✕</button></div>
 <div class="appbar" id="appbar" hidden><span>Tem o Sinuca Mobile?</span><a id="appLink" href="#">Abrir no app</a><button type="button" id="appbarX" aria-label="Fechar">✕</button></div>
 <div class="foul win" id="win" aria-live="assertive"><b id="winTitle">VITÓRIA!</b><span class="why" id="winWho"></span><div class="rem" id="winScore"></div></div>
 <div class="foul" id="foul" aria-live="assertive"><b>FALTA!</b><span class="why" id="foulWhy"></span><div class="rem" id="foulRem"></div></div>
@@ -350,6 +354,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         <button class="chip" data-o="1" type="button">Ligado</button><button class="chip" data-o="0" type="button">Desligado</button>
       </div>
     </div>
+    <div class="opt verline"><span id="verTxt"></span><button class="chip" id="verCheck" type="button" hidden>Procurar atualização</button></div>
     <button class="btn main" id="optsok" type="button">Pronto</button>
   </div>
 </div>
@@ -528,6 +533,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = store.get("rules", "reg"), TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
+  const WEB_VER = 26101301;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -2578,6 +2584,28 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     flash(`👁 Assistindo ao vivo · ${NAME0(0)} x ${NAME0(1)}`);
   }
   window.__assistir = code => watchJoin(code);
+  // ---------- Atualização automática (no app): o jogo novo chega sozinho pela internet ----------
+  const updBar = document.getElementById("updbar");
+  let updAction = null;
+  function updShow(txt, btn, fn){ document.getElementById("updTxt").textContent = txt; const a = document.getElementById("updGo"); a.textContent = btn; a.hidden = !btn; updAction = fn; updBar.hidden = false; }
+  document.getElementById("updGo").onclick = e => { e.preventDefault(); if (updAction) updAction(); };
+  document.getElementById("updX").onclick = () => updBar.hidden = true;
+  window.__atualizou = v => {
+    if (!inMatch && !net && onlineBox.hidden){ location.reload(); return; }   // no menu: já aplica
+    updShow("Jogo atualizado ✓ · vale ao sair da partida", "Aplicar agora", () => { if (net){ flash("Termine a partida online antes", true); return; } location.reload(); });
+  };
+  window.__apkNovo = nome => updShow(`Nova versão do app ${nome || ""}`.trim(), "Instalar", () => { try { window.SinucaApp.instalarApk(); } catch(e){} });
+  window.__apkEstado = st => {
+    if (st === "baixando") updShow("Baixando a versão nova…", "", null);
+    else if (st === "permitir") updShow("Libere \"instalar apps desconhecidos\" pro Sinuca Mobile e volte aqui", "Instalar", () => { try { window.SinucaApp.instalarApk(); } catch(e){} });
+    else if (st === "erro") updShow("Não deu pra baixar agora · confira a internet", "Tentar de novo", () => { try { window.SinucaApp.instalarApk(); } catch(e){} });
+  };
+  (() => {
+    let v = WEB_VER; try { if (window.SinucaApp && window.SinucaApp.versaoWeb) v = Math.max(v, window.SinucaApp.versaoWeb()); } catch(e){}
+    document.getElementById("verTxt").textContent = `Versão do jogo ${v}` + (window.SinucaApp ? " · atualiza sozinho com internet" : "");
+    const b = document.getElementById("verCheck");
+    if (window.SinucaApp && window.SinucaApp.procurarAtualizacao){ b.hidden = false; b.onclick = () => { window.SinucaApp.procurarAtualizacao(); flash("Procurando atualização…"); }; }
+  })();
   // ---------- Mini chat (jogadores conversam; quem assiste lê) ----------
   let chatUnread = false, chatLast = 0;
   const chatBox = document.getElementById("chatBox"), chatIn = document.getElementById("chatIn");
