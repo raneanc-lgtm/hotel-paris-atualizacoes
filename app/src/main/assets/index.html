@@ -137,6 +137,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .chatmsg.out{opacity:0}
 @keyframes chatIn{from{opacity:0; transform:translateY(-8px)} to{opacity:1; transform:none}}
 .chatbox{position:absolute; top:6px; left:50%; transform:translateX(-50%); width:min(620px, 92%); z-index:6; background:var(--panel); border:1px solid var(--brass); border-radius:14px; padding:8px; display:flex; flex-direction:column; gap:7px; box-shadow:0 6px 18px rgba(0,0,0,.6)}
+.chatlog{display:flex; flex-direction:column; gap:4px; max-height:32cqh; overflow-y:auto; font:600 .88rem var(--body); color:var(--chalk)}
+.chatlog:empty::before{content:"Nenhuma mensagem ainda"; color:var(--muted); font-weight:500}
+.chatlog div b{color:var(--brass); margin-right:6px}
+.chatlog div.me b{color:#8fd3ff}
 .chatquick{display:flex; gap:6px; overflow-x:auto; scrollbar-width:none}
 .chatquick button{flex:none; font:600 .82rem var(--body); color:var(--chalk); background:#2a1f15; border:1px solid var(--line); border-radius:16px; padding:5px 10px; cursor:pointer}
 .chatrow{display:flex; gap:6px; align-items:center}
@@ -224,6 +228,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 <div class="viewers" id="viewers" hidden></div>
 <div class="chatfeed" id="chatFeed" aria-live="polite"></div>
 <div class="chatbox" id="chatBox" hidden>
+  <div class="chatlog" id="chatLog"></div>
   <div class="chatquick" id="chatQuick"><button type="button">Boa! 👏</button><button type="button">Que sorte 😂</button><button type="button">Vai logo! ⏳</button><button type="button">Quase! 😮</button><button type="button">Revanche? 🔁</button><button type="button">GG 🤝</button></div>
   <div class="chatrow"><input id="chatIn" maxlength="80" placeholder="Mensagem…" autocomplete="off" aria-label="Mensagem"><button type="button" class="btn main" id="chatSend">Enviar</button><button type="button" class="chx" id="chatX" aria-label="Fechar chat">✕</button></div>
 </div>
@@ -2576,7 +2581,19 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // ---------- Mini chat (jogadores conversam; quem assiste lê) ----------
   let chatUnread = false, chatLast = 0;
   const chatBox = document.getElementById("chatBox"), chatIn = document.getElementById("chatIn");
+  const chatHist = [];
+  let chatOpenedAt = 0;
+  function chatLogAdd(name, text, me){
+    chatHist.push({name, text, me}); if (chatHist.length > 30) chatHist.shift();
+    if (!chatBox.hidden) chatLogRender();
+  }
+  function chatLogRender(){
+    const log = document.getElementById("chatLog"); log.textContent = "";
+    for (const h of chatHist){ const d = document.createElement("div"); if (h.me) d.className = "me"; const b = document.createElement("b"); b.textContent = h.name; d.append(b, document.createTextNode(h.text)); log.appendChild(d); }
+    log.scrollTop = log.scrollHeight;
+  }
   function chatShow(name, text, me){
+    chatLogAdd(name, text, me);
     const feed = document.getElementById("chatFeed");
     const el = document.createElement("div"); el.className = "chatmsg" + (me ? " me" : "");
     const b = document.createElement("b"); b.textContent = name; el.append(b, document.createTextNode(text));
@@ -2598,12 +2615,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     net.send({t: "chat", s: text, i: net.me});
     chatShow("Você", text, true);
   }
-  function openChat(){ chatUnread = false; chatBox.hidden = false; setTimeout(() => { try { chatIn.focus(); } catch(e){} }, 50); }
+  // tocar no 💬 só ABRE a conversa (o teclado só aparece se tocar no campo de texto)
+  function openChat(){ chatUnread = false; chatOpenedAt = performance.now(); chatLogRender(); chatBox.hidden = false; }
+  const chatGhost = () => performance.now() - chatOpenedAt < 450;     // o mesmo toque que abriu não vale como clique lá dentro
   function closeChat(){ chatBox.hidden = true; chatIn.blur(); }
-  document.getElementById("chatSend").onclick = () => { chatSend(chatIn.value); chatIn.value = ""; closeChat(); };
+  document.getElementById("chatSend").onclick = () => { if (chatGhost()) return; chatSend(chatIn.value); chatIn.value = ""; closeChat(); };
   chatIn.addEventListener("keydown", e => { if (e.key === "Enter"){ chatSend(chatIn.value); chatIn.value = ""; closeChat(); } });
-  document.getElementById("chatX").onclick = closeChat;
-  document.querySelectorAll("#chatQuick button").forEach(b => b.onclick = () => { chatSend(b.textContent); closeChat(); });
+  document.getElementById("chatX").onclick = () => { if (!chatGhost()) closeChat(); };
+  document.querySelectorAll("#chatQuick button").forEach(b => b.onclick = () => { if (chatGhost()) return; chatSend(b.textContent); closeChat(); });
+  chatIn.addEventListener("pointerdown", e => { if (chatGhost()) e.preventDefault(); });
   document.getElementById("onWatch").onclick = () => watchJoin(document.getElementById("onCode").value);
   document.getElementById("p-watch").onclick = () => {
     const code = net && net.watchCode;
@@ -2648,7 +2668,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function netLost(why){
     if (!net) return;
     if (why) fillMenuInfo();                                             // mostra como ficou a partida antes de desligar
-    watchStop(); showViewers(0); document.getElementById("reacts").hidden = true; chatBox.hidden = true; chatUnread = false;
+    watchStop(); showViewers(0); document.getElementById("reacts").hidden = true; chatBox.hidden = true; chatUnread = false; chatHist.length = 0;
     const n = net; net = null; netCap = null;
     if (forcedExtra !== null){ forcedExtra = null; resize(); }              // volta a mesa do tamanho da tela netPendingEnd = null; netPendingRack = null; clearTimeout(netEndTimer);
     n.close(); netClosePeer();
