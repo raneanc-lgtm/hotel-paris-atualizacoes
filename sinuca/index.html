@@ -310,6 +310,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     <button class="btn main" id="resume" type="button">Continuar</button>
     <button class="btn" id="p-opts" type="button">⚙ Configurações</button>
     <button class="btn" id="p-watch" type="button" hidden>👁 Convidar pra assistir</button>
+    <button class="btn" id="p-music" type="button" hidden>🎵 Abrir app de música</button>
     <button class="btn" id="restart" type="button">Nova partida / rearrumar</button>
     <button class="btn" id="tomodes" type="button">Menu inicial</button>
     <button class="btn" id="fs" type="button">Tela cheia</button>
@@ -359,7 +360,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     </div>
     <div class="opt"><span>Música</span>
       <div class="lvls mus" role="radiogroup" aria-label="Música">
-        <button class="chip" data-m="off" type="button">Desligada</button><button class="chip" data-m="jogo" type="button">Do jogo</button><button class="chip" data-m="minhas" type="button">Minhas músicas</button>
+        <button class="chip" data-m="off" type="button">Desligada</button><button class="chip" data-m="jogo" type="button">Do jogo</button><button class="chip" data-m="minhas" type="button">Minhas músicas</button><button class="chip" data-m="app" type="button">App de música</button>
       </div>
     </div>
     <div class="opt"><span id="musInfo">Volume da música</span>
@@ -394,6 +395,16 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <div class="btlist" id="btList"></div>
     </div>
     <small id="onStatus" class="onstatus"></small>
+  </div>
+</div>
+
+<div class="overlay" id="musApps" hidden>
+  <div class="card resetcard">
+    <button class="xbtn" id="musAppsX" type="button" aria-label="Fechar" title="Fechar">✕</button>
+    <h2>Abrir app de música</h2>
+    <small id="musAppsSub">Escolha o app, coloque a música pra tocar e volte pro jogo: ela continua tocando enquanto você joga.</small>
+    <div class="btlist" id="musAppsList"></div>
+    <button class="btn" id="musAppsAll" type="button">Outro app… <em>ver todos os apps do celular</em></button>
   </div>
 </div>
 
@@ -545,7 +556,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = store.get("rules", "reg"), TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101702;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101703;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -2293,6 +2304,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (!document.getElementById("lines").hidden){ document.getElementById("lines").hidden = true; optsBox.hidden = false; return true; }
     if (!inviteBox.hidden){ answerInvite(false); return true; }
     if (!chatBox.hidden){ closeChat(); return true; }
+    if (!musAppsBox.hidden){ musAppsBox.hidden = true; return true; }
     if (!document.getElementById("online").hidden){ closeOnline(); return true; }
     for (const id of ["opts", "reset", "spin"]){ const el = document.getElementById(id); if (!el.hidden){ el.hidden = true; return true; } }
     if (!menu.hidden){ menu.hidden = true; return true; }
@@ -2481,8 +2493,36 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     el.play().then(() => { MUS.started = true; }).catch(() => { MUS.started = false; });
     musInfo();
   }
+  // ---- app de música de fora (Spotify, Deezer, YouTube Music...): o jogo só abre o app e não toca nada por cima ----
+  const musAppsBox = document.getElementById("musApps");
+  const hasAppBridge = () => !!(window.SinucaApp && window.SinucaApp.appsMusica);
+  function musAppsFill(all){
+    const list = document.getElementById("musAppsList"); list.textContent = "";
+    if (!hasAppBridge()){
+      document.getElementById("musAppsSub").textContent = window.SinucaApp ? "Atualize o app (aviso \"Nova versão do app\") pra abrir o Spotify, Deezer e outros pelo jogo." : "Abrir outros apps só funciona no app Sinuca Mobile (APK).";
+      document.getElementById("musAppsAll").hidden = true; return;
+    }
+    let apps = []; try { apps = JSON.parse(all ? window.SinucaApp.appsTodos() : window.SinucaApp.appsMusica()) || []; } catch(e){}
+    document.getElementById("musAppsAll").hidden = all;
+    if (!apps.length){ const h = document.createElement("small"); h.textContent = "Nenhum app de música achado · toque em Outro app…"; list.appendChild(h); }
+    for (const a of apps){
+      const b = document.createElement("button"); b.type = "button"; b.className = "btn"; b.textContent = a.n;
+      b.onclick = () => {
+        let ok = false; try { ok = window.SinucaApp.abrirApp(a.p); } catch(e){}
+        if (ok){ store.set("musapp", a.p); musAppsBox.hidden = true; } else flash("Não deu pra abrir esse app", true);
+      };
+      list.appendChild(b);
+    }
+  }
+  function openMusApps(){ musAppsFill(false); musAppsBox.hidden = false; }
+  document.getElementById("musAppsX").onclick = () => musAppsBox.hidden = true;
+  document.getElementById("musAppsAll").onclick = () => musAppsFill(true);
+  document.getElementById("p-music").onclick = () => { menu.hidden = true; openMusApps(); };
   function musInfo(){
     const el = document.getElementById("musInfo"); if (!el) return;
+    document.getElementById("p-music").hidden = MUS.mode !== "app";
+    document.getElementById("musPick").textContent = MUS.mode === "app" ? "Abrir app" : "+ Escolher";
+    if (MUS.mode === "app"){ el.textContent = "Música do seu app (Spotify, Deezer…) · volume no celular"; document.getElementById("musNext").hidden = true; document.getElementById("musClear").hidden = true; return; }
     if (MUS.mode === "minhas") el.textContent = MUS.tracks.length ? `Tocando: ${(MUS.tracks[MUS.idx % MUS.tracks.length] || {}).name || ""} · ${MUS.tracks.length} música${MUS.tracks.length > 1 ? "s" : ""}` : "Nenhuma música ainda · toque em + Escolher";
     else el.textContent = MUS.mode === "jogo" ? "Trilha do jogo · volume" : "Volume da música";
     document.getElementById("musNext").hidden = MUS.mode !== "minhas" || MUS.tracks.length < 2;
@@ -2491,17 +2531,17 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function musApply(){
     if (MUS.mode === "jogo" && !document.hidden){ musStopFile(); musGenStart(); MUS.started = true; }
     else if (MUS.mode === "minhas"){ musGenStop(); if (!MUS.el) musPlayFile(); else if (!document.hidden) MUS.el.play().catch(() => {}); }
-    else { musGenStop(); musStopFile(); }
+    else { musGenStop(); musStopFile(); }                               // desligada ou app de fora: o jogo fica quieto
   }
   function setMus(m){ MUS.mode = m; store.set("mus", m); mark(".mus", "m", m); musApply(); musInfo(); }
-  chipGroup(".mus", ch => setMus(ch.dataset.m));
+  chipGroup(".mus", ch => { setMus(ch.dataset.m); if (ch.dataset.m === "app") openMusApps(); });
   mark(".mus", "m", MUS.mode);
   const musVol = document.getElementById("musVol"); musVol.value = Math.round(MUS.vol*100);
   musVol.addEventListener("input", () => {
     MUS.vol = musVol.value/100; store.set("musvol", String(musVol.value));
     if (MUS.master) MUS.master.gain.value = MUS.vol*0.5; if (MUS.el) MUS.el.volume = MUS.vol;
   });
-  document.getElementById("musPick").onclick = () => document.getElementById("musFile").click();
+  document.getElementById("musPick").onclick = () => { if (MUS.mode === "app") openMusApps(); else document.getElementById("musFile").click(); };
   document.getElementById("musFile").addEventListener("change", e => { const f = e.target.files; if (f && f.length) musAdd(f); e.target.value = ""; });
   document.getElementById("musNext").onclick = () => { MUS.idx++; musPlayFile(); };
   document.getElementById("musClear").onclick = () => musClearAll();
