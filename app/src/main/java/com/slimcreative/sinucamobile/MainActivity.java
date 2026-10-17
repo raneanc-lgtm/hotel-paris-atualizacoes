@@ -3,6 +3,14 @@ package com.slimcreative.sinucamobile;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -131,6 +139,16 @@ public class MainActivity extends Activity {
                 startActivity(Intent.createChooser(i, "Convidar para a sala"));
             });
         }
+        // ---- abrir app de música (Spotify, Deezer, YouTube Music...) e voltar pro jogo ----
+        @JavascriptInterface public String appsMusica() { return listarApps(false); }
+        @JavascriptInterface public String appsTodos() { return listarApps(true); }
+        @JavascriptInterface public boolean abrirApp(String pacote) {
+            final Intent i = getPackageManager().getLaunchIntentForPackage(pacote);
+            if (i == null) return false;
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            runOnUiThread(() -> { try { startActivity(i); } catch (Exception e) { /* app sumiu */ } });
+            return true;
+        }
         @JavascriptInterface public int versaoWeb() { return atual.versaoWeb(); }
         @JavascriptInterface public void instalarApk() { runOnUiThread(() -> atual.instalar()); }
         @JavascriptInterface public void procurarAtualizacao() { atual.verificar(true); }
@@ -142,6 +160,48 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void btConectar(String endereco) { mesa.conectar(endereco); }
         @JavascriptInterface public void btEnviar(String texto) { mesa.enviar(texto); }
         @JavascriptInterface public void btFechar() { mesa.fechar(); }
+    }
+
+    // apps de música mais usados (aparecem primeiro, se estiverem instalados)
+    private static final String[] CONHECIDOS = {
+        "com.spotify.music", "deezer.android.app", "com.google.android.apps.youtube.music", "com.google.android.youtube",
+        "com.amazon.mp3", "com.apple.android.music", "com.soundcloud.android", "com.studiosol.palcomp3", "com.aspiro.tidal",
+        "org.schabi.newpipe", "com.sec.android.app.music", "org.videolan.vlc", "com.maxmpz.audioplayer"
+    };
+
+    private String rotulo(PackageManager pm, String p) {
+        try { return pm.getApplicationLabel(pm.getApplicationInfo(p, 0)).toString(); } catch (Exception e) { return p; }
+    }
+
+    /** lista apps instalados: os de música (todos=false) ou todos que abrem pela tela inicial (todos=true) */
+    private String listarApps(boolean todos) {
+        PackageManager pm = getPackageManager();
+        JSONArray out = new JSONArray();
+        Set<String> vistos = new HashSet<>();
+        vistos.add(getPackageName());
+        try {
+            if (!todos) {
+                for (String p : CONHECIDOS)
+                    if (pm.getLaunchIntentForPackage(p) != null && vistos.add(p)) out.put(new JSONObject().put("p", p).put("n", rotulo(pm, p)));
+                Intent m = new Intent(Intent.ACTION_MAIN);
+                m.addCategory(Intent.CATEGORY_APP_MUSIC);
+                for (ResolveInfo r : pm.queryIntentActivities(m, 0)) {
+                    String p = r.activityInfo.packageName;
+                    if (pm.getLaunchIntentForPackage(p) != null && vistos.add(p)) out.put(new JSONObject().put("p", p).put("n", rotulo(pm, p)));
+                }
+            } else {
+                Intent l = new Intent(Intent.ACTION_MAIN);
+                l.addCategory(Intent.CATEGORY_LAUNCHER);
+                List<String[]> lista = new ArrayList<>();
+                for (ResolveInfo r : pm.queryIntentActivities(l, 0)) {
+                    String p = r.activityInfo.packageName;
+                    if (vistos.add(p)) lista.add(new String[]{p, r.loadLabel(pm).toString()});
+                }
+                lista.sort((a, b) -> a[1].compareToIgnoreCase(b[1]));
+                for (String[] a : lista) out.put(new JSONObject().put("p", a[0]).put("n", a[1]));
+            }
+        } catch (Exception e) { /* devolve o que deu */ }
+        return out.toString();
     }
 
     /** sinucamobile://assistir/ABCD  ou  https://...?assistir=ABCD */
