@@ -130,6 +130,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .appbar{position:absolute; top:8px; left:50%; transform:translateX(-50%); z-index:6; display:flex; align-items:center; gap:10px; background:var(--panel); border:1px solid var(--brass); border-radius:12px; padding:6px 8px 6px 14px; font:600 .85rem var(--body); color:var(--chalk); box-shadow:0 4px 14px rgba(0,0,0,.5)}
 .appbar a{background:var(--brass); color:#1a1209; text-decoration:none; font-weight:800; padding:6px 12px; border-radius:8px}
 .updbar{top:auto; bottom:70px}
+.musrow{display:flex; align-items:center; gap:6px}
+.musrow input[type=range]{flex:1; min-width:60px; accent-color:var(--brass)}
+.musrow .chip{flex:none; padding-inline:10px}
 .verline{flex-direction:row; align-items:center; justify-content:space-between; gap:10px}
 .opt.verline span{font:500 .8rem var(--body); color:var(--muted); text-transform:none; letter-spacing:normal}
 .appbar button{background:none; border:0; color:var(--muted); font:700 1rem var(--body); cursor:pointer}
@@ -354,6 +357,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         <button class="chip" data-o="1" type="button">Ligado</button><button class="chip" data-o="0" type="button">Desligado</button>
       </div>
     </div>
+    <div class="opt"><span>Música</span>
+      <div class="lvls mus" role="radiogroup" aria-label="Música">
+        <button class="chip" data-m="off" type="button">Desligada</button><button class="chip" data-m="jogo" type="button">Do jogo</button><button class="chip" data-m="minhas" type="button">Minhas músicas</button>
+      </div>
+    </div>
+    <div class="opt"><span id="musInfo">Volume da música</span>
+      <div class="musrow"><input type="range" id="musVol" min="0" max="100" step="1" aria-label="Volume da música"><button class="chip" id="musPick" type="button">+ Escolher</button><button class="chip" id="musNext" type="button" aria-label="Próxima música">⏭</button><button class="chip" id="musClear" type="button" aria-label="Apagar minhas músicas">🗑</button></div>
+      <input type="file" id="musFile" accept="audio/*" multiple hidden>
+    </div>
     <div class="opt verline"><span id="verTxt"></span><button class="chip" id="verCheck" type="button" hidden>Procurar atualização</button></div>
     <button class="btn main" id="optsok" type="button">Pronto</button>
   </div>
@@ -533,7 +545,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = store.get("rules", "reg"), TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101701;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101702;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -542,7 +554,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let tShots = 0, tPots = 0, series = [0, 0];                                 // series: pontos gerais (séries de melhor de 3 ganhas)                                                    // contadores do treino   // "bol" = Bolinho (3 bolas, quem matar a última vence)   // "reg" = Sinuca Regional (2 a 15) · "trad" = Sinuca Tradicional (bola 1 de castigo)
   let shotCleared = false;                                                     // (tradicional) o jogador da vez já tinha limpado o grupo quando tacou?
   let ficha = [parseInt(store.get("ficha0", "0")), parseInt(store.get("ficha1", "0"))], wager = 3, initialWager = 3, lastWinner = -1;
-  let renderAlpha = 1;
+  let renderAlpha = 1, chalkPick = false, chalkBusy = false;              // giz: esperando o jogador tocar na bola · calculando
   let chalk = [1, 1], chalkShot = null, chalkFixed = false, chalkAcc = 0, pots = [0, 0], inHand = false, breakShot = true;   // pots: bolas matadas rumo ao próximo giz; inHand: branca na mão (só dentro da meia-lua)   // giz: 2 usos por jogador em cada partida; chalkShot = tacada perfeita calculada                    // recuo da câmera: "auto" ou px                  // "full" = com linha de destino, "guide" = só linha guia   // cpu: estado do computador na vez dele   // groups: "par" | "impar"
 
   // ---------- Quaternions ----------
@@ -690,7 +702,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       balls.push(mk(n, FOOT.x + (4-row)*dx - 2*dx + (Math.random()-.5)*0.4, FOOT.y + (k-row/2)*(2*R+gap) + (Math.random()-.5)*0.4));
     }
     const cb = mk(0, HEAD.x, HEAD.y); cb.q = [1,0,0,0]; balls.push(cb);
-    chalk = TREINO ? [Infinity, Infinity] : [1, 1]; pots = [0, 0]; lastChance = null; tShots = 0; tPots = 0; inHand = true; breakShot = true; chalkShot = null; turn = breaker; aim = 0; scores = [[],[]]; groups = [null, null]; gameOver = false; cpu = null; moving = false; strike = null; sinkFx = []; introT = 0; spin = {x:0,y:0}; updateDot();
+    chalk = TREINO ? [Infinity, Infinity] : [1, 1]; pots = [0, 0]; lastChance = null; tShots = 0; tPots = 0; inHand = true; breakShot = true; chalkShot = null; chalkPick = false; turn = breaker; aim = 0; scores = [[],[]]; groups = [null, null]; gameOver = false; cpu = null; moving = false; strike = null; sinkFx = []; introT = 0; spin = {x:0,y:0}; updateDot();
   }
   const cue = () => balls.find(b => b.n === 0);
 
@@ -1058,7 +1070,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     }
   }
   function endShotCore(){
-    moving = false;
+    moving = false; chalkPick = false;
     const pc = pocketedThisShot; pocketedThisShot = [];
     const objs = pc.filter(n => n !== 0);
     const me = turn, adv = 1 - turn;
@@ -1390,10 +1402,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (!J.objs.length) return 0;
     return J.objs.includes(tn) ? 2 : 1;                                 // 2 = matou exatamente a bola mirada
   }
-  function findPerfect(me){
+  function findPerfect(me, onlyN){
     const c = cue(); if (!c || !c.in) return null;
-    const list = [];
-    for (const t of targetsFor(me)){
+    const list = [], only = t => onlyN == null || t.n === onlyN;
+    for (const t of targetsFor(me).filter(only)){
       for (const p of pockets) for (const [px, py] of aimPoints(p)){
         let dx = px - t.x, dy = py - t.y; const dp = Math.hypot(dx, dy); dx /= dp; dy /= dp;
         if (!p.c && Math.abs(dy) < 0.55) continue;
@@ -1424,14 +1436,14 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       if (best && best.good.length >= 5) break;
     }
     if (!best){                                                        // sem bola limpa (ex.: saída): testa tacadas em leque no simulador
-      const c2 = cue(), tg = targetsFor(me), t1 = performance.now();
+      const c2 = cue(), tg = targetsFor(me).filter(only), t1 = performance.now();
       const angs = [];
       for (const t of tg){ const a0 = Math.atan2(t.y - c2.y, t.x - c2.x); for (let d = -0.05; d <= 0.0501; d += 0.0125) angs.push([a0 + d, t]); }
       for (const [a, t] of angs){
         if (performance.now() - t1 > 1500) break;
         for (const pw of [0.62, 0.78, 0.92, 1]){
-          const v = chalkLegal(simulate(a, pw, {x:0, y:0}), me, -1);
-          if (v){ const res = simulate(a, pw, {x:0, y:0}), n = res.pocketed.find(k => k > 0);
+          const v = chalkLegal(simulate(a, pw, {x:0, y:0}), me, onlyN == null ? -1 : onlyN);
+          if (onlyN != null ? v === 2 : v){ const res = simulate(a, pw, {x:0, y:0}), n = onlyN != null ? onlyN : res.pocketed.find(k => k > 0);   // escolheu a bola: só vale matar ELA
             const hit = balls.find(b => b.n === n), pk = hit ? pockets.reduce((p, q) => Math.hypot(q.x - hit.x, q.y - hit.y) < Math.hypot(p.x - hit.x, p.y - hit.y) ? q : p) : pockets[0];
             best = {score: 1, a, n, px: pk.x, py: pk.y, good: [pw], lo: pw, hi: pw, best: pw}; break; }
         }
@@ -1445,18 +1457,30 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       if (chalk[chalkOwner()] <= 0) flash("Seu giz acabou nesta partida", true);
       return;
     }
-    if (chalkShot) return;
-    const me = turn, sh = findPerfect(me);
-    if (!sh){ flash("Nenhuma bola limpa agora — o giz não foi gasto", true); return; }
-    chalk[chalkOwner()]--;
-    chalkShot = sh; aim = sh.a; spin = {x:0, y:0}; updateDot();
-    flash(`Giz! Mira travada na ${sh.n} — puxe a força na faixa dourada`);
+    if (chalkShot || chalkBusy) return;
+    if (chalkPick){ chalkPick = false; flash("Giz guardado"); return; }    // tocou de novo no giz: desiste
+    chalkPick = true;
+    flash("Giz: toque na bola que você quer matar");
+  }
+  // o jogador escolheu a bola: calcula a tacada perfeita só pra ela (rápido, sem travar)
+  function chalkChoose(n){
+    chalkPick = false; chalkBusy = true;
+    flash(`Calculando a tacada na ${n}…`);
+    setTimeout(() => {
+      chalkBusy = false;
+      if (!chalkReady() || chalkShot) return;
+      const sh = findPerfect(turn, n);
+      if (!sh){ chalkPick = true; flash(`A ${n} não tem jogada limpa · escolha outra bola (o giz não foi gasto)`, true); return; }
+      chalk[chalkOwner()]--;
+      chalkShot = sh; aim = sh.a; spin = {x:0, y:0}; updateDot();
+      flash(`Giz! Mira travada na ${sh.n} — puxe a força na faixa dourada`);
+    }, 60);
   }
   function shoot(p, fromCPU){ if (moving || strike || gameOver || p < 0.03 || (cpu && !fromCPU)) return; if (chalkShot && !fromCPU){
       if (p >= chalkShot.lo - 0.04 && p <= chalkShot.hi + 0.04){ p = chalkShot.good.reduce((x, y) => Math.abs(y - p) < Math.abs(x - p) ? y : x); chalkFixed = true; }
       chalkShot = null;
     }
-    strike = {p, t:0}; inHand = false; breakShot = false; shotCleared = TRAD && groupClear(turn);
+    strike = {p, t:0}; inHand = false; breakShot = false; chalkPick = false; shotCleared = TRAD && groupClear(turn);
     if (net && turn === net.me){ const c = cue(); net.send({t: "shot", p, a: aim, sp: {x: spin.x, y: spin.y}, cx: c.x, cy: c.y, fx: chalkFixed}); }
   }
 
@@ -2001,6 +2025,12 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function drawAim(){
     const c = cue(); if (!c.in) return;
     const p = predict(), dx = Math.cos(aim), dy = Math.sin(aim);
+    if (chalkPick){                                                       // giz: as bolas que pode escolher piscam
+      const pulse = 0.55 + 0.45*Math.sin(performance.now()/170);
+      ctx.save(); ctx.translate(FX, FY); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,210,80,${pulse})`;
+      for (const b of targetsFor(turn)){ ctx.beginPath(); ctx.arc(b.x, b.y, R + 6, 0, Math.PI*2); ctx.stroke(); }
+      ctx.restore();
+    }
     if (lineStyle === "mod" && !chalkShot){ drawAimModern(c, p, dx, dy, c.x + dx*p.t, c.y + dy*p.t); return; }
     const gx = c.x + dx*p.t, gy = c.y + dy*p.t;
     const LW = 2.2, col = "rgba(255,255,255,.9)";
@@ -2168,6 +2198,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (panelRect && !moving && inRect(p, panelRect, 6)){ openReset(); return; }
     if (inMatch && Math.hypot(p.x - CHALK.x, p.y - CHALK.y) < CHALK.r){ useChalk(); return; }
     if (busy()) return;
+    if (chalkPick){                                                       // escolhendo a bola do giz
+      const x = p.x - FX, y = p.y - FY;
+      let best = null, bd = R*2.2;
+      for (const b of targetsFor(turn)){ const d = Math.hypot(b.x - x, b.y - y); if (d < bd){ bd = d; best = b; } }
+      if (best) chalkChoose(best.n);
+      else if (balls.some(b => b.in && b.n && Math.hypot(b.x - x, b.y - y) < R*2.2)) flash("Essa não é sua · toque numa das bolas que piscam", true);
+      else flash("Toque numa das bolas que piscam (ou no giz pra desistir)");
+      return;
+    }
     cv.setPointerCapture(e.pointerId); activePtr = e.pointerId;
     if (inHand && !gameOver && myTurn()){
       const c = cue();
@@ -2245,8 +2284,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   document.getElementById("rsCancel").onclick = () => resetBox.hidden = true;
   document.getElementById("resetClose").onclick = () => resetBox.hidden = true;
   // fechar o menu só esconde a janela (não sai da partida); o ☰ abre de novo
-  document.getElementById("menuClose").onclick = () => { menu.hidden = true; };
-  function openMenu(){ fillMenuInfo(); menu.hidden = false; }
+  document.getElementById("menuClose").onclick = () => { resetInput(); menu.hidden = true; };
+  // solta qualquer toque "preso" (dedo que estava puxando a força/arrastando a branca quando o menu abriu)
+  function resetInput(){ activePtr = null; mode = null; dragging = false; if (!(net && turn !== net.me)) power = 0; }
+  function openMenu(){ resetInput(); fillMenuInfo(); menu.hidden = false; }
   // botão "voltar" do celular (no app): fecha a janela aberta; na mesa abre o menu ☰; no menu inicial deixa sair
   window.__voltar = () => {
     if (!document.getElementById("lines").hidden){ document.getElementById("lines").hidden = true; optsBox.hidden = false; return true; }
@@ -2273,7 +2314,14 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     const dl = document.getElementById("menuInfo"); dl.textContent = "";
     rows.forEach(([k, v]) => { const dt = document.createElement("dt"), dd = document.createElement("dd"); dt.textContent = k; dd.textContent = v; dl.append(dt, dd); });
   }
-  document.getElementById("resume").onclick = () => menu.hidden = true;
+  document.getElementById("resume").onclick = () => { resetInput(); menu.hidden = true; ensureCue(); };
+  document.addEventListener("visibilitychange", () => { if (document.hidden) resetInput(); });
+  // rede de segurança: parado, na sua vez e sem a branca na mesa → a branca volta (nunca fica sem taco)
+  function ensureCue(){
+    if (!inMatch || gameOver || moving || strike || cpu) return;
+    const c = cue();
+    if (c && !c.in){ respotCue(); c.in = true; c.vx = c.vy = 0; aimAtNearest(); }
+  }
   document.getElementById("restart").onclick = () => {
     cpu = null; newGame();
   };
@@ -2298,6 +2346,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   document.getElementById("p-opts").onclick = openOpts;
   document.getElementById("optsok").onclick = () => optsBox.hidden = true;
 
+
   // ---------- Modo de jogo ----------
   const modes = document.getElementById("modes");
   const chipGroup = (sel, fn) => document.querySelectorAll(sel + " .chip").forEach(ch => ch.onclick = () => {
@@ -2313,6 +2362,157 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   chipGroup(".gfxq", ch => { gfx = ch.dataset.q; store.set("gfx", gfx); Object.keys(spriteCache).forEach(k => delete spriteCache[k]); resize(); });
   mark(".gfxq", "q", gfx);
   mark(".barpos", "b", barPos); mark(".wheelpos", "w", wheelPos); mark(".barside", "s", barSide); mark(".snd", "o", soundOn ? "1" : "0");
+  // ---------- Música durante o jogo ----------
+  // "Do jogo": trilha própria gerada aqui mesmo (lounge/jazz de bar, sem direitos autorais)
+  // "Minhas músicas": arquivos de áudio do celular da pessoa (ficam guardados no jogo)
+  const MUS = {mode: store.get("mus", "off"), vol: Math.max(0, Math.min(1, +store.get("musvol", "35")/100)), tracks: [], idx: 0, el: null, ctx: null, master: null, timer: 0, next: 0, step: 0, seed: 7, started: false};
+  const musRnd = () => (MUS.seed = (MUS.seed*16807) % 2147483647)/2147483647;
+  const hz = m => 440*Math.pow(2, (m - 69)/12);
+  // Dm9 · G13 · Cmaj9 · Am9 (ii–V–I–vi), um compasso cada
+  const PROG = [{b: 38, c: [53, 57, 60, 64], s: [62, 65, 69, 72, 74, 77]}, {b: 43, c: [53, 57, 59, 64], s: [62, 64, 67, 71, 74, 76]},
+                {b: 36, c: [52, 55, 59, 62], s: [60, 64, 67, 71, 72, 76]}, {b: 45, c: [55, 60, 64, 67], s: [64, 67, 69, 72, 76, 79]}];
+  function musCtx(){
+    if (!MUS.ctx){
+      try { MUS.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return null; }
+      MUS.master = MUS.ctx.createGain(); MUS.master.gain.value = MUS.vol*0.5;
+      const lp = MUS.ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 5200;
+      MUS.master.connect(lp); lp.connect(MUS.ctx.destination);
+    }
+    return MUS.ctx;
+  }
+  function mNote(t, m, dur, vol, type){                                   // piano elétrico (Rhodes) suave
+    const a = MUS.ctx, g = a.createGain(), o1 = a.createOscillator(), o2 = a.createOscillator();
+    o1.type = type || "sine"; o2.type = "sine"; o1.frequency.value = hz(m); o2.frequency.value = hz(m)*2.001;
+    const g2 = a.createGain(); g2.gain.value = 0.18;
+    o1.connect(g); o2.connect(g2); g2.connect(g); g.connect(MUS.master);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.012); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o1.start(t); o2.start(t); o1.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+  }
+  function mBass(t, m, dur){
+    const a = MUS.ctx, g = a.createGain(), o = a.createOscillator(), f = a.createBiquadFilter();
+    o.type = "triangle"; o.frequency.value = hz(m); f.type = "lowpass"; f.frequency.value = 420;
+    o.connect(f); f.connect(g); g.connect(MUS.master);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.42, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t); o.stop(t + dur + 0.05);
+  }
+  let musNoise = null;
+  function mHat(t, vol){                                                  // vassourinha na caixa / prato
+    const a = MUS.ctx;
+    if (!musNoise){ musNoise = a.createBuffer(1, a.sampleRate*0.25, a.sampleRate); const d = musNoise.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; }
+    const src = a.createBufferSource(), f = a.createBiquadFilter(), g = a.createGain();
+    src.buffer = musNoise; f.type = "highpass"; f.frequency.value = 6500;
+    src.connect(f); f.connect(g); g.connect(MUS.master);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+    src.start(t); src.stop(t + 0.12);
+  }
+  function mKick(t){
+    const a = MUS.ctx, o = a.createOscillator(), g = a.createGain();
+    o.frequency.setValueAtTime(110, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.18);
+    o.connect(g); g.connect(MUS.master);
+    g.gain.setValueAtTime(0.5, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    o.start(t); o.stop(t + 0.3);
+  }
+  function musTick(){                                                     // agenda as notas um pouquinho à frente
+    const a = MUS.ctx; if (!a) return;
+    const e8 = 60/84/2;                                                   // colcheia a 84 bpm
+    while (MUS.next < a.currentTime + 0.3){
+      const st = MUS.step, bar = Math.floor(st/8) % 4, i = st % 8, ch = PROG[bar];
+      const sw = i % 2 ? e8*0.18 : 0, t = MUS.next + sw;                  // swing
+      if (i === 0) ch.c.forEach(m => mNote(t, m, 2.2, 0.055));
+      if (i === 3 && musRnd() < 0.7) ch.c.forEach(m => mNote(t, m, 0.9, 0.04));
+      if (i === 0) mBass(t, ch.b, e8*3.6);
+      if (i === 4) mBass(t, ch.b + 7, e8*3.4);
+      if (i === 7 && musRnd() < 0.5) mBass(t, ch.b + (musRnd() < 0.5 ? 10 : 11), e8*0.9);
+      if (i === 0 || i === 4) mKick(t);
+      mHat(t, i % 2 ? 0.03 : 0.05);
+      if (st % 64 >= 16 && musRnd() < (i % 2 ? 0.22 : 0.34)) mNote(t, ch.s[Math.floor(musRnd()*ch.s.length)], 0.7, 0.05, "triangle");
+      MUS.next += e8; MUS.step++;
+    }
+  }
+  function musGenStart(){
+    const a = musCtx(); if (!a) return;
+    if (a.state === "suspended") a.resume();
+    if (!MUS.timer){ MUS.next = a.currentTime + 0.1; MUS.timer = setInterval(musTick, 60); }
+  }
+  function musGenStop(){ clearInterval(MUS.timer); MUS.timer = 0; if (MUS.ctx && MUS.ctx.state === "running") MUS.ctx.suspend(); }
+  // músicas da pessoa: guardadas no aparelho (IndexedDB)
+  function musDB(){
+    return new Promise((ok, fail) => {
+      try {
+        const r = indexedDB.open("sinuca_musicas", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("m", {keyPath: "id", autoIncrement: true});
+        r.onsuccess = () => ok(r.result); r.onerror = () => fail(r.error);
+      } catch(e){ fail(e); }
+    });
+  }
+  async function musLoad(){
+    try {
+      const db = await musDB();
+      MUS.tracks = await new Promise((ok, fail) => { const q = db.transaction("m").objectStore("m").getAll(); q.onsuccess = () => ok(q.result || []); q.onerror = () => fail(q.error); });
+    } catch(e){ /* sem armazenamento: fica só nesta sessão */ }
+    musInfo();
+  }
+  async function musAdd(files){
+    const list = [...files].filter(f => /^audio\//.test(f.type) || /\.(mp3|m4a|aac|ogg|opus|wav|flac)$/i.test(f.name));
+    if (!list.length){ flash("Escolha arquivos de música (mp3, m4a…)", true); return; }
+    let db = null; try { db = await musDB(); } catch(e){}
+    for (const f of list){
+      const t = {name: f.name.replace(/\.[^.]+$/, ""), blob: f};
+      if (db){ try { await new Promise((ok, fail) => { const q = db.transaction("m", "readwrite").objectStore("m").add(t); q.onsuccess = () => { t.id = q.result; ok(); }; q.onerror = () => fail(q.error); }); } catch(e){} }
+      MUS.tracks.push(t);
+    }
+    flash(`${list.length} música${list.length > 1 ? "s" : ""} adicionada${list.length > 1 ? "s" : ""} 🎵`);
+    setMus("minhas"); MUS.idx = MUS.tracks.length - list.length; musPlayFile();
+  }
+  async function musClearAll(){
+    musStopFile(); MUS.tracks = [];
+    try { const db = await musDB(); db.transaction("m", "readwrite").objectStore("m").clear(); } catch(e){}
+    musInfo(); flash("Suas músicas foram apagadas do jogo");
+  }
+  function musStopFile(){ if (MUS.el){ MUS.el.pause(); if (MUS.el.src) URL.revokeObjectURL(MUS.el.src); MUS.el = null; } }
+  function musPlayFile(){
+    musStopFile();
+    if (MUS.mode !== "minhas" || document.hidden) return;
+    if (!MUS.tracks.length){ musInfo(); return; }
+    MUS.idx = ((MUS.idx % MUS.tracks.length) + MUS.tracks.length) % MUS.tracks.length;
+    const t = MUS.tracks[MUS.idx], el = MUS.el = new Audio(URL.createObjectURL(t.blob));
+    el.volume = MUS.vol; el.onended = () => { MUS.idx++; musPlayFile(); };
+    el.onerror = () => { MUS.idx++; if (MUS.tracks.length > 1) setTimeout(musPlayFile, 300); };
+    el.play().then(() => { MUS.started = true; }).catch(() => { MUS.started = false; });
+    musInfo();
+  }
+  function musInfo(){
+    const el = document.getElementById("musInfo"); if (!el) return;
+    if (MUS.mode === "minhas") el.textContent = MUS.tracks.length ? `Tocando: ${(MUS.tracks[MUS.idx % MUS.tracks.length] || {}).name || ""} · ${MUS.tracks.length} música${MUS.tracks.length > 1 ? "s" : ""}` : "Nenhuma música ainda · toque em + Escolher";
+    else el.textContent = MUS.mode === "jogo" ? "Trilha do jogo · volume" : "Volume da música";
+    document.getElementById("musNext").hidden = MUS.mode !== "minhas" || MUS.tracks.length < 2;
+    document.getElementById("musClear").hidden = !MUS.tracks.length;
+  }
+  function musApply(){
+    if (MUS.mode === "jogo" && !document.hidden){ musStopFile(); musGenStart(); MUS.started = true; }
+    else if (MUS.mode === "minhas"){ musGenStop(); if (!MUS.el) musPlayFile(); else if (!document.hidden) MUS.el.play().catch(() => {}); }
+    else { musGenStop(); musStopFile(); }
+  }
+  function setMus(m){ MUS.mode = m; store.set("mus", m); mark(".mus", "m", m); musApply(); musInfo(); }
+  chipGroup(".mus", ch => setMus(ch.dataset.m));
+  mark(".mus", "m", MUS.mode);
+  const musVol = document.getElementById("musVol"); musVol.value = Math.round(MUS.vol*100);
+  musVol.addEventListener("input", () => {
+    MUS.vol = musVol.value/100; store.set("musvol", String(musVol.value));
+    if (MUS.master) MUS.master.gain.value = MUS.vol*0.5; if (MUS.el) MUS.el.volume = MUS.vol;
+  });
+  document.getElementById("musPick").onclick = () => document.getElementById("musFile").click();
+  document.getElementById("musFile").addEventListener("change", e => { const f = e.target.files; if (f && f.length) musAdd(f); e.target.value = ""; });
+  document.getElementById("musNext").onclick = () => { MUS.idx++; musPlayFile(); };
+  document.getElementById("musClear").onclick = () => musClearAll();
+  // celular só deixa tocar som depois de um toque: começa no primeiro toque na tela
+  document.addEventListener("pointerdown", () => { if (MUS.mode !== "off" && !MUS.started) musApply(); }, true);
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden){ musGenStop(); if (MUS.el) MUS.el.pause(); }
+    else if (MUS.mode !== "off") musApply();
+  });
+  musLoad();
+
   function setRules(r){
     ruleMode = r; TRAD = r === "trad"; BOL = r === "bol"; TREINO = r === "treino"; store.set("rules", r); dimStart();
     document.querySelectorAll(".rulemode .modecard").forEach(c => c.classList.toggle("on", c.dataset.r === r));
@@ -2692,6 +2892,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   window.addEventListener("pagehide", () => { if (net) net.send({t: "bye"}); });
   window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq, netDiff, watchCode: net && net.watchCode, spect: !!(net && net.spect),
     balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p), chat: t => chatSend(t), aim: () => aim,
+    geo: () => ({ox, oy, scale, FX, FY, chalk: {x: CHALK.x, y: CHALK.y}, menu: {x: MENU.x + MENU.w/2, y: MENU.y + MENU.h/2}, balls: balls.filter(b => b.in).map(b => [b.n, b.x, b.y]), targets: targetsFor(turn).map(b => b.n), chalkPick, chalkShot: chalkShot && chalkShot.n, chalkN: chalk[chalkOwner()], aim, power, mode, mus: {mode: MUS.mode, timer: !!MUS.timer, ctx: MUS.ctx && MUS.ctx.state, tracks: MUS.tracks.length, playing: !!(MUS.el && !MUS.el.paused)}}),
     regraTeste: (g, fc, fr, pc) => { groups = g; turn = 0; firstContact = fc; firstRails = fr; pocketedThisShot = pc.slice(); pc.forEach(n => { const b = balls.find(o => o.n === n); if (b) b.in = false; }); endShot(); return {scores: scores.map(x => x.slice()), removed: balls.filter(b => !b.in).map(b => b.n), why: document.getElementById('foulWhy').textContent}; }};
   function startOnline(){
     net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
@@ -3111,9 +3312,13 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   spinBox.addEventListener("pointerdown", e => { if (e.target === spinBox) spinBox.hidden = true; });
 
   // ---------- Loop ----------
-  let last = performance.now();
+  let last = performance.now(), cueWatch = 0;
   function loop(now){
-    const raw = (now-last)/1000, dt = Math.min(0.033, raw); last = now;
+    const raw0 = (now-last)/1000; last = now;
+    const paused = !net && inMatch && (!menu.hidden || !optsBox.hidden || !linesBox.hidden);   // menu aberto: o jogo para de verdade
+    const raw = paused ? 0 : raw0, dt = Math.min(0.033, raw);
+    if ((cueWatch = (!paused && !moving && !strike && !cpu && !gameOver && inMatch && cue() && !cue().in) ? cueWatch + raw0 : 0) > 1.2){ cueWatch = 0; ensureCue(); }
+    if (paused){ draw(0); requestAnimationFrame(loop); return; }
     if (moving){
       // física sempre no mesmo passo do simulador (a tacada sai igualzinho ao previsto) e o desenho
       // é suavizado entre um passo e outro, para as bolas andarem lisinhas em todo quadro

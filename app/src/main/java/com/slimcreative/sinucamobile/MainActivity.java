@@ -11,6 +11,8 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
+import android.content.ClipData;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebChromeClient;
@@ -23,6 +25,8 @@ public class MainActivity extends Activity {
     private WebView web;
     private BluetoothMesa mesa;
     private Atualizador atual;
+    private ValueCallback<Uri[]> escolha;          // escolher músicas do celular
+    static final int PEDIDO_ARQUIVO = 51;
     private volatile String assistir = null;   // código de partida vindo de um link
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -60,7 +64,23 @@ public class MainActivity extends Activity {
                 return x != null ? x : super.shouldInterceptRequest(v, r);
             }
         });
-        web.setWebChromeClient(new WebChromeClient());
+        web.setWebChromeClient(new WebChromeClient() {
+            // "Escolher músicas": abre o seletor de arquivos do Android
+            @Override
+            public boolean onShowFileChooser(WebView v, ValueCallback<Uri[]> cb, FileChooserParams p) {
+                if (escolha != null) escolha.onReceiveValue(null);
+                escolha = cb;
+                try {
+                    Intent i = p.createIntent();
+                    if (p.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE) i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+                    startActivityForResult(i, PEDIDO_ARQUIVO);
+                    return true;
+                } catch (Exception e) {
+                    escolha = null;
+                    return false;
+                }
+            }
+        });
         setContentView(web);
         telaCheia();
 
@@ -152,6 +172,20 @@ public class MainActivity extends Activity {
     @SuppressWarnings("deprecation")
     protected void onActivityResult(int pedido, int resultado, Intent dados) {
         super.onActivityResult(pedido, resultado, dados);
+        if (pedido == PEDIDO_ARQUIVO) {
+            if (escolha == null) return;
+            Uri[] r = null;
+            if (resultado == RESULT_OK && dados != null) {
+                ClipData clip = dados.getClipData();
+                if (clip != null && clip.getItemCount() > 0) {
+                    r = new Uri[clip.getItemCount()];
+                    for (int k = 0; k < r.length; k++) r[k] = clip.getItemAt(k).getUri();
+                } else if (dados.getData() != null) r = new Uri[]{dados.getData()};
+            }
+            escolha.onReceiveValue(r);
+            escolha = null;
+            return;
+        }
         mesa.resultadoAtividade(pedido);
     }
 
