@@ -556,7 +556,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = store.get("rules", "reg"), TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101703;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101704;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -565,7 +565,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let tShots = 0, tPots = 0, series = [0, 0];                                 // series: pontos gerais (séries de melhor de 3 ganhas)                                                    // contadores do treino   // "bol" = Bolinho (3 bolas, quem matar a última vence)   // "reg" = Sinuca Regional (2 a 15) · "trad" = Sinuca Tradicional (bola 1 de castigo)
   let shotCleared = false;                                                     // (tradicional) o jogador da vez já tinha limpado o grupo quando tacou?
   let ficha = [parseInt(store.get("ficha0", "0")), parseInt(store.get("ficha1", "0"))], wager = 3, initialWager = 3, lastWinner = -1;
-  let renderAlpha = 1, chalkPick = false, chalkBusy = false;              // giz: esperando o jogador tocar na bola · calculando
+  let renderAlpha = 1, chalkPick = false, chalkBusy = false, chalkGen = 0;              // giz: esperando o jogador tocar na bola · calculando
   let chalk = [1, 1], chalkShot = null, chalkFixed = false, chalkAcc = 0, pots = [0, 0], inHand = false, breakShot = true;   // pots: bolas matadas rumo ao próximo giz; inHand: branca na mão (só dentro da meia-lua)   // giz: 2 usos por jogador em cada partida; chalkShot = tacada perfeita calculada                    // recuo da câmera: "auto" ou px                  // "full" = com linha de destino, "guide" = só linha guia   // cpu: estado do computador na vez dele   // groups: "par" | "impar"
 
   // ---------- Quaternions ----------
@@ -713,7 +713,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       balls.push(mk(n, FOOT.x + (4-row)*dx - 2*dx + (Math.random()-.5)*0.4, FOOT.y + (k-row/2)*(2*R+gap) + (Math.random()-.5)*0.4));
     }
     const cb = mk(0, HEAD.x, HEAD.y); cb.q = [1,0,0,0]; balls.push(cb);
-    chalk = TREINO ? [Infinity, Infinity] : [1, 1]; pots = [0, 0]; lastChance = null; tShots = 0; tPots = 0; inHand = true; breakShot = true; chalkShot = null; chalkPick = false; turn = breaker; aim = 0; scores = [[],[]]; groups = [null, null]; gameOver = false; cpu = null; moving = false; strike = null; sinkFx = []; introT = 0; spin = {x:0,y:0}; updateDot();
+    chalk = TREINO ? [Infinity, Infinity] : [1, 1]; pots = [0, 0]; lastChance = null; tShots = 0; tPots = 0; inHand = true; breakShot = true; chalkShot = null; chalkPick = false; chalkBusy = false; chalkGen++; turn = breaker; aim = 0; scores = [[],[]]; groups = [null, null]; gameOver = false; cpu = null; moving = false; strike = null; sinkFx = []; introT = 0; spin = {x:0,y:0}; updateDot();
   }
   const cue = () => balls.find(b => b.n === 0);
 
@@ -1081,7 +1081,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     }
   }
   function endShotCore(){
-    moving = false; chalkPick = false;
+    moving = false; chalkPick = false; chalkBusy = false; chalkGen++;
     const pc = pocketedThisShot; pocketedThisShot = [];
     const objs = pc.filter(n => n !== 0);
     const me = turn, adv = 1 - turn;
@@ -1202,6 +1202,23 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     {name:"Pro",     noise:0.05, pn:.01, pick:1, max:260, spin:3, robust:24, look:true,  safety:true,  slip:0,   overshoot:0}
   ];
   const shotSpeed = p => (80 + 2600*Math.pow(p, 1.25))*U;
+  // mesma simulação, mas guardando o caminho da branca e da bola escolhida (pra desenhar a tacada do giz)
+  function simulateTrace(a, pw, n){
+    const save = {balls, pocketedThisShot, sinkFx, firstContact, cueRails, firstRails};
+    balls = balls.map(b => ({n:b.n, x:b.x, y:b.y, vx:0, vy:0, rx:0, ry:0, sz:0, in:b.in, q:b.q}));
+    pocketedThisShot = []; sinkFx = []; firstContact = null; cueRails = 0; firstRails = 0; SIM = true;
+    const c = balls.find(b => b.n === 0), o = balls.find(b => b.n === n);
+    applyStrike(c, a, shotSpeed(pw), {x:0, y:0});
+    const pc = [[c.x, c.y]], po = [[o.x, o.y]];
+    for (let t = 0; t < 14; t += 1/30){
+      physics(1/30);
+      if (c.in && (c.vx || c.vy)) pc.push([c.x, c.y]);
+      if (o.in && (o.vx || o.vy)) po.push([o.x, o.y]); else if (!o.in && po.length && po[po.length - 1] !== null){ po.push([o.x, o.y]); po.push(null); }
+      if (allStopped()) break;
+    }
+    ({balls, pocketedThisShot, sinkFx, firstContact, cueRails, firstRails} = save); SIM = false;
+    return {cue: pc, obj: po.filter(Boolean)};
+  }
   function simulate(a, pw, sp){
     const save = {balls, pocketedThisShot, sinkFx, firstContact, cueRails, firstRails};
     balls = balls.map(b => ({n:b.n, x:b.x, y:b.y, vx:0, vy:0, rx:0, ry:0, sz:0, in:b.in, q:b.q}));
@@ -1413,6 +1430,102 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (!J.objs.length) return 0;
     return J.objs.includes(tn) ? 2 : 1;                                 // 2 = matou exatamente a bola mirada
   }
+
+  // ---------- Giz: procura a tacada perfeita na bola escolhida: direta, tabela da branca ou tabela da bola ----------
+  // roda em pedacinhos (a tela não trava) e cada tacada candidata é testada no mesmo simulador da tacada de verdade
+  const chalkYield = () => new Promise(r => setTimeout(r, 0));
+  async function findPerfectAsync(me, n, budget){
+    const c = cue(); if (!c || !c.in) return null;
+    const t = balls.find(b => b.n === n && b.in); if (!t) return null;
+    const T0 = performance.now(); let slice = T0;
+    const tick = async () => { if (performance.now() - slice > 12){ await chalkYield(); slice = performance.now(); } };
+    const out = () => performance.now() - T0 > budget;
+    const e = E_RAIL, cands = [];
+    const rails = [{ax: "x", v: R}, {ax: "x", v: W - R}, {ax: "y", v: R}, {ax: "y", v: H - R}];
+    // "espelho" da tabela: a bola volta com a velocidade de frente reduzida (coeficiente da tabela)
+    const mir = (x, y, r, k) => r.ax === "x" ? [r.v - (x - r.v)*k, y] : [x, r.v - (y - r.v)*k];
+    const hitRail = (x0, y0, x1, y1, r) => {
+      const d = r.ax === "x" ? x1 - x0 : y1 - y0; if (Math.abs(d) < 1e-6) return null;
+      const s = (r.ax === "x" ? r.v - x0 : r.v - y0)/d; if (s <= 0 || s >= 1) return null;
+      return [x0 + (x1 - x0)*s, y0 + (y1 - y0)*s];
+    };
+    const inMouthAt = (x, y) => pockets.some(q => Math.hypot(q.x - x, q.y - y) < q.r*2.2);
+    for (const p of pockets) for (const [px, py] of aimPoints(p)){
+      let dx = px - t.x, dy = py - t.y; const dp = Math.hypot(dx, dy); dx /= dp; dy /= dp;
+      const gx = t.x - dx*2*R, gy = t.y - dy*2*R;
+      if ((p.c || Math.abs(dy) >= 0.55) && clearPath(balls, t.x, t.y, px, py, t, c)){
+        // 1) direta
+        const ax = gx - c.x, ay = gy - c.y, dc = Math.hypot(ax, ay);
+        if (dc > 1){ const cs = (ax*dx + ay*dy)/dc; if (cs > 0.2 && clearPath(balls, c.x, c.y, gx, gy, c, t)) cands.push({a: Math.atan2(ay, ax), pre: 2000 + cs*cs*1000/(dc + dp + 150), px: p.x, py: p.y, k: 0}); }
+        // 2) branca bate na tabela e depois na bola
+        for (const r of rails){
+          const M = mir(gx, gy, r, 1/e), B = hitRail(c.x, c.y, M[0], M[1], r);
+          if (!B || inMouthAt(B[0], B[1])) continue;
+          const ix = gx - B[0], iy = gy - B[1], li = Math.hypot(ix, iy); if (li < 1) continue;
+          const cs = (ix*dx + iy*dy)/li; if (cs < 0.3) continue;
+          if (!clearPath(balls, c.x, c.y, B[0], B[1], c, null) || !clearPath(balls, B[0], B[1], gx, gy, c, t)) continue;
+          cands.push({a: Math.atan2(M[1] - c.y, M[0] - c.x), pre: 1000 + cs*cs*600/(Math.hypot(B[0] - c.x, B[1] - c.y) + li + dp + 250), px: p.x, py: p.y, k: 1});
+        }
+      }
+      // 3) bola bate na tabela e vai pra caçapa
+      for (const r of rails){
+        const MP = mir(px, py, r, 1/e); let bx = MP[0] - t.x, by = MP[1] - t.y; const dm = Math.hypot(bx, by); bx /= dm; by /= dm;
+        const B = hitRail(t.x, t.y, MP[0], MP[1], r); if (!B || inMouthAt(B[0], B[1])) continue;
+        if (!clearPath(balls, t.x, t.y, B[0], B[1], t, c) || !clearPath(balls, B[0], B[1], px, py, t, c)) continue;
+        const g2x = t.x - bx*2*R, g2y = t.y - by*2*R, ax = g2x - c.x, ay = g2y - c.y, dc = Math.hypot(ax, ay); if (dc < 1) continue;
+        const cs = (ax*bx + ay*by)/dc; if (cs < 0.3 || !clearPath(balls, c.x, c.y, g2x, g2y, c, t)) continue;
+        cands.push({a: Math.atan2(ay, ax), pre: 1000 + cs*cs*500/(dc + dm + 300), px: p.x, py: p.y, k: 2});
+      }
+    }
+    cands.sort((x, y) => y.pre - x.pre);
+    let best = null;
+    const QUICK = [0.5, 0.68, 0.86, 1];
+    const evalAim = async (k, a) => {
+      let any = false;
+      for (const pw of QUICK){ if (out()) return false; await tick(); if (chalkLegal(simulate(a, pw, {x:0, y:0}), me, n) === 2){ any = true; break; } }
+      if (!any) return false;
+      const ok = [];
+      for (const pw of CHALK_P){ await tick(); ok.push(chalkLegal(simulate(a, pw, {x:0, y:0}), me, n)); }
+      let run = 0, bestRun = 0, end = -1;
+      ok.forEach((v, i) => { run = v === 2 ? run + 1 : 0; if (run > bestRun){ bestRun = run; end = i; } });
+      if (!bestRun){                                                     // só acertou com força máxima
+        best = best || {score: 0.5, a, n, px: k.px, py: k.py, good: [1], lo: 1, hi: 1, best: 1, kind: k.k}; return true;
+      }
+      const score = bestRun*10 + k.pre*0.001;
+      if (!best || score > best.score){
+        const good = CHALK_P.slice(end - bestRun + 1, end + 1);
+        best = {score, a, n, px: k.px, py: k.py, good, lo: good[0], hi: good[good.length - 1], best: good[Math.floor((good.length - 1)/2)], kind: k.k};
+      }
+      return true;
+    };
+    for (const k of cands){
+      if (out() || (best && best.good.length >= 4)) break;
+      const jit = k.k === 0 ? [0, 0.004, -0.004, 0.009, -0.009] : [0, 0.006, -0.006, 0.012, -0.012, 0.02, -0.02, 0.03, -0.03, 0.045, -0.045];
+      for (const d of jit){ if (out()) break; if (await evalAim(k, k.a + d) && best.good.length >= 3) break; }
+    }
+    // 4) varredura: testa a volta toda, começando pela direção da bola (pega qualquer caminho, até 2 tabelas)
+    if (!best){
+      const a0 = Math.atan2(t.y - c.y, t.x - c.x), STEP = Math.PI/360;
+      for (let i = 0; i < 720 && !best && !out(); i++){
+        const a = a0 + (i % 2 ? 1 : -1)*Math.ceil(i/2)*STEP;
+        for (const pw of [0.7, 0.9, 1]){
+          await tick();
+          const res = simulate(a, pw, {x:0, y:0});
+          if (chalkLegal(res, me, n) === 2){
+            const o = res.after.find(b => b.n === n), pk = pockets.reduce((p, q) => Math.hypot(q.x - o.x, q.y - o.y) < Math.hypot(p.x - o.x, p.y - o.y) ? q : p);
+            best = {score: 1, a, n, px: pk.x, py: pk.y, good: [pw], lo: pw, hi: pw, best: pw, kind: 3};
+            const ok = [];                                                // alarga a faixa de força que funciona
+            for (const q of CHALK_P){ await tick(); ok.push(chalkLegal(simulate(a, q, {x:0, y:0}), me, n) === 2); }
+            let run = 0, bestRun = 0, end = -1; ok.forEach((v, i) => { run = v ? run + 1 : 0; if (run > bestRun){ bestRun = run; end = i; } });
+            if (bestRun > 1){ const good = CHALK_P.slice(end - bestRun + 1, end + 1); Object.assign(best, {good, lo: good[0], hi: good[good.length - 1], best: good[Math.floor((good.length - 1)/2)]}); }
+            break;
+          }
+        }
+      }
+    }
+    if (best){ const tr = simulateTrace(best.a, best.best, n); best.trCue = tr.cue; best.trObj = tr.obj; }
+    return best;
+  }
   function findPerfect(me, onlyN){
     const c = cue(); if (!c || !c.in) return null;
     const list = [], only = t => onlyN == null || t.n === onlyN;
@@ -1475,23 +1588,27 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   // o jogador escolheu a bola: calcula a tacada perfeita só pra ela (rápido, sem travar)
   function chalkChoose(n){
-    chalkPick = false; chalkBusy = true;
-    flash(`Calculando a tacada na ${n}…`);
-    setTimeout(() => {
+    chalkPick = false; chalkBusy = n;
+    flash(`Procurando a tacada perfeita na ${n}…`);
+    const myTurnNow = turn, gen = ++chalkGen;
+    setTimeout(async () => {
+      let sh = null;
+      try { sh = await findPerfectAsync(myTurnNow, n, 10000); } catch(e){ console.error(e); }
+      if (gen !== chalkGen) return;                                      // cancelado (tacou, mudou a vez...)
       chalkBusy = false;
-      if (!chalkReady() || chalkShot) return;
-      const sh = findPerfect(turn, n);
-      if (!sh){ chalkPick = true; flash(`A ${n} não tem jogada limpa · escolha outra bola (o giz não foi gasto)`, true); return; }
+      if (!chalkReady() || chalkShot || turn !== myTurnNow) return;
+      if (!sh){ chalkPick = true; flash(`A ${n} está presa · nem de tabela tem jogada · escolha outra bola (o giz não foi gasto)`, true); return; }
       chalk[chalkOwner()]--;
       chalkShot = sh; aim = sh.a; spin = {x:0, y:0}; updateDot();
-      flash(`Giz! Mira travada na ${sh.n} — puxe a força na faixa dourada`);
-    }, 60);
+      const como = sh.kind === 1 ? " · branca na tabela" : sh.kind === 2 ? " · bola na tabela" : sh.kind === 3 ? " · de tabela" : "";
+      flash(`Giz! Tacada perfeita na ${sh.n}${como} — puxe a força na faixa dourada`);
+    }, 40);
   }
-  function shoot(p, fromCPU){ if (moving || strike || gameOver || p < 0.03 || (cpu && !fromCPU)) return; if (chalkShot && !fromCPU){
+  function shoot(p, fromCPU){ if (moving || strike || gameOver || p < 0.03 || (cpu && !fromCPU)) return; if (chalkBusy && !fromCPU){ flash("Calma, o giz ainda está calculando…"); return; } if (chalkShot && !fromCPU){
       if (p >= chalkShot.lo - 0.04 && p <= chalkShot.hi + 0.04){ p = chalkShot.good.reduce((x, y) => Math.abs(y - p) < Math.abs(x - p) ? y : x); chalkFixed = true; }
       chalkShot = null;
     }
-    strike = {p, t:0}; inHand = false; breakShot = false; chalkPick = false; shotCleared = TRAD && groupClear(turn);
+    strike = {p, t:0}; inHand = false; breakShot = false; chalkPick = false; chalkBusy = false; chalkGen++; shotCleared = TRAD && groupClear(turn);
     if (net && turn === net.me){ const c = cue(); net.send({t: "shot", p, a: aim, sp: {x: spin.x, y: spin.y}, cx: c.x, cy: c.y, fx: chalkFixed}); }
   }
 
@@ -2058,9 +2175,19 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const pulse = 0.6 + 0.4*Math.sin(performance.now()/160);
         ctx.strokeStyle = `rgba(255,210,80,${pulse})`; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(t.x, t.y, R + 5, 0, Math.PI*2); ctx.stroke();
-        const dx2 = chalkShot.px - t.x, dy2 = chalkShot.py - t.y, d2 = Math.hypot(dx2, dy2);
         ctx.setLineDash([14, 10]); ctx.lineDashOffset = -performance.now()/40; ctx.lineWidth = 3.2; ctx.strokeStyle = "rgba(255,210,80,.95)";
-        ctx.beginPath(); ctx.moveTo(t.x + dx2/d2*(R + 6), t.y + dy2/d2*(R + 6)); ctx.lineTo(chalkShot.px, chalkShot.py); ctx.stroke(); ctx.setLineDash([]);
+        if (chalkShot.trObj && chalkShot.trObj.length > 1){                // caminho de verdade (com as tabelas) da bola até a caçapa
+          ctx.beginPath(); chalkShot.trObj.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+          if (chalkShot.kind === 1 && chalkShot.trCue){                     // e o da branca indo na tabela
+            ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 2.4; ctx.beginPath();
+            let stop = chalkShot.trCue.length; for (let i = 1; i < chalkShot.trCue.length; i++){ const q = chalkShot.trCue[i]; if (Math.hypot(q[0] - t.x, q[1] - t.y) < 2*R + 2){ stop = i + 1; break; } }
+            chalkShot.trCue.slice(0, stop).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+          }
+        } else {
+          const dx2 = chalkShot.px - t.x, dy2 = chalkShot.py - t.y, d2 = Math.hypot(dx2, dy2);
+          ctx.beginPath(); ctx.moveTo(t.x + dx2/d2*(R + 6), t.y + dy2/d2*(R + 6)); ctx.lineTo(chalkShot.px, chalkShot.py); ctx.stroke();
+        }
+        ctx.setLineDash([]);
         ctx.fillStyle = "rgba(255,210,80,.35)"; ctx.beginPath(); ctx.arc(chalkShot.px, chalkShot.py, 16, 0, Math.PI*2); ctx.fill();
       }
       ctx.restore(); return;
@@ -2209,6 +2336,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (panelRect && !moving && inRect(p, panelRect, 6)){ openReset(); return; }
     if (inMatch && Math.hypot(p.x - CHALK.x, p.y - CHALK.y) < CHALK.r){ useChalk(); return; }
     if (busy()) return;
+    if (chalkBusy){ flash(`Calculando a tacada perfeita na ${chalkBusy}…`); return; }   // não mexe na mesa enquanto o giz calcula
     if (chalkPick){                                                       // escolhendo a bola do giz
       const x = p.x - FX, y = p.y - FY;
       let best = null, bd = R*2.2;
@@ -2932,6 +3060,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   window.addEventListener("pagehide", () => { if (net) net.send({t: "bye"}); });
   window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq, netDiff, watchCode: net && net.watchCode, spect: !!(net && net.spect),
     balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p), chat: t => chatSend(t), aim: () => aim,
+    perfect: n => findPerfectAsync(turn, n, 6500),
+    shootChalk: () => { if (chalkShot) shoot(chalkShot.best); },
+    bench: n => { const t = performance.now(); for (let i = 0; i < n; i++) simulate(Math.random()*6.28, 0.3 + Math.random()*0.7, {x:0, y:0}); return (performance.now() - t)/n; },
     geo: () => ({ox, oy, scale, FX, FY, chalk: {x: CHALK.x, y: CHALK.y}, menu: {x: MENU.x + MENU.w/2, y: MENU.y + MENU.h/2}, balls: balls.filter(b => b.in).map(b => [b.n, b.x, b.y]), targets: targetsFor(turn).map(b => b.n), chalkPick, chalkShot: chalkShot && chalkShot.n, chalkN: chalk[chalkOwner()], aim, power, mode, mus: {mode: MUS.mode, timer: !!MUS.timer, ctx: MUS.ctx && MUS.ctx.state, tracks: MUS.tracks.length, playing: !!(MUS.el && !MUS.el.paused)}}),
     regraTeste: (g, fc, fr, pc) => { groups = g; turn = 0; firstContact = fc; firstRails = fr; pocketedThisShot = pc.slice(); pc.forEach(n => { const b = balls.find(o => o.n === n); if (b) b.in = false; }); endShot(); return {scores: scores.map(x => x.slice()), removed: balls.filter(b => !b.in).map(b => b.n), why: document.getElementById('foulWhy').textContent}; }};
   function startOnline(){
