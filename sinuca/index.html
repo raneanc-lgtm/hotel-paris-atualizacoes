@@ -533,12 +533,12 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = store.get("rules", "reg"), TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101302;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101701;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
   const BET = () => vsCPU || !!net;                                              // tem aposta de fichas?
-  let cueRails = 0, lastChance = null;                                          // tabelas da branca na tacada · última chance (regional)
+  let cueRails = 0, firstRails = 0, lastChance = null;                                          // tabelas da branca na tacada · última chance (regional)
   let tShots = 0, tPots = 0, series = [0, 0];                                 // series: pontos gerais (séries de melhor de 3 ganhas)                                                    // contadores do treino   // "bol" = Bolinho (3 bolas, quem matar a última vence)   // "reg" = Sinuca Regional (2 a 15) · "trad" = Sinuca Tradicional (bola 1 de castigo)
   let shotCleared = false;                                                     // (tradicional) o jogador da vez já tinha limpado o grupo quando tacou?
   let ficha = [parseInt(store.get("ficha0", "0")), parseInt(store.get("ficha1", "0"))], wager = 3, initialWager = 3, lastWinner = -1;
@@ -893,7 +893,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
                 a.vx -= jt*tx; a.vy -= jt*ty; b.vx += jt*tx; b.vy += jt*ty;
               }
               // o giro (rolamento/efeito) não passa na batida: a branca fica com o giro dela e o pano faz o siga/puxada
-              if (c && firstContact === null) firstContact = (c === a ? b : a).n;
+              if (c && firstContact === null){ firstContact = (c === a ? b : a).n; firstRails = cueRails; }   // quantas tabelas a branca bateu antes da 1ª bola
             }
           }
         }
@@ -1106,6 +1106,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     objs.forEach(n => { const o = ownerOf(n); if (o >= 0){ scores[o].push(n); if (o === me) mine++; } });
 
     // 3) faltas
+    const hitAdvFirst = !!groups[me] && firstContact !== null && ownerOf(firstContact) === adv && msgs.length === 0;   // 1ª bola batida foi do adversário
     let foul = null;
     if (pc.includes(0)) foul = "Branca na caçapa";
     else if (firstContact === null) foul = "Não acertou nenhuma bola";
@@ -1124,9 +1125,17 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     }
 
     const REG = !TRAD && !BOL && !TREINO;
-    // regional: branca que cai direto (sem bater na tabela) tira 2 bolas; se bateu na tabela antes, tira 1
-    const nPen = REG && pc.includes(0) && cueRails === 0 ? 2 : 1;
-    if (REG && pc.includes(0) && foul) foul = cueRails === 0 ? "Branca na caçapa direto · tira 2" : "Branca na caçapa depois da tabela · tira 1";
+    // regional: suicídio (branca na caçapa) tira 1 · bateu DIRETO na bola do adversário tira 2 · tabela e depois bola do adversário tira 1
+    // (se acontecer mais de uma coisa na mesma tacada, vale a maior: no máximo 2)
+    let nPen = 1;
+    if (REG && foul){
+      const direct = hitAdvFirst && firstRails === 0;
+      if (direct) nPen = 2;
+      const parts = [];
+      if (pc.includes(0)) parts.push("Suicídio (branca na caçapa)");
+      if (hitAdvFirst) parts.push(direct ? "Bateu direto na bola do adversário" : "Tabela e bola do adversário");
+      foul = (parts.length ? parts.join(" · ") : foul) + ` · tira ${nPen}`;
+    }
     // regional: matou a última mas a branca caiu junto (suicídio) → o adversário ganha uma tacada de última chance
     const suicide = REG && pc.includes(0) && !lastChance && groups[me] && mine > 0 && groupClear(me);
     if (pc.includes(0)){ respotCue(); msgs.push("Branca volta pra meia-lua"); }
@@ -1171,14 +1180,14 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   ];
   const shotSpeed = p => (80 + 2600*Math.pow(p, 1.25))*U;
   function simulate(a, pw, sp){
-    const save = {balls, pocketedThisShot, sinkFx, firstContact, cueRails};
+    const save = {balls, pocketedThisShot, sinkFx, firstContact, cueRails, firstRails};
     balls = balls.map(b => ({n:b.n, x:b.x, y:b.y, vx:0, vy:0, rx:0, ry:0, sz:0, in:b.in, q:b.q}));
-    pocketedThisShot = []; sinkFx = []; firstContact = null; cueRails = 0; SIM = true;
+    pocketedThisShot = []; sinkFx = []; firstContact = null; cueRails = 0; firstRails = 0; SIM = true;
     const c = balls.find(b => b.n === 0), v = shotSpeed(pw);
     applyStrike(c, a, v, sp);
     for (let t = 0; t < 14; t += 1/30){ physics(1/30); if (allStopped()) break; }
     const res = {pocketed: pocketedThisShot.slice(), first: firstContact, cue: {x:c.x, y:c.y, in:c.in}, after: balls};
-    ({balls, pocketedThisShot, sinkFx, firstContact, cueRails} = save); SIM = false;
+    ({balls, pocketedThisShot, sinkFx, firstContact, cueRails, firstRails} = save); SIM = false;
     return res;
   }
   // tacadas "fáceis" disponíveis a partir de uma posição da branca (geometria rápida, sem simular)
@@ -2106,7 +2115,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       if (strike.t >= 0.09){
         const c = cue(), v = shotSpeed(strike.p);
         applyStrike(c, aim, v, spin); sfx.cue(strike.p); buzz(8 + Math.round(strike.p*14));
-        firstContact = null; cueRails = 0; moving = true; strike = null;
+        firstContact = null; cueRails = 0; firstRails = 0; moving = true; strike = null;
       }
     } else if (!moving && !gameOver){
       if (inHand && !cpu && myTurn()){
@@ -2682,7 +2691,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }, 2000);
   window.addEventListener("pagehide", () => { if (net) net.send({t: "bye"}); });
   window.__sinuca = {state: () => ({turn, gameOver, moving: moving || !!strike, inHand, groups, scores, chalk, wins, gameNo, ficha, me: net && net.me, live: !!(net && net.live), rackSeq, netDiff, watchCode: net && net.watchCode, spect: !!(net && net.spect),
-    balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p), chat: t => chatSend(t), aim: () => aim};
+    balls: balls.map(b => [b.n, +b.x.toFixed(1), +b.y.toFixed(1), b.in ? 1 : 0])}), shoot: p => shoot(p), chat: t => chatSend(t), aim: () => aim,
+    regraTeste: (g, fc, fr, pc) => { groups = g; turn = 0; firstContact = fc; firstRails = fr; pocketedThisShot = pc.slice(); pc.forEach(n => { const b = balls.find(o => o.n === n); if (b) b.in = false; }); endShot(); return {scores: scores.map(x => x.slice()), removed: balls.filter(b => !b.in).map(b => b.n), why: document.getElementById('foulWhy').textContent}; }};
   function startOnline(){
     net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
     ficha[net.me] = parseInt(store.get("ficha0", "0")) || 0; ficha[1 - net.me] = net.peerFicha;
