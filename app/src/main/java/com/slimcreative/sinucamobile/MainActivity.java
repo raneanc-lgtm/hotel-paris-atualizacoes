@@ -12,6 +12,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import android.net.Uri;
+import android.hardware.biometrics.BiometricPrompt;
+import android.os.CancellationSignal;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
@@ -149,6 +151,11 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> { try { startActivity(i); } catch (Exception e) { /* app sumiu */ } });
             return true;
         }
+        // ---- Modo Slim: digital do celular ----
+        @JavascriptInterface public boolean digitalDisponivel() { return Build.VERSION.SDK_INT >= 28; }
+        @JavascriptInterface public boolean slimAtivo() { return getSharedPreferences("slim", MODE_PRIVATE).getBoolean("on", false); }
+        @JavascriptInterface public void slimSair() { getSharedPreferences("slim", MODE_PRIVATE).edit().putBoolean("on", false).apply(); }
+        @JavascriptInterface public void pedirDigital() { runOnUiThread(() -> digital()); }
         @JavascriptInterface public int versaoWeb() { return atual.versaoWeb(); }
         @JavascriptInterface public void instalarApk() { runOnUiThread(() -> atual.instalar()); }
         @JavascriptInterface public void procurarAtualizacao() { atual.verificar(true); }
@@ -160,6 +167,37 @@ public class MainActivity extends Activity {
         @JavascriptInterface public void btConectar(String endereco) { mesa.conectar(endereco); }
         @JavascriptInterface public void btEnviar(String texto) { mesa.enviar(texto); }
         @JavascriptInterface public void btFechar() { mesa.fechar(); }
+    }
+
+    private void jsDigital(String st, String msg) {
+        final String code = "window.__digital && window.__digital(" + JSONObject.quote(st) + "," + JSONObject.quote(msg == null ? "" : msg) + ")";
+        web.post(() -> web.evaluateJavascript(code, null));
+    }
+
+    /** pede a digital (ou o desbloqueio biométrico do aparelho) pra ligar o Modo Slim */
+    private void digital() {
+        if (Build.VERSION.SDK_INT < 28) { jsDigital("erro", "Este celular não tem leitor de digital compatível · use a senha"); return; }
+        try {
+            BiometricPrompt bp = new BiometricPrompt.Builder(this)
+                .setTitle("Modo Slim")
+                .setSubtitle("Confirme com a sua digital")
+                .setNegativeButton("Cancelar", getMainExecutor(), (d, w) -> jsDigital("cancelou", ""))
+                .build();
+            bp.authenticate(new CancellationSignal(), getMainExecutor(), new BiometricPrompt.AuthenticationCallback() {
+                @Override
+                public void onAuthenticationSucceeded(BiometricPrompt.AuthenticationResult r) {
+                    getSharedPreferences("slim", MODE_PRIVATE).edit().putBoolean("on", true).apply();
+                    jsDigital("ok", "");
+                }
+                @Override
+                public void onAuthenticationError(int code, CharSequence msg) {
+                    if (code != BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED && code != BiometricPrompt.BIOMETRIC_ERROR_CANCELED)
+                        jsDigital("erro", msg == null ? "Digital indisponível · use a senha" : msg.toString());
+                }
+            });
+        } catch (Exception e) {
+            jsDigital("erro", "Digital indisponível · use a senha");
+        }
     }
 
     // apps de música mais usados (aparecem primeiro, se estiverem instalados)

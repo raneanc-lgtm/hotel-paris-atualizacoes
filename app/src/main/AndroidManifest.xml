@@ -7,6 +7,8 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- atualização automática do app -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- Modo Slim: entrar com a digital -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <!-- jogo via Bluetooth (celular com celular, sem internet) -->
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
