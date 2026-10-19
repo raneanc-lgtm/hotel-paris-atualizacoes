@@ -306,6 +306,21 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .otab.on{background:var(--brass); color:#1a1209}
 .opane{display:flex; flex-direction:column; gap:12px}
 .opane[hidden]{display:none !important}
+
+/* ícones desenhados (no lugar dos emojis do Android) */
+.ic{width:1.15em; height:1.15em; vertical-align:-.2em; flex:none}
+.btn .ic{margin-right:6px; opacity:.9}
+#m-opts .ic{width:24px; height:24px; color:var(--brass)}
+.tile i.tico{width:54px; height:54px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.34), rgba(255,255,255,.1) 70%); box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45), 0 4px 10px rgba(0,0,0,.25); margin-bottom:4px; filter:none; font-size:0}
+.tile i.tico svg{width:32px; height:32px; color:#fff; filter:drop-shadow(0 1px 1px rgba(0,0,0,.3))}
+.htiles .tile.t-tr i.tico{background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.5), rgba(255,255,255,.15) 70%); box-shadow:inset 0 0 0 1.5px rgba(26,18,9,.35)}
+.htiles .tile.t-tr i.tico svg{color:#1a1209; filter:none}
+@container game (max-height:380px){ .tile i.tico{width:44px; height:44px} .tile i.tico svg{width:26px; height:26px} }
+@container game (max-width:560px){ .tile i.tico{width:38px; height:38px; margin:0} .tile i.tico svg{width:22px; height:22px} }
+.coin{display:inline-block; width:1.05em; height:1.05em; border-radius:50%; vertical-align:-.17em; margin-right:6px; background:radial-gradient(circle at 34% 30%, #fff3b8, #f6c945 38%, #c98a14 78%, #8a5a08); box-shadow:inset 0 0 0 .12em rgba(138,90,8,.55), inset 0 0 0 .2em #f3c74a, 0 1px 2px rgba(0,0,0,.4)}
+.hopt .coin{margin:0 0 0 2px}
+.modecard .mb.sm[style*="f4f1ea"]{position:relative; background:radial-gradient(circle at 35% 30%, #fff, #e9e4d8 60%, #b9b2a2)}
+.modecard .mb.sm[style*="f4f1ea"]::after{content:""; width:4px; height:4px; border-radius:50%; background:#d6262c}
 </style>
 
 <div id="safe" aria-hidden="true" style="position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)"></div>
@@ -327,24 +342,35 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 
 <div class="overlay" id="modes">
   <div class="card startcard home">
-    <header class="sc-head">
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-cpu" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="14" width="28" height="22" rx="7"/><path d="M24 14V8"/><circle cx="24" cy="6.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="18.5" cy="24" r="3" fill="currentColor" stroke="none"/><circle cx="29.5" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M19 31h10M6 22v6M42 22v6"/></symbol>
+<symbol id="i-duo" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="17" r="6"/><path d="M7 38c0-6.5 5-11 11-11s11 4.5 11 11"/><circle cx="32.5" cy="15" r="5" opacity=".75"/><path d="M31 25.3c5.6-.6 10 3.7 10 10.2" opacity=".75"/></symbol>
+<symbol id="i-net" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="16"/><path d="M8 24h32M24 8c-5 4.5-7 10-7 16s2 11.5 7 16M24 8c5 4.5 7 10 7 16s-2 11.5-7 16"/></symbol>
+<symbol id="i-target" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="24" cy="24" r="16"/><circle cx="24" cy="24" r="9"/><circle cx="24" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M24 4v6M24 38v6M4 24h6M38 24h6"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></symbol>
+<symbol id="i-finger" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 5.5A8 8 0 0 1 20 11.5c0 2-.2 4-.7 6"/><path d="M4.3 9A8 8 0 0 0 4 11.5c0 1.3-.3 2.5-.8 3.6"/><path d="M8 11.5a4 4 0 0 1 8 0c0 3-.5 6-1.6 8.5"/><path d="M12 11.5c0 3.5-.7 6.8-2.2 9.5"/><path d="M7.9 15.5c-.3 1.8-1 3.4-1.9 4.8"/></symbol>
+</defs></svg>
+<header class="sc-head">
       <img class="brandlogo" alt="Logo Slim Creative" src="data:," data-logo>
       <div class="sc-title"><h2>Sinuca Mobile</h2><small class="sc-credit">por Slim Creative</small></div>
-      <span class="hbal" title="Suas fichas">🪙 <b id="balance">0</b></span>
-      <button class="iconbtn cfgbtn" id="m-opts" type="button" aria-label="Configurações" title="Configurações">⚙</button>
+      <span class="hbal" title="Suas fichas"><i class="coin"></i><b id="balance">0</b></span>
+      <button class="iconbtn cfgbtn" id="m-opts" type="button" aria-label="Configurações" title="Configurações"><svg class="ic"><use href="#i-gear"/></svg></button>
     </header>
     <div class="hsec">
       <span class="hlabel">Modo</span>
       <div class="hmodes rulemode" role="radiogroup" aria-label="Modo de jogo">
-        <button class="modecard" data-r="reg" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#1652d9">2</i><i class="mb sm" style="--c:#e8202a">3</i></span>Regional</button><button class="modecard" data-r="trad" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#ffcc1a">1</i></span>Tradicional</button><button class="modecard" data-r="bol" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#ffcc1a">1</i><i class="mb sm" style="--c:#6a2bb0">4</i></span>Bolinho</button><button class="modecard" data-r="treino" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#f4f1ea">✥</i></span>Treino</button>
+        <button class="modecard" data-r="reg" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#1652d9">2</i><i class="mb sm" style="--c:#e8202a">3</i></span>Regional</button><button class="modecard" data-r="trad" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#ffcc1a">1</i></span>Tradicional</button><button class="modecard" data-r="bol" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#ffcc1a">1</i><i class="mb sm" style="--c:#6a2bb0">4</i></span>Bolinho</button><button class="modecard" data-r="treino" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#f4f1ea"></i></span>Treino</button>
       </div>
       <small class="hdesc" id="modeDesc"></small>
     </div>
     <div class="htiles opp" role="group" aria-label="Jogar contra">
-      <button class="chip tile t-cpu" data-o="cpu" type="button"><i>🤖</i><b>Computador</b><em>treine contra a máquina</em></button>
-      <button class="chip tile t-2p" data-o="2p" type="button"><i>👥</i><b>2 jogadores</b><em>no mesmo celular</em></button>
-      <button class="chip tile t-on" data-o="online" type="button"><i>🌐</i><b>Com amigo</b><em>online ou Bluetooth</em></button>
-      <button class="chip tile treinotile t-tr" data-o="treino" type="button" hidden><i>🎯</i><b>Começar treino</b><em>branca onde quiser</em></button>
+      <button class="chip tile t-cpu" data-o="cpu" type="button"><i class="tico"><svg><use href="#i-cpu"/></svg></i><b>Computador</b><em>treine contra a máquina</em></button>
+      <button class="chip tile t-2p" data-o="2p" type="button"><i class="tico"><svg><use href="#i-duo"/></svg></i><b>2 jogadores</b><em>no mesmo celular</em></button>
+      <button class="chip tile t-on" data-o="online" type="button"><i class="tico"><svg><use href="#i-net"/></svg></i><b>Com amigo</b><em>online ou Bluetooth</em></button>
+      <button class="chip tile treinotile t-tr" data-o="treino" type="button" hidden><i class="tico"><svg><use href="#i-target"/></svg></i><b>Começar treino</b><em>branca onde quiser</em></button>
     </div>
     <div class="hopts">
       <button class="hopt" id="o-lvl" type="button"></button>
@@ -363,10 +389,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     <button class="btn main" id="next" type="button" hidden>Próxima partida</button>
     <button class="btn main" id="resume" type="button">Continuar</button>
     <button class="btn" id="restart" type="button">Reiniciar partida</button>
-    <button class="btn" id="p-watch" type="button" hidden>👁 Convidar pra assistir</button>
-    <button class="btn" id="p-music" type="button" hidden>🎵 Abrir app de música</button>
-    <button class="btn" id="p-coins" type="button" hidden>💰 +100 fichas</button>
-    <button class="btn" id="p-opts" type="button">⚙ Configurações</button>
+    <button class="btn" id="p-watch" type="button" hidden><svg class="ic"><use href="#i-eye"/></svg> Convidar pra assistir</button>
+    <button class="btn" id="p-music" type="button" hidden><svg class="ic"><use href="#i-music"/></svg> Abrir app de música</button>
+    <button class="btn" id="p-coins" type="button" hidden><svg class="ic"><use href="#i-plus"/></svg> +100 fichas</button>
+    <button class="btn" id="p-opts" type="button"><svg class="ic"><use href="#i-gear"/></svg> Configurações</button>
     <button class="btn" id="tomodes" type="button">Menu inicial</button>
     <button class="btn" id="fs" type="button" hidden>Tela cheia</button>
   </div>
@@ -480,7 +506,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     <h2>✦ Modo Slim</h2>
     <small>Digite a senha ou use a digital</small>
     <div class="onjoin"><input id="donoPass" type="password" inputmode="numeric" maxlength="12" autocomplete="off" aria-label="Senha"><button class="btn main" id="donoGo" type="button">Entrar</button></div>
-    <button class="btn" id="donoBio" type="button" hidden>👆 Usar digital</button>
+    <button class="btn" id="donoBio" type="button" hidden><svg class="ic"><use href="#i-finger"/></svg> Usar digital</button>
   </div>
 </div>
 
@@ -634,7 +660,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101909;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101910;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -2913,7 +2939,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function homeOpts(){
     const lv = document.getElementById("o-lvl"), bt = document.getElementById("o-bet"), fm = document.getElementById("o-fmt");
     lv.innerHTML = `Computador: <b>${LV_NAMES[cpuLevel] || "Médio"}</b>`;
-    bt.innerHTML = `Aposta: <b>${initialWager}</b> 🪙`;
+    bt.innerHTML = `Aposta: <b>${initialWager}</b> <i class="coin"></i>`;
     fm.innerHTML = `Partida: <b>${matchFmt === "bo3" ? "Melhor de 3" : "Contínua"}</b>`;
     lv.hidden = bt.hidden = fm.hidden = TREINO;
   }
