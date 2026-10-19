@@ -374,7 +374,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     </div>
     <div class="opt donobox" id="donoBox" hidden><span>✦ Modo Slim · só fora do online</span>
       <div class="lvls dono" role="group" aria-label="Poderes do dono">
-        <button class="chip" data-k="giz" type="button">Giz infinito</button><button class="chip" data-k="mira" type="button">Mira completa</button><button class="chip" data-k="fichas" type="button">Fichas à vontade</button><button class="chip" id="donoOut" type="button">Sair</button>
+        <button class="chip" data-k="giz" type="button">Giz infinito</button><button class="chip" data-k="mira" type="button">Mira completa</button><button class="chip" data-k="fichas" type="button">Fichas à vontade</button><button class="chip" id="donoCoins" type="button">+100 fichas</button><button class="chip" id="donoOut" type="button">Sair</button>
       </div>
     </div>
     <div class="opt verline"><span id="verTxt"></span><button class="chip" id="verCheck" type="button" hidden>Procurar atualização</button></div>
@@ -2514,7 +2514,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   document.getElementById("m-opts").onclick = openOpts;
   document.getElementById("p-opts").onclick = openOpts;
-  document.getElementById("optsok").onclick = () => optsBox.hidden = true;
+  document.getElementById("optsok").onclick = () => { optsBox.hidden = true; if (typeof donoEsconde === "function") donoEsconde(); };
 
 
   // ---------- Modo de jogo ----------
@@ -2538,14 +2538,16 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   const DONO_HASH = "c0480ed98ef3b2af53ab20b72529bfd6cd02d858";
   // só vale dentro do app e só com a senha certa guardada no aparelho (a senha não fica escrita no jogo, só uma "impressão digital" dela)
   const donoHex = t => [...sha1(new TextEncoder().encode(t))].map(b => b.toString(16).padStart(2, "0")).join("");
-  var DONO = {on: !!window.SinucaApp && (donoHex(store.get("dono_key", "")) === "c0480ed98ef3b2af53ab20b72529bfd6cd02d858" || (() => { try { return !!(window.SinucaApp.slimAtivo && window.SinucaApp.slimAtivo()); } catch(e){ return false; } })()), giz: store.get("dono_giz", "1") === "1", mira: store.get("dono_mira", "1") === "1", fichas: store.get("dono_fichas", "1") === "1"};
+  var DONO = {on: !!window.SinucaApp && donoHex(store.get("dono_key", "")) === "c0480ed98ef3b2af53ab20b72529bfd6cd02d858", giz: store.get("dono_giz", "1") === "1", mira: store.get("dono_mira", "1") === "1", fichas: store.get("dono_fichas", "1") === "1"};
   const donoAtivo = k => DONO.on && DONO[k] && !net;                      // nunca no online
   const sha1hex = t => [...sha1(new TextEncoder().encode(t))].map(b => b.toString(16).padStart(2, "0")).join("");
+  let slimVisto = false;                                                  // disfarce: o painel só aparece depois da senha/digital nesta sessão
   function donoUI(){
-    document.getElementById("donoBox").hidden = !DONO.on;
+    document.getElementById("donoBox").hidden = !(DONO.on && slimVisto);
     document.querySelectorAll(".dono .chip[data-k]").forEach(c => c.classList.toggle("on", !!DONO[c.dataset.k]));
-    document.getElementById("p-coins").hidden = !(DONO.on && DONO.fichas && !net);
+    document.getElementById("p-coins").hidden = !(DONO.on && slimVisto && DONO.fichas && !net);
   }
+  function donoEsconde(){ slimVisto = false; donoUI(); }                // fechou as configurações: o painel some de novo (disfarce)
   function donoChalk(){                                                   // giz infinito na hora (ou volta ao normal)
     if (!inMatch || net || TREINO) return;
     const mine = vsCPU ? [0] : [0, 1];
@@ -2554,8 +2556,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let donoTaps = [];
   const donoTap = () => {
     const now = performance.now(); donoTaps = donoTaps.filter(t => now - t < 3000); donoTaps.push(now);
-    if (donoTaps.length >= 5){ donoTaps = []; if (DONO.on){ openOpts(); return; } document.getElementById("donoPass").value = "";
-      let bio = false; try { bio = !!(window.SinucaApp && window.SinucaApp.digitalDisponivel && window.SinucaApp.digitalDisponivel()); } catch(e){}
+    if (donoTaps.length >= 5){ donoTaps = []; document.getElementById("donoPass").value = "";
+      // a digital só vale num celular onde a senha já foi digitada uma vez (senão qualquer um destravava com a própria digital)
+      let bio = false; try { bio = DONO.on && !!(window.SinucaApp && window.SinucaApp.digitalDisponivel && window.SinucaApp.digitalDisponivel()); } catch(e){}
       document.getElementById("donoBio").hidden = !bio; document.getElementById("donoLock").hidden = false; }
   };
   document.querySelectorAll(".sc-head .brandlogo, .sc-credit").forEach(el => el.addEventListener("click", donoTap));   // 5 toques no palhacinho (ou no "Slim Creative")
@@ -2564,14 +2567,14 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     const key = document.getElementById("donoPass").value.trim();
     if (!window.SinucaApp){ flash("Só funciona no app", true); return; }
     if (sha1hex(key) === DONO_HASH){
-      DONO.on = true; store.set("dono_key", key); store.set("dono", ""); document.getElementById("donoLock").hidden = true; donoUI(); donoChalk();
-      flash("✦ Modo Slim ativado · poderes em ⚙ Configurações");
+      DONO.on = true; slimVisto = true; store.set("dono_key", key); store.set("dono", ""); document.getElementById("donoLock").hidden = true; donoUI(); donoChalk();
+      flash("✦ Modo Slim"); openOpts();
     } else flash("Senha errada", true);
   };
   document.getElementById("donoGo").onclick = donoTry;
   document.getElementById("donoBio").onclick = () => { try { window.SinucaApp.pedirDigital(); } catch(e){ flash("Digital indisponível", true); } };
   window.__digital = (st, msg) => {                                       // resposta do leitor de digital do Android
-    if (st === "ok"){ DONO.on = true; document.getElementById("donoLock").hidden = true; donoUI(); donoChalk(); flash("✦ Modo Slim ativado · poderes em ⚙ Configurações"); }
+    if (st === "ok" && DONO.on){ slimVisto = true; document.getElementById("donoLock").hidden = true; donoUI(); donoChalk(); flash("✦ Modo Slim"); openOpts(); }
     else if (st === "erro") flash(msg || "Digital não reconhecida", true);
   };
   document.getElementById("donoPass").addEventListener("keydown", e => { if (e.key === "Enter") donoTry(); });
@@ -2579,6 +2582,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     const k = c.dataset.k; DONO[k] = !DONO[k]; store.set("dono_" + k, DONO[k] ? "1" : "0"); donoUI(); donoChalk();
   });
   document.getElementById("donoOut").onclick = () => { DONO.on = false; store.set("dono_key", ""); store.set("dono", ""); donoUI(); donoChalk(); try { window.SinucaApp && window.SinucaApp.slimSair && window.SinucaApp.slimSair(); } catch(e){} flash("Modo Slim desligado neste aparelho"); };
+  document.getElementById("donoCoins").onclick = () => document.getElementById("p-coins").onclick();
   document.getElementById("p-coins").onclick = () => {
     ficha[0] += 100; store.set("ficha0", String(ficha[0])); document.getElementById("balance").textContent = ficha[0];
     flash(`💰 +100 fichas · você tem ${ficha[0]}`); fillMenuInfo();
