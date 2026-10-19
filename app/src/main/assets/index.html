@@ -27,6 +27,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .foul.show{opacity:1; transform:translate(-50%,-50%) scale(1)}
 .foul.win{background:linear-gradient(180deg, rgba(196,140,24,.97), rgba(120,78,6,.97)); border-color:#ffe08a}
 .foul.win b{font-size:2.6rem}
+.foul.win.lose{background:linear-gradient(180deg, rgba(70,74,82,.97), rgba(28,30,34,.97)); border-color:#9aa0a8}
+.foul.win.lose b{color:#ff8a7a}
 .foul.win .why{font-size:1.3rem}
 .foul b{font:400 2.1rem var(--display); letter-spacing:.06em; text-shadow:0 2px 0 rgba(0,0,0,.4)}
 .foul .why{font:700 1.05rem var(--body)}
@@ -556,7 +558,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = store.get("rules", "reg"), TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101704;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101901;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -1044,7 +1046,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const placar = `${NAME0(0)} ${wins[0]} x ${wins[1]} ${NAME0(1)}`;
         const fichasTxt = !pays ? "" : net && net.spect ? ` · ${NAME0(i)} +${wager} ficha${wager > 1 ? "s" : ""}` : ` · ${i === ME ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}`;
         document.getElementById("foul").classList.remove("show"); document.getElementById("msg").classList.remove("show");
-        document.getElementById("winTitle").textContent = seriesOver ? "CAMPEÃO DA SÉRIE!" : "VITÓRIA!";
+        const lost = vsCPU ? i !== 0 : (net && !net.spect) ? i !== net.me : false;   // perdeu pro computador / pro amigo
+        document.getElementById("winTitle").textContent = lost ? (seriesOver ? "DERROTA NA SÉRIE" : "DERROTA") : seriesOver ? "CAMPEÃO DA SÉRIE!" : "VITÓRIA!";
+        document.getElementById("win").classList.toggle("lose", lost);
         document.getElementById("winWho").textContent = winLine + (force && force.why ? ` · ${unTok(force.why)}` : "");
         document.getElementById("winScore").textContent = (bo3 ? `Série: ${placar}` : `Placar: ${placar}`) + fichasTxt;
         document.getElementById("win").classList.add("show");
@@ -1056,7 +1060,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
             newGame(`Próxima partida · ${placar}`);
             return;
           }
-          document.getElementById("menuTitle").textContent = seriesOver ? `${who} venceu a série!` : winLine;
+          document.getElementById("menuTitle").textContent = (lost ? "Derrota · " : "") + (seriesOver ? `${who} venceu a série!` : winLine);
           document.getElementById("menuSub").textContent = seriesOver
             ? `Séries: ${NAME0(0)} ${series[0]} x ${series[1]} ${NAME0(1)}` + (pays ? ` · ${i === ME ? "+" : "−"}${wager} ficha${wager > 1 ? "s" : ""}` : "")
             : `Placar: ${placar}` + fichasTxt;
@@ -1481,15 +1485,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     let best = null;
     const QUICK = [0.5, 0.68, 0.86, 1];
     const evalAim = async (k, a) => {
-      let any = false;
-      for (const pw of QUICK){ if (out()) return false; await tick(); if (chalkLegal(simulate(a, pw, {x:0, y:0}), me, n) === 2){ any = true; break; } }
+      let any = 0;
+      for (const pw of QUICK){ if (out()) return false; await tick(); if (chalkLegal(simulate(a, pw, {x:0, y:0}), me, n) === 2){ any = pw; break; } }
       if (!any) return false;
       const ok = [];
       for (const pw of CHALK_P){ await tick(); ok.push(chalkLegal(simulate(a, pw, {x:0, y:0}), me, n)); }
       let run = 0, bestRun = 0, end = -1;
       ok.forEach((v, i) => { run = v === 2 ? run + 1 : 0; if (run > bestRun){ bestRun = run; end = i; } });
-      if (!bestRun){                                                     // só acertou com força máxima
-        best = best || {score: 0.5, a, n, px: k.px, py: k.py, good: [1], lo: 1, hi: 1, best: 1, kind: k.k}; return true;
+      if (!bestRun){                                                     // só acertou numa força fora da tabela: usa exatamente ela
+        best = best || {score: 0.5, a, n, px: k.px, py: k.py, good: [any], lo: any, hi: any, best: any, kind: k.k}; return true;
       }
       const score = bestRun*10 + k.pre*0.001;
       if (!best || score > best.score){
@@ -1498,17 +1502,20 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       }
       return true;
     };
+    const outCands = () => performance.now() - T0 > budget*0.45;
     for (const k of cands){
-      if (out() || (best && best.good.length >= 4)) break;
+      if (outCands() || (best && best.good.length >= 4)) break;
       const jit = k.k === 0 ? [0, 0.004, -0.004, 0.009, -0.009] : [0, 0.006, -0.006, 0.012, -0.012, 0.02, -0.02, 0.03, -0.03, 0.045, -0.045];
-      for (const d of jit){ if (out()) break; if (await evalAim(k, k.a + d) && best.good.length >= 3) break; }
+      for (const d of jit){ if (outCands()) break; if (await evalAim(k, k.a + d) && best.good.length >= 3) break; }
     }
     // 4) varredura: testa a volta toda, começando pela direção da bola (pega qualquer caminho, até 2 tabelas)
     if (!best){
       const a0 = Math.atan2(t.y - c.y, t.x - c.x), STEP = Math.PI/360;
-      for (let i = 0; i < 720 && !best && !out(); i++){
-        const a = a0 + (i % 2 ? 1 : -1)*Math.ceil(i/2)*STEP;
-        for (const pw of [0.7, 0.9, 1]){
+      // volta inteira numa força, depois nas outras (cada passada cobre todos os caminhos de tabela)
+      for (const pw of [0.86, 1, 0.68, 0.52]){
+        if (best || out()) break;
+        for (let i = 0; i < 720 && !best && !out(); i++){
+          const a = a0 + (i % 2 ? 1 : -1)*Math.ceil(i/2)*STEP;
           await tick();
           const res = simulate(a, pw, {x:0, y:0});
           if (chalkLegal(res, me, n) === 2){
@@ -1518,7 +1525,6 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
             for (const q of CHALK_P){ await tick(); ok.push(chalkLegal(simulate(a, q, {x:0, y:0}), me, n) === 2); }
             let run = 0, bestRun = 0, end = -1; ok.forEach((v, i) => { run = v ? run + 1 : 0; if (run > bestRun){ bestRun = run; end = i; } });
             if (bestRun > 1){ const good = CHALK_P.slice(end - bestRun + 1, end + 1); Object.assign(best, {good, lo: good[0], hi: good[good.length - 1], best: good[Math.floor((good.length - 1)/2)]}); }
-            break;
           }
         }
       }
@@ -1593,7 +1599,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     const myTurnNow = turn, gen = ++chalkGen;
     setTimeout(async () => {
       let sh = null;
-      try { sh = await findPerfectAsync(myTurnNow, n, 10000); } catch(e){ console.error(e); }
+      try { sh = await findPerfectAsync(myTurnNow, n, 20000); } catch(e){ console.error(e); }
       if (gen !== chalkGen) return;                                      // cancelado (tacou, mudou a vez...)
       chalkBusy = false;
       if (!chalkReady() || chalkShot || turn !== myTurnNow) return;
@@ -1605,7 +1611,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     }, 40);
   }
   function shoot(p, fromCPU){ if (moving || strike || gameOver || p < 0.03 || (cpu && !fromCPU)) return; if (chalkBusy && !fromCPU){ flash("Calma, o giz ainda está calculando…"); return; } if (chalkShot && !fromCPU){
-      if (p >= chalkShot.lo - 0.04 && p <= chalkShot.hi + 0.04){ p = chalkShot.good.reduce((x, y) => Math.abs(y - p) < Math.abs(x - p) ? y : x); chalkFixed = true; }
+      // giz = tacada garantida: qualquer força que puxar vira a força testada mais perto, com a mira e o efeito exatos do teste
+      p = chalkShot.good.reduce((x, y) => Math.abs(y - p) < Math.abs(x - p) ? y : x); chalkFixed = true;
+      aim = chalkShot.a; spin = {x:0, y:0}; updateDot();
+      for (const b of balls){ b.vx = b.vy = 0; b.rx = b.ry = b.sz = 0; }   // mesa paradinha, igual ao simulador
       chalkShot = null;
     }
     strike = {p, t:0}; inHand = false; breakShot = false; chalkPick = false; chalkBusy = false; chalkGen++; shotCleared = TRAD && groupClear(turn);
