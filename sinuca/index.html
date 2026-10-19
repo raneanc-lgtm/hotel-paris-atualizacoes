@@ -262,6 +262,32 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .hopt[hidden]{display:none}
 @container game (max-height:380px){ .home{gap:9px; padding-block:10px} .tile{min-height:82px; padding:8px} .tile i{font-size:1.4rem} .hmodes .modecard{padding:7px 4px} }
 @container game (max-width:560px){ .htiles{grid-template-columns:1fr} .tile{min-height:0; flex-direction:row; gap:10px; justify-content:flex-start; padding:12px 14px} .tile em{margin-left:auto} .hmodes .modecard{font-size:.8rem} }
+
+/* ===== Menu inicial com vida ===== */
+#modes{background:radial-gradient(120% 90% at 50% 40%, rgba(10,60,30,.55), rgba(0,0,0,.82))}
+.home{background:linear-gradient(160deg, #20170f 0%, #15110c 55%, #0f1a12 100%); border:1px solid rgba(217,164,65,.55); box-shadow:0 18px 50px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,220,150,.08)}
+.home .sc-title h2{font:400 1.6rem var(--display); background:linear-gradient(180deg, #ffe9a8, #d9a441 60%, #b07a1c); -webkit-background-clip:text; background-clip:text; color:transparent; text-shadow:none; filter:drop-shadow(0 2px 0 rgba(0,0,0,.45))}
+.home .brandlogo{filter:drop-shadow(0 0 10px rgba(217,164,65,.35))}
+.hbal{background:linear-gradient(180deg, #3a2a12, #241a0d); border-color:rgba(217,164,65,.6)}
+.home .cfgbtn{background:linear-gradient(180deg, #3a2a12, #241a0d); border-color:rgba(217,164,65,.6); color:#f2c45a}
+.hmodes{background:#0d0b09; border-color:rgba(217,164,65,.35)}
+.hmodes .modecard{display:flex; align-items:center; justify-content:center; gap:7px; color:#cdbb98}
+.hmodes .modecard .mi{display:flex; gap:2px}
+.hmodes .modecard.on{background:linear-gradient(180deg, #f2c45a, #c98f26); color:#1a1209; box-shadow:0 0 14px rgba(242,196,90,.35)}
+.hdesc{color:#cdbb98}
+.tile{border:0; color:#fff; box-shadow:0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.18); position:relative; overflow:hidden}
+.tile::before{content:""; position:absolute; inset:0 0 55% 0; background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0)); pointer-events:none}
+.tile i{font-size:1.9rem; filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))}
+.tile b{color:#fff; font-size:1.12rem; text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.tile em{color:rgba(255,255,255,.82)}
+.htiles .tile.t-cpu, .htiles .tile.t-cpu.on{background:linear-gradient(160deg, #3d7bff, #1a3fb0 70%, #142f86)}
+.htiles .tile.t-2p, .htiles .tile.t-2p.on{background:linear-gradient(160deg, #ff6a4d, #c8261c 70%, #8e1b1b)}
+.htiles .tile.t-on, .htiles .tile.t-on.on{background:linear-gradient(160deg, #2fd27a, #119a45 70%, #0b6b30)}
+.htiles .tile.t-tr, .htiles .tile.t-tr.on{background:linear-gradient(160deg, #ffd66b, #d9a441 70%, #9a6a14); color:#1a1209}
+.htiles .tile.t-tr b, .htiles .tile.t-tr em{color:#1a1209; text-shadow:none}
+.tile:active{transform:scale(.96); filter:brightness(1.08)}
+.hopt{background:#0d0b09; border-color:rgba(217,164,65,.45); color:#e9dcc0}
+.hopt:active{background:#2a1f12}
 /* ===== Pausa limpa ===== */
 .menucard{display:flex !important; flex-direction:column; gap:8px; width:min(360px, 92cqw)}
 .menucard > *{grid-column:auto !important; grid-row:auto !important}
@@ -310,15 +336,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     <div class="hsec">
       <span class="hlabel">Modo</span>
       <div class="hmodes rulemode" role="radiogroup" aria-label="Modo de jogo">
-        <button class="modecard" data-r="reg" type="button" role="radio">Regional</button><button class="modecard" data-r="trad" type="button" role="radio">Tradicional</button><button class="modecard" data-r="bol" type="button" role="radio">Bolinho</button><button class="modecard" data-r="treino" type="button" role="radio">Treino</button>
+        <button class="modecard" data-r="reg" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#1652d9">2</i><i class="mb sm" style="--c:#e8202a">3</i></span>Regional</button><button class="modecard" data-r="trad" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#ffcc1a">1</i></span>Tradicional</button><button class="modecard" data-r="bol" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#ffcc1a">1</i><i class="mb sm" style="--c:#6a2bb0">4</i></span>Bolinho</button><button class="modecard" data-r="treino" type="button" role="radio"><span class="mi"><i class="mb sm" style="--c:#f4f1ea">✥</i></span>Treino</button>
       </div>
       <small class="hdesc" id="modeDesc"></small>
     </div>
     <div class="htiles opp" role="group" aria-label="Jogar contra">
-      <button class="chip tile" data-o="cpu" type="button"><i>🤖</i><b>Computador</b></button>
-      <button class="chip tile" data-o="2p" type="button"><i>👥</i><b>2 jogadores</b><em>no mesmo celular</em></button>
-      <button class="chip tile" data-o="online" type="button"><i>🌐</i><b>Com amigo</b><em>online ou Bluetooth</em></button>
-      <button class="chip tile treinotile" data-o="treino" type="button" hidden><i>🎯</i><b>Começar treino</b><em>branca onde quiser</em></button>
+      <button class="chip tile t-cpu" data-o="cpu" type="button"><i>🤖</i><b>Computador</b><em>treine contra a máquina</em></button>
+      <button class="chip tile t-2p" data-o="2p" type="button"><i>👥</i><b>2 jogadores</b><em>no mesmo celular</em></button>
+      <button class="chip tile t-on" data-o="online" type="button"><i>🌐</i><b>Com amigo</b><em>online ou Bluetooth</em></button>
+      <button class="chip tile treinotile t-tr" data-o="treino" type="button" hidden><i>🎯</i><b>Começar treino</b><em>branca onde quiser</em></button>
     </div>
     <div class="hopts">
       <button class="hopt" id="o-lvl" type="button"></button>
@@ -538,7 +564,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   const TOT_H = 763, BASE_W = 1393;
   const SEG = [[140,282,false],[282,778,true],[778,921,false],[921,1394,true],[1394,1533,false]]; // pedaços da imagem [x0,x1,estica]
   const FX = 81, FY = 85, H = 590, U = 1228/1000, R = 22;
-  let CG = 52, SG = 46, LIM_MIN = 1, LIM_MAX = 1.7, SIDE_K = 1;   // boca das caçapas: bola bem mirada cai (antes a ponta da tabela devolvia a bola)
+  // quinas das caçapas (medidas na mesa): canto começa a 51 do canto e entra a 45°; meio abre ±66 e afunila até ±37
+  const JAW = {cj: 51, jd: 50, sj: 66, se: 37, sd: 31}; let POCKET_IN = 7;
   let EXTRA = 0, TOT_W = BASE_W, W = 1228, SIDE_X = 627.7;
   const pockets = [
     {x:-5.8,y:-14.1,r:38,c:true,k:0},{x:627.7,y:-33.5,r:38,c:false,k:.5},{x:1235.5,y:-13.8,r:38,c:true,k:1},
@@ -607,7 +634,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101908;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101909;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -920,27 +947,11 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
           }
         }
         cushions(b);
-        const out = b.x < -R*0.7 || b.x > W+R*0.7 || b.y < -R*0.7 || b.y > H+R*0.7;
+        // caiu: o centro da bola passou da boca e chegou no fundo da caçapa (as quinas de verdade estão nas tabelas abaixo)
+        const far = b.x < -70 || b.x > W + 70 || b.y < -70 || b.y > H + 70;
         for (const p of pockets){
-          const dpx = p.x - b.x, dpy = p.y - b.y, dp = Math.hypot(dpx, dpy);
-          if (dp < p.r || (out && dp < p.r*2.2)){
-            // quina da caçapa: bola rápida e torta bate na boca e espirra; devagar ou no centro, cai
-            const spd = Math.hypot(b.vx, b.vy);
-            if (!out && spd > 1){
-              // quão longe do meio da BOCA a bola passa (bola colada na tabela entrando reto na boca não espirra)
-              const mx = p.c ? (p.x < W/2 ? 6 : W - 6) : SIDE_X, my = p.c ? (p.y < H/2 ? 6 : H - 6) : (p.y < 0 ? -8 : H + 8);
-              const ofs = Math.abs((b.vx*(my - b.y) - b.vy*(mx - b.x))/spd);
-              const lim = R*Math.max(LIM_MIN, Math.min(LIM_MAX, LIM_MAX - (spd - 1400)/3300))*(p.c ? 1 : SIDE_K);
-              if (ofs > lim && (b.vx*dpx + b.vy*dpy) > 0){
-                const nx = -dpx/dp, ny = -dpy/dp;                           // espirra para fora da boca, perdendo força
-                const vn = b.vx*nx + b.vy*ny, tx = -ny, ty = nx, vt = b.vx*tx + b.vy*ty;
-                const nvn = Math.abs(vn)*0.45 + spd*0.12;
-                b.vx = nx*nvn + tx*vt*0.55; b.vy = ny*nvn + ty*vt*0.55; b.rx = b.vx*0.3; b.ry = b.vy*0.3;
-                b.x = p.x + nx*(p.r + 0.5); b.y = p.y + ny*(p.r + 0.5);
-                if (!SIM){ sfx.rail(spd*0.8); buzz(12); }
-                break;
-              }
-            }
+          const dp = Math.hypot(p.x - b.x, p.y - b.y);
+          if (dp < p.r - POCKET_IN || (far && dp < p.r*3)){
             b.in = false; if (!SIM){ sinkFx.push({b, x:b.x, y:b.y, vx:b.vx, vy:b.vy, p, t:0}); sfx.pocket(); buzz(25); }
             b.vx = b.vy = 0; b.rx = b.ry = 0; b.sz = 0; pocketedThisShot.push(b.n); break;
           }
@@ -975,33 +986,43 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       }
     }
   }
-  function inMouth(b){
-    const nx = b.x < CG || b.x > W-CG, ny = b.y < CG || b.y > H-CG;
-    if (nx && ny) return true;
-    if (Math.abs(b.x-SIDE_X) < SG && (b.y < R+2 || b.y > H-R-2)) return true;
-    return false;
+  // tabelas como segmentos: retas + as QUINAS das caçapas (os "elásticos" inclinados que levam pra dentro da caçapa)
+  // a bola bate em qualquer pedaço (inclusive nas pontas arredondadas) e nunca passa por cima do forro
+  let RAILS = null, railsKey = "";
+  function rails(){
+    const key = W + "|" + SIDE_X + "|" + JAW.cj + "|" + JAW.sj;
+    if (RAILS && key === railsKey) return RAILS;
+    railsKey = key;
+    const S = [], {cj, jd, sj, se, sd} = JAW;
+    const seg = (x1, y1, x2, y2) => { const dx = x2 - x1, dy = y2 - y1; S.push({x1, y1, dx, dy, L2: dx*dx + dy*dy}); };
+    seg(cj, 0, SIDE_X - sj, 0); seg(SIDE_X + sj, 0, W - cj, 0);            // tabela de cima (dois lados da caçapa do meio)
+    seg(cj, H, SIDE_X - sj, H); seg(SIDE_X + sj, H, W - cj, H);            // de baixo
+    seg(0, cj, 0, H - cj); seg(W, cj, W, H - cj);                          // laterais
+    seg(cj, 0, cj - jd, -jd); seg(0, cj, -jd, cj - jd);                    // quinas das caçapas de canto
+    seg(W - cj, 0, W - cj + jd, -jd); seg(W, cj, W + jd, cj - jd);
+    seg(cj, H, cj - jd, H + jd); seg(0, H - cj, -jd, H - cj + jd);
+    seg(W - cj, H, W - cj + jd, H + jd); seg(W, H - cj, W + jd, H - cj + jd);
+    seg(SIDE_X - sj, 0, SIDE_X - se, -sd); seg(SIDE_X + sj, 0, SIDE_X + se, -sd);   // quinas das caçapas do meio
+    seg(SIDE_X - sj, H, SIDE_X - se, H + sd); seg(SIDE_X + sj, H, SIDE_X + se, H + sd);
+    return RAILS = S;
   }
   function cushions(b){
-    if (inMouth(b)) return;
-    const e = E_RAIL, sp = Math.hypot(b.vx, b.vy), dx = sp ? b.vx/sp : 0, dy = sp ? b.vy/sp : 0;
-    const eng = (b.sz || 0)*0.3;                                        // efeito lateral (inglês) muda o ângulo na tabela
-    let hitX = false, hitY = false;
-    if (b.x < R){ b.x = R; b.vx = Math.abs(b.vx)*e; hitX = true; }
-    if (b.x > W-R){ b.x = W-R; b.vx = -Math.abs(b.vx)*e; hitX = true; }
-    if (b.y < R){ b.y = R; b.vy = Math.abs(b.vy)*e; hitY = true; }
-    if (b.y > H-R){ b.y = H-R; b.vy = -Math.abs(b.vy)*e; hitY = true; }
-    if (hitX || hitY){
+    if (b.x > R + 2 && b.x < W - R - 2 && b.y > R + 2 && b.y < H - R - 2) return;   // longe das bordas
+    for (const s of rails()){
+      let t = ((b.x - s.x1)*s.dx + (b.y - s.y1)*s.dy)/s.L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
+      const cx = s.x1 + s.dx*t, cy = s.y1 + s.dy*t; let nx = b.x - cx, ny = b.y - cy; const d = Math.hypot(nx, ny);
+      if (d >= R || d === 0) continue;
+      nx /= d; ny /= d;
+      b.x = cx + nx*R; b.y = cy + ny*R;                                  // nunca entra na tabela
+      const vn = b.vx*nx + b.vy*ny;
+      if (vn >= 0) continue;
+      const sp = Math.hypot(b.vx, b.vy), ddx = sp ? b.vx/sp : 0, ddy = sp ? b.vy/sp : 0, eng = (b.sz || 0)*0.3;
+      b.vx -= (1 + E_RAIL)*vn*nx; b.vy -= (1 + E_RAIL)*vn*ny;
+      const rn = (b.rx || 0)*nx + (b.ry || 0)*ny;                       // a tabela "come" o giro na direção da batida
+      b.rx = (b.rx || 0) - rn*nx*1.25; b.ry = (b.ry || 0) - rn*ny*1.25;
+      if (eng){ const dn = ddx*nx + ddy*ny; b.vx += -ny*dn*eng; b.vy += nx*dn*eng; b.sz *= 0.5; }   // efeito lateral muda o ângulo
       if (b.n === 0) cueRails++;
       if (!SIM) sfx.rail(sp);
-      // na tabela o giro na direção da batida quase some (a borda "come" o giro)
-      if (hitX) b.rx = -(b.rx || 0)*0.25;
-      if (hitY) b.ry = -(b.ry || 0)*0.25;
-      if (eng){
-        // lado direito do movimento = (-dy, dx); o efeito empurra a bola ao longo da tabela
-        if (hitX) b.vy += dx*eng;
-        if (hitY) b.vx += -dy*eng;
-        b.sz *= 0.5;
-      }
     }
   }
   // vibração curtinha (Android); no iPhone o navegador não deixa
@@ -3279,7 +3300,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       const r = {in: !balls[0].in, x: balls[0].x, y: balls[0].y};
       ({balls, pocketedThisShot, sinkFx, firstContact, cueRails, firstRails} = save); SIM = false; return r;
     },
-    setGeo: (cg, sg, a, b, k) => { CG = cg; SG = sg; if (a != null){ LIM_MIN = a; LIM_MAX = b; SIDE_K = k; } },
+    rails: () => rails().map(s => [s.x1, s.y1, s.x1 + s.dx, s.y1 + s.dy]),
+    setJaw: o => { Object.assign(JAW, o); RAILS = null; },
     pockets: () => pockets.map(p => ({x: p.x, y: p.y, r: p.r, c: p.c})), WH: () => [W, H, R],
     bench: n => { const t = performance.now(); for (let i = 0; i < n; i++) simulate(Math.random()*6.28, 0.3 + Math.random()*0.7, {x:0, y:0}); return (performance.now() - t)/n; },
     geo: () => ({ox, oy, scale, FX, FY, chalk: {x: CHALK.x, y: CHALK.y}, menu: {x: MENU.x + MENU.w/2, y: MENU.y + MENU.h/2}, balls: balls.filter(b => b.in).map(b => [b.n, b.x, b.y]), targets: targetsFor(turn).map(b => b.n), chalkPick, chalkShot: chalkShot && chalkShot.n, chalkN: chalk[chalkOwner()], aim, power, mode, mus: {mode: MUS.mode, timer: !!MUS.timer, ctx: MUS.ctx && MUS.ctx.state, tracks: MUS.tracks.length, playing: !!(MUS.el && !MUS.el.paused)}}),
