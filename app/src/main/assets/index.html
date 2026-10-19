@@ -321,6 +321,28 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .hopt .coin{margin:0 0 0 2px}
 .modecard .mb.sm[style*="f4f1ea"]{position:relative; background:radial-gradient(circle at 35% 30%, #fff, #e9e4d8 60%, #b9b2a2)}
 .modecard .mb.sm[style*="f4f1ea"]::after{content:""; width:4px; height:4px; border-radius:50%; background:#d6262c}
+
+/* menu inicial simples: 2 linhas (Jogar / Outros modos) */
+.hquick{display:flex; flex-direction:column; gap:12px}
+.hbig{all:unset; box-sizing:border-box; display:flex; align-items:center; gap:16px; width:100%; padding:14px 20px; border-radius:16px; cursor:pointer; position:relative; overflow:hidden; box-shadow:0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.2)}
+.hbig::before{content:""; position:absolute; inset:0 0 55% 0; background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,0)); pointer-events:none}
+.hbig span{display:flex; flex-direction:column; gap:2px; min-width:0}
+.hbig b{font:400 1.45rem var(--display); color:#fff; text-shadow:0 2px 0 rgba(0,0,0,.35)}
+.hbig em{font:500 .82rem var(--body); font-style:normal; color:rgba(255,255,255,.85); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.hbig i.tico{flex:none; width:58px; height:58px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 35% 30%, rgba(255,255,255,.36), rgba(255,255,255,.1) 70%); box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.45)}
+.hbig i.tico svg{width:30px; height:30px; color:#fff}
+.hplay{background:linear-gradient(160deg, #2fd27a, #119a45 70%, #0b6b30); min-height:96px}
+.hplay i.tico svg{margin-left:4px}
+.hmore{background:linear-gradient(160deg, #3a2c1e, #241a11); border:1px solid var(--brass); min-height:78px}
+.hmore b{color:#f2c45a}
+.hmore em{color:var(--muted)}
+.hmore i.tico{width:48px; height:48px}
+.hmore i.tico svg{width:24px; height:24px; color:#f2c45a}
+.hbig:active{transform:scale(.98); filter:brightness(1.08)}
+.hfull{display:flex; flex-direction:column; gap:12px}
+.hfull[hidden]{display:none}
+.hback{all:unset; align-self:flex-start; display:flex; align-items:center; gap:4px; font:700 .85rem var(--body); color:var(--brass); cursor:pointer; padding:2px 4px}
+@container game (max-height:380px){ .hbig{padding:10px 16px} .hplay{min-height:78px} .hmore{min-height:62px} .hbig i.tico{width:46px; height:46px} .hbig b{font-size:1.25rem} }
 </style>
 
 <div id="safe" aria-hidden="true" style="position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)"></div>
@@ -347,6 +369,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 <symbol id="i-duo" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="17" r="6"/><path d="M7 38c0-6.5 5-11 11-11s11 4.5 11 11"/><circle cx="32.5" cy="15" r="5" opacity=".75"/><path d="M31 25.3c5.6-.6 10 3.7 10 10.2" opacity=".75"/></symbol>
 <symbol id="i-net" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="16"/><path d="M8 24h32M24 8c-5 4.5-7 10-7 16s2 11.5 7 16M24 8c5 4.5 7 10 7 16s-2 11.5-7 16"/></symbol>
 <symbol id="i-target" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="24" cy="24" r="16"/><circle cx="24" cy="24" r="9"/><circle cx="24" cy="24" r="3" fill="currentColor" stroke="none"/><path d="M24 4v6M24 38v6M4 24h6M38 24h6"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.2v13.6c0 .8.9 1.3 1.6.8l10-6.8a1 1 0 0 0 0-1.6l-10-6.8C8.9 3.9 8 4.4 8 5.2z" fill="currentColor"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
 <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
 <symbol id="i-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
 <symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol>
@@ -359,6 +384,12 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <span class="hbal" title="Suas fichas"><i class="coin"></i><b id="balance">0</b></span>
       <button class="iconbtn cfgbtn" id="m-opts" type="button" aria-label="Configurações" title="Configurações"><svg class="ic"><use href="#i-gear"/></svg></button>
     </header>
+    <div class="hquick" id="hQuick">
+      <button class="hbig hplay" id="q-play" type="button"><i class="tico"><svg><use href="#i-play"/></svg></i><span><b>Jogar</b><em id="q-sub">Regional · contra o computador</em></span></button>
+      <button class="hbig hmore" id="q-more" type="button"><i class="tico"><svg><use href="#i-grid"/></svg></i><span><b>Outros modos</b><em>Tradicional, Bolinho, Treino, 2 jogadores, com amigo</em></span></button>
+    </div>
+    <div class="hfull" id="hFull" hidden>
+    <button class="hback" id="q-back" type="button"><svg class="ic"><use href="#i-back"/></svg> Voltar</button>
     <div class="hsec">
       <span class="hlabel">Modo</span>
       <div class="hmodes rulemode" role="radiogroup" aria-label="Modo de jogo">
@@ -376,6 +407,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <button class="hopt" id="o-lvl" type="button"></button>
       <button class="hopt" id="o-bet" type="button"></button>
       <button class="hopt" id="o-fmt" type="button"></button>
+    </div>
     </div>
     <button id="m-play" type="button" hidden></button>
   </div>
@@ -660,7 +692,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101910;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101911;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -2577,7 +2609,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     for (const id of ["opts", "reset", "spin"]){ const el = document.getElementById(id); if (!el.hidden){ el.hidden = true; return true; } }
     if (!menu.hidden){ menu.hidden = true; return true; }
     if (!document.getElementById("end").hidden){ document.getElementById("endMenu").onclick(); return true; }
-    if (!modes.hidden) return false;
+    if (!modes.hidden){ if (!document.getElementById("hFull").hidden){ document.getElementById("q-back").onclick(); return true; } return false; }
     if (inMatch){ openMenu(); return true; }
     return false;
   };
@@ -3016,9 +3048,18 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   chipGroup(".bet", ch => { initialWager = +ch.dataset.w; store.set("bet", String(initialWager)); });
   chipGroup(".fmt", ch => { matchFmt = ch.dataset.f; store.set("fmt", matchFmt); });
   mark(".lvl", "l", String(cpuLevel)); mark(".bet", "w", String(initialWager)); mark(".fmt", "f", matchFmt); setOpp(oppMode);
+  function homeQuick(full){
+    document.getElementById("hQuick").hidden = !!full; document.getElementById("hFull").hidden = !full;
+    document.getElementById("q-sub").textContent = `Regional · contra o computador (${LV_NAMES[cpuLevel] || "Médio"})`;
+  }
+  document.getElementById("q-play").onclick = () => { setRules("reg"); showStep(); setOpp("cpu"); document.getElementById("m-play").onclick(); };
+  document.getElementById("q-more").onclick = () => homeQuick(true);
+  document.getElementById("q-back").onclick = () => { if (ruleMode !== "reg"){ setRules("reg"); showStep(); } homeQuick(false); };
+  homeQuick(false);
   function showStart(){
     document.getElementById("balance").textContent = ficha[0];
-    showStep(); modes.hidden = false;
+    if (ruleMode !== "reg") setRules("reg");
+    showStep(); homeQuick(false); modes.hidden = false;
   }
   document.getElementById("balance").textContent = ficha[0];
   showStep();
