@@ -260,6 +260,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .hopt{font:600 .8rem var(--body); color:var(--chalk); background:#1a1612; border:1px solid var(--line); border-radius:999px; padding:7px 12px; cursor:pointer}
 .hopt b{color:#f2c45a}
 .hopt[hidden]{display:none}
+.hopt.duro-on{border-color:#e8202a; background:#2a1210}
+.hopt.duro-on b{color:#ff6a4d}
 @container game (max-height:380px){ .home{gap:9px; padding-block:10px} .tile{min-height:82px; padding:8px} .tile i{font-size:1.4rem} .hmodes .modecard{padding:7px 4px} }
 @container game (max-width:560px){ .htiles{grid-template-columns:1fr} .tile{min-height:0; flex-direction:row; gap:10px; justify-content:flex-start; padding:12px 14px} .tile em{margin-left:auto} .hmodes .modecard{font-size:.8rem} }
 
@@ -407,6 +409,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       <button class="hopt" id="o-lvl" type="button"></button>
       <button class="hopt" id="o-bet" type="button"></button>
       <button class="hopt" id="o-fmt" type="button"></button>
+      <button class="hopt" id="o-duro" type="button"></button>
     </div>
     </div>
     <button id="m-play" type="button" hidden></button>
@@ -624,6 +627,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   const FX = 81, FY = 85, H = 590, U = 1228/1000, R = 22;
   // quinas das caçapas (medidas na mesa): canto começa a 51 do canto e entra a 45°; meio abre ±66 e afunila até ±37
   const JAW = {cj: 51, jd: 50, sj: 66, se: 37, sd: 31}; let POCKET_IN = 7;
+  // jogo duro: caçapa justa · a boca continua nas mesmas quinas, mas lá dentro tem fundo e só cai se entrar bem no meio
+  let DURO = false; const DURO_P = {L: 30, Ls: 30, rin: 6, rinS: 7};
   let EXTRA = 0, TOT_W = BASE_W, W = 1228, SIDE_X = 627.7;
   const pockets = [
     {x:-5.8,y:-14.1,r:38,c:true,k:0},{x:627.7,y:-33.5,r:38,c:false,k:.5},{x:1235.5,y:-13.8,r:38,c:true,k:1},
@@ -692,7 +697,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101911;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101912;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -997,7 +1002,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const sp = Math.hypot(b.vx, b.vy);
         if (sp > 0){
           b.x += b.vx*h; b.y += b.vy*h;
-          if (!SIM){
+          if (!SIM && !chalkFixed){
             const rs = Math.hypot(b.rx, b.ry);                          // a bola gira pelo rolamento (com baixo ela gira pra trás)
             if (rs > 0.5) b.q = qnorm(qmul(qaxis(b.ry/rs, -b.rx/rs, 0, rs*h/R), b.q));
             if (b.sz) b.q = qnorm(qmul(qaxis(0, 0, 1, b.sz*h/R*0.4), b.q));
@@ -1009,7 +1014,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const far = b.x < -70 || b.x > W + 70 || b.y < -70 || b.y > H + 70;
         for (const p of pockets){
           const dp = Math.hypot(p.x - b.x, p.y - b.y);
-          if (dp < p.r - POCKET_IN || (far && dp < p.r*3)){
+          const rin = DURO ? (p.c ? DURO_P.rin : DURO_P.rinS) : p.r - POCKET_IN;
+          if (dp < rin || (far && dp < p.r*3) || (DURO && dp < p.r + 4 && Math.hypot(b.vx, b.vy) < 25)){
             b.in = false; if (!SIM){ sinkFx.push({b, x:b.x, y:b.y, vx:b.vx, vy:b.vy, p, t:0}); sfx.pocket(); buzz(25); }
             b.vx = b.vy = 0; b.rx = b.ry = 0; b.sz = 0; pocketedThisShot.push(b.n); break;
           }
@@ -1048,7 +1054,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // a bola bate em qualquer pedaço (inclusive nas pontas arredondadas) e nunca passa por cima do forro
   let RAILS = null, railsKey = "";
   function rails(){
-    const key = W + "|" + SIDE_X + "|" + JAW.cj + "|" + JAW.sj;
+    const key = W + "|" + SIDE_X + "|" + JAW.cj + "|" + JAW.sj + "|" + (DURO ? "d" + DURO_P.L + "," + DURO_P.Ls : "");
     if (RAILS && key === railsKey) return RAILS;
     railsKey = key;
     const S = [], {cj, jd, sj, se, sd} = JAW;
@@ -1062,6 +1068,17 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     seg(W - cj, H, W - cj + jd, H + jd); seg(W, H - cj, W + jd, H - cj + jd);
     seg(SIDE_X - sj, 0, SIDE_X - se, -sd); seg(SIDE_X + sj, 0, SIDE_X + se, -sd);   // quinas das caçapas do meio
     seg(SIDE_X - sj, H, SIDE_X - se, H + sd); seg(SIDE_X + sj, H, SIDE_X + se, H + sd);
+    if (DURO){                                                          // jogo duro: garganta com fundo (a bola torta bate e volta)
+      const L = DURO_P.L, Ls = DURO_P.Ls, a = cj - jd, b = -jd;
+      for (const [fx, fy] of [[1, 1], [-1, 1], [1, -1], [-1, -1]]){
+        const X = x => fx > 0 ? x : W - x, Y = y => fy > 0 ? y : H - y;
+        seg(X(a), Y(b), X(a - L), Y(b - L)); seg(X(b), Y(a), X(b - L), Y(a - L)); seg(X(a - L), Y(b - L), X(b - L), Y(a - L));
+      }
+      for (const fy of [1, -1]){
+        const Y = y => fy > 0 ? y : H - y;
+        seg(SIDE_X - se, Y(-sd), SIDE_X - se, Y(-sd - Ls)); seg(SIDE_X + se, Y(-sd), SIDE_X + se, Y(-sd - Ls)); seg(SIDE_X - se, Y(-sd - Ls), SIDE_X + se, Y(-sd - Ls));
+      }
+    }
     return RAILS = S;
   }
   function cushions(b){
@@ -1240,7 +1257,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const left = balls.filter(b => b.in && b.n).length;
         msgs.push(`Matou ${objs.join(", ")}! Continua · falta${left > 1 ? "m" : ""} ${left}`);
         pots[me] += objs.length; let got = 0;
-        while (pots[me] >= 3){ pots[me] -= 3; chalk[me]++; got++; }
+        while (!DURO && pots[me] >= 3){ pots[me] -= 3; chalk[me]++; got++; }
         if (got && (!vsCPU || me === 0)) msgs.push(`+${got} giz!`);
       } else {
         msgs.push(firstContact === null ? `Não acertou nenhuma bola · vez de ${NAME(adv)}` : `Vez de ${NAME(adv)}`);
@@ -1308,7 +1325,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     } else if (mine > 0){
       msgs.push(msgs.length ? "Continua jogando" : `Matou ${objs.filter(n => ownerOf(n) === me).join(", ")}! Continua`);
       pots[me] += mine; let got = 0;
-      while (pots[me] >= 3){ pots[me] -= 3; chalk[me]++; got++; }
+      while (!DURO && pots[me] >= 3){ pots[me] -= 3; chalk[me]++; got++; }
       if (got && (!vsCPU || me === 0)) msgs.push(`+${got} giz!`);
     } else {
       if (objs.length) msgs.push(`Bola do adversário caiu`);
@@ -1715,36 +1732,35 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function useChalk(){
     if ((chalkShot || chalkBusy) && myTurn() && !moving && !strike){ cancelChalk(); return; }   // tocou no giz com a mira travada/calculando: cancela
     if (!chalkReady()){
+      if (DURO) return;                                                  // jogo duro: sem giz
       if (chalk[chalkOwner()] <= 0) flash("Seu giz acabou nesta partida", true);
       return;
     }
     if (chalkPick){ chalkPick = false; chalkFree = false; flash("Giz guardado"); return; }    // tocou de novo no giz: desiste
     chalkPick = true; chalkFree = false;
-    flash("Giz: toque na bola que você quer matar");
+    flash("Toque na bola");
   }
   // o jogador escolheu a bola: calcula a tacada perfeita só pra ela (rápido, sem travar)
   // giz secreto do Modo Slim: a bolinha de baixo da tabela da esquerda
-  let chalkFree = false;
+  let chalkFree = false, chalkAnim = null;
   function secretChalk(){
     if (!inMatch || gameOver || moving || strike || cpu || !myTurn()) return;
     if (chalkShot || chalkBusy){ cancelChalk(); return; }
-    if (chalkPick){ chalkPick = false; chalkFree = false; flash("Giz guardado"); return; }
-    chalkPick = true; chalkFree = true;
-    flash("Giz: toque na bola que você quer matar");                   // igualzinho ao giz normal
+    if (chalkPick){ chalkPick = false; chalkFree = false; return; }
+    chalkPick = true; chalkFree = true;                                  // secreto: sem mensagem nenhuma
   }
   // cancelar o giz a qualquer hora (antes de tacar): o giz volta pro contador
   function cancelChalk(msg){
-    let any = false;
+    let any = false; const secret = chalkFree || (chalkShot && chalkShot.free); chalkAnim = null;
     if (chalkShot){ if (!chalkShot.free) chalk[chalkOwner()]++; chalkShot = null; any = true; }
     if (chalkBusy){ chalkBusy = false; chalkGen++; any = true; }
     if (chalkPick){ chalkPick = false; any = true; }
     chalkFree = false;
-    if (any) flash(msg || "Giz cancelado · ele voltou pra você");
+    if (any && !secret) flash("Giz cancelado");
     return any;
   }
   function chalkChoose(n){
     chalkPick = false; chalkBusy = n;
-    flash(`Procurando a tacada perfeita na ${n}…`);
     const myTurnNow = turn, gen = ++chalkGen;
     setTimeout(async () => {
       let sh = null;
@@ -1753,18 +1769,18 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       chalkBusy = false;
       const free = chalkFree;
       if ((!free && !chalkReady()) || chalkShot || turn !== myTurnNow || moving || strike || gameOver) return;
-      if (!sh){ chalkPick = true; flash(`A ${n} está presa · nem de tabela tem jogada · escolha outra bola (o giz não foi gasto)`, true); return; }
+      if (!sh){ chalkPick = true; flash(`Sem jogada na ${n} · escolha outra`, true); return; }
       if (!free) chalk[chalkOwner()]--;                                  // giz secreto não gasta
       chalkFree = false; sh.free = free;
-      chalkShot = sh; aim = sh.a; spin = {x:0, y:0}; updateDot();
-      const como = sh.kind === 1 ? " · branca na tabela" : sh.kind === 2 ? " · bola na tabela" : sh.kind === 3 ? " · de tabela" : "";
-      flash(`Giz! Tacada perfeita na ${sh.n}${como} — puxe a força (pra cancelar, toque no giz ou mexa a mira)`);
+      chalkShot = sh; spin = {x:0, y:0}; updateDot();
+      let d = sh.a - aim; d = Math.atan2(Math.sin(d), Math.cos(d));
+      chalkAnim = {from: aim, d, t: 0, dur: 0.45 + Math.min(0.6, Math.abs(d)*0.35)};   // a mira vai girando sozinha, como se fosse a mão (nada de pulo)
     }, 40);
   }
-  function shoot(p, fromCPU){ if (moving || strike || gameOver || p < 0.03 || (cpu && !fromCPU)) return; if (chalkBusy && !fromCPU){ flash("Calma, o giz ainda está calculando…"); return; } if (chalkShot && !fromCPU){
+  function shoot(p, fromCPU){ if (moving || strike || gameOver || p < 0.03 || (cpu && !fromCPU)) return; if (chalkBusy && !fromCPU){ flash("Aguarde…"); return; } if (chalkShot && !fromCPU){
       // giz = tacada garantida: qualquer força que puxar vira a força testada mais perto, com a mira e o efeito exatos do teste
       p = chalkShot.good.reduce((x, y) => Math.abs(y - p) < Math.abs(x - p) ? y : x); chalkFixed = true;
-      aim = chalkShot.a; spin = {x:0, y:0}; updateDot();
+      aim = chalkShot.a; chalkAnim = null; spin = {x:0, y:0}; updateDot();
       for (const b of balls){ b.vx = b.vy = 0; b.rx = b.ry = b.sz = 0; }   // mesa paradinha, igual ao simulador
       chalkShot = null;
     }
@@ -1852,16 +1868,6 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       const tip = s.x + 10 + power*s.w*0.68; len = s.w*1.35;
       drawCueAt(tip, cy, Math.PI, len, false, thick());                       // ponta para a esquerda, puxa para a direita
       lx = s.x + s.w*power; ly = s.y - 24;
-    }
-    if (chalkShot){
-      const lo = Math.max(0, chalkShot.lo - 0.03), hi = Math.min(1, chalkShot.hi + 0.03);
-      let r;
-      if (s.dir === "v") r = [s.x, s.y + s.h*lo, s.w, s.h*(hi - lo)];
-      else if (s.dir === "h-left") r = [s.x + s.w*(1 - hi), s.y, s.w*(hi - lo), s.h];
-      else r = [s.x + s.w*lo, s.y, s.w*(hi - lo), s.h];
-      const pulse = 0.5 + 0.5*Math.sin(performance.now()/180);
-      ctx.fillStyle = `rgba(255,205,70,${0.25 + 0.2*pulse})`; ctx.fillRect(...r);
-      ctx.strokeStyle = "rgba(255,215,90,.95)"; ctx.lineWidth = 3; ctx.strokeRect(r[0] + 1.5, r[1] + 1.5, r[2] - 3, r[3] - 3);
     }
     ctx.restore();
     if (power > 0){ ctx.fillStyle = "#f3ead8"; ctx.font = `800 26px ${FONT()}`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(Math.round(power*100)+"%", Math.min(TOT_W - 30, lx), ly); }
@@ -2047,18 +2053,13 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   const CHALK = {x: 0, y: 29, r: 30};
   const chalkOwner = () => net ? (net.spect ? turn : net.me) : vsCPU ? 0 : turn;
-  const chalkReady = () => inMatch && !gameOver && !moving && !strike && !cpu && chalk[chalkOwner()] > 0 && myTurn();
+  const chalkReady = () => !DURO && inMatch && !gameOver && !moving && !strike && !cpu && chalk[chalkOwner()] > 0 && myTurn();
   function drawChalk(){
     if (!inMatch) return;
     CHALK.x = SPINB.x - 86;
+    if (DURO) return;                                                   // jogo duro: o giz nem aparece
     const k = chalkOwner(), n = chalk[k], ready = chalkReady(), size = 68;
     const px = Math.round(size*scale*dpr), spr = sprite("chalk", px, paintChalk);
-    if (chalkShot){                                                   // giz em uso: brilho dourado pulsando
-      const pulse = 0.5 + 0.5*Math.sin(performance.now()/180);
-      const gl = ctx.createRadialGradient(CHALK.x, CHALK.y, 4, CHALK.x, CHALK.y, 40);
-      gl.addColorStop(0, `rgba(255,214,90,${0.35 + 0.35*pulse})`); gl.addColorStop(1, "rgba(255,214,90,0)");
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(CHALK.x, CHALK.y, 40, 0, Math.PI*2); ctx.fill();
-    }
     ctx.drawImage(spr, CHALK.x - size/2, CHALK.y - size/2 - 2, size, size);   // giz sempre sólido (o número ao lado mostra quantos tem)
     // progresso pro próximo giz (a cada 3 bolas)
     for (let i = 0; i < (TREINO ? 0 : 3); i++){
@@ -2291,7 +2292,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (guideMode === "full"){
       if (p.hit){
         const nx = p.hit.x - gx, ny = p.hit.y - gy, nd = Math.hypot(nx, ny), ux = nx/nd, uy = ny/nd, cut = dx*ux + dy*uy;
-        const col = hexRgb(colorOf(p.hit.n)), L1 = 70 + 130*cut;
+        const KD = DURO ? 0.35 : 1, col = hexRgb(colorOf(p.hit.n)), L1 = (70 + 130*cut)*KD;
         bandFit(p.hit.x, p.hit.y, ux, uy, L1, 2*R*0.82, col, 0.42);
         chevrons(p.hit.x + ux*R*1.15, p.hit.y + uy*R*1.15, ux, uy, L1 - R*0.15, 2*R*0.82, col);
         // branca depois da batida, já com o efeito alto/baixo
@@ -2299,14 +2300,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         let tx = (5*(dx - cut*ux) + 2*rf*dx)/7, ty = (5*(dy - cut*uy) + 2*rf*dy)/7;
         const tn = Math.hypot(tx, ty);
         if (tn > 0.03){
-          tx /= tn; ty /= tn; const L2 = 55 + 110*Math.min(1.4, tn*1.4);
+          tx /= tn; ty /= tn; const L2 = (55 + 110*Math.min(1.4, tn*1.4))*KD;
           bandFit(gx, gy, tx, ty, L2, 2*R*0.8, "255,255,255", 0.3);
           chevrons(gx + tx*R*1.15, gy + ty*R*1.15, tx, ty, L2 - R*0.15, 2*R*0.8, "255,255,255");
         }
       } else if (p.wall){
         const rx = p.wall === "x" ? -dx : dx, ry = p.wall === "y" ? -dy : dy;
-        band(gx, gy, rx, ry, 150, 2*R*0.8, "255,255,255", 0.28);
-        chevrons(gx + rx*R*0.5, gy + ry*R*0.5, rx, ry, 150, 2*R*0.8, "255,255,255");
+        const LW2 = DURO ? 55 : 150;
+        band(gx, gy, rx, ry, LW2, 2*R*0.8, "255,255,255", 0.28);
+        chevrons(gx + rx*R*0.5, gy + ry*R*0.5, rx, ry, LW2, 2*R*0.8, "255,255,255");
       }
     }
     ctx.restore();
@@ -2314,13 +2316,12 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function drawAim(){
     const c = cue(); if (!c.in) return;
     const p = predict(), dx = Math.cos(aim), dy = Math.sin(aim);
-    if (chalkPick){                                                       // giz: as bolas que pode escolher piscam
-      const pulse = 0.55 + 0.45*Math.sin(performance.now()/170);
-      ctx.save(); ctx.translate(FX, FY); ctx.lineWidth = 3; ctx.strokeStyle = `rgba(255,210,80,${pulse})`;
+    if (chalkPick && !chalkFree){                                         // giz: anelzinho discreto nas bolas que pode escolher
+      ctx.save(); ctx.translate(FX, FY); ctx.lineWidth = 1.6; ctx.strokeStyle = "rgba(255,255,255,.35)";
       for (const b of targetsFor(turn)){ ctx.beginPath(); ctx.arc(b.x, b.y, R + 6, 0, Math.PI*2); ctx.stroke(); }
       ctx.restore();
     }
-    if (lineStyle === "mod" && !chalkShot){ drawAimModern(c, p, dx, dy, c.x + dx*p.t, c.y + dy*p.t); return; }
+    if (lineStyle === "mod"){ drawAimModern(c, p, dx, dy, c.x + dx*p.t, c.y + dy*p.t); return; }
     const gx = c.x + dx*p.t, gy = c.y + dy*p.t;
     const LW = 2.2, col = "rgba(255,255,255,.9)";
     ctx.save(); ctx.translate(FX, FY); ctx.lineCap = "round";
@@ -2330,40 +2331,17 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     // bola-fantasma (onde a branca encosta)
     ctx.fillStyle = "rgba(255,255,255,.12)";
     ctx.beginPath(); ctx.arc(gx, gy, R, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-    if (chalkShot){
-      const t = balls.find(b => b.n === chalkShot.n && b.in);
-      if (t){
-        const pulse = 0.6 + 0.4*Math.sin(performance.now()/160);
-        ctx.strokeStyle = `rgba(255,210,80,${pulse})`; ctx.lineWidth = 3;
-        ctx.beginPath(); ctx.arc(t.x, t.y, R + 5, 0, Math.PI*2); ctx.stroke();
-        ctx.setLineDash([14, 10]); ctx.lineDashOffset = -performance.now()/40; ctx.lineWidth = 3.2; ctx.strokeStyle = "rgba(255,210,80,.95)";
-        if (chalkShot.trObj && chalkShot.trObj.length > 1){                // caminho de verdade (com as tabelas) da bola até a caçapa
-          ctx.beginPath(); chalkShot.trObj.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
-          if (chalkShot.kind === 1 && chalkShot.trCue){                     // e o da branca indo na tabela
-            ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 2.4; ctx.beginPath();
-            let stop = chalkShot.trCue.length; for (let i = 1; i < chalkShot.trCue.length; i++){ const q = chalkShot.trCue[i]; if (Math.hypot(q[0] - t.x, q[1] - t.y) < 2*R + 2){ stop = i + 1; break; } }
-            chalkShot.trCue.slice(0, stop).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
-          }
-        } else {
-          const dx2 = chalkShot.px - t.x, dy2 = chalkShot.py - t.y, d2 = Math.hypot(dx2, dy2);
-          ctx.beginPath(); ctx.moveTo(t.x + dx2/d2*(R + 6), t.y + dy2/d2*(R + 6)); ctx.lineTo(chalkShot.px, chalkShot.py); ctx.stroke();
-        }
-        ctx.setLineDash([]);
-        ctx.fillStyle = "rgba(255,210,80,.35)"; ctx.beginPath(); ctx.arc(chalkShot.px, chalkShot.py, 16, 0, Math.PI*2); ctx.fill();
-      }
-      ctx.restore(); return;
-    }
     if (guideMode !== "full"){ ctx.restore(); return; }
     if (!p.hit && p.wall){
       // mirando na tabela: mostra para onde a branca volta depois de bater nela
       const rx = p.wall === "x" ? -dx : dx, ry = p.wall === "y" ? -dy : dy;
-      ctx.beginPath(); ctx.moveTo(gx + rx*R, gy + ry*R); ctx.lineTo(gx + rx*(R + 70), gy + ry*(R + 70)); ctx.stroke();
+      const KW = DURO ? 0.35 : 1; ctx.beginPath(); ctx.moveTo(gx + rx*R, gy + ry*R); ctx.lineTo(gx + rx*(R + 70*KW), gy + ry*(R + 70*KW)); ctx.stroke();
     }
     if (p.hit){
       // direção da bola colorida (linha dos centros)
       const nx = p.hit.x - gx, ny = p.hit.y - gy, nd = Math.hypot(nx, ny), ux = nx/nd, uy = ny/nd;
       const cut = dx*ux + dy*uy;                       // quanto da batida é "cheia"
-      ctx.beginPath(); ctx.moveTo(p.hit.x + ux*R, p.hit.y + uy*R); ctx.lineTo(p.hit.x + ux*(R + 12 + 55*cut), p.hit.y + uy*(R + 12 + 55*cut)); ctx.stroke();
+      const KD = DURO ? 0.35 : 1; ctx.beginPath(); ctx.moveTo(p.hit.x + ux*R, p.hit.y + uy*R); ctx.lineTo(p.hit.x + ux*(R + (12 + 55*cut)*KD), p.hit.y + uy*(R + (12 + 55*cut)*KD)); ctx.stroke();
       // direção da branca depois da batida (tangente + efeito alto/baixo)
       // física nova: depois da batida a branca fica com a parte tangente da velocidade + o giro que tinha;
       // o pano junta os dois: direção final ≈ 5·(tangente) + 2·(giro), dividido por 7
@@ -2372,7 +2350,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       const tn = Math.hypot(tx, ty), tl = Math.min(1.6, tn*1.4);
       if (tn > 0.03){
         tx /= tn; ty /= tn;
-        ctx.beginPath(); ctx.moveTo(gx + tx*R, gy + ty*R); ctx.lineTo(gx + tx*(R + 10 + 50*tl), gy + ty*(R + 10 + 50*tl)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(gx + tx*R, gy + ty*R); ctx.lineTo(gx + tx*(R + (10 + 50*tl)*KD), gy + ty*(R + (10 + 50*tl)*KD)); ctx.stroke();
       }
     }
     ctx.restore();
@@ -2501,14 +2479,14 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (inMatch && Math.hypot(p.x - CHALK.x, p.y - CHALK.y) < CHALK.r){ useChalk(); return; }
     if (inMatch && DONO.on && DONO.giz && Math.hypot(p.x - 30, p.y - 489) < 30 && !inRect(p, POWER, 4) && !inWheelZone(p)){ secretChalk(); return; }   // bolinha de baixo da tabela da esquerda: giz secreto
     if (busy()) return;
-    if (chalkBusy){ flash(`Calculando a tacada na ${chalkBusy}… (toque no giz pra cancelar)`); return; }   // não mexe na mesa enquanto o giz calcula
+    if (chalkBusy) return;   // não mexe na mesa enquanto o giz calcula
     if (chalkPick){                                                       // escolhendo a bola do giz
       const x = p.x - FX, y = p.y - FY;
       let best = null, bd = R*2.2;
       for (const b of targetsFor(turn)){ const d = Math.hypot(b.x - x, b.y - y); if (d < bd){ bd = d; best = b; } }
       if (best) chalkChoose(best.n);
-      else if (balls.some(b => b.in && b.n && Math.hypot(b.x - x, b.y - y) < R*2.2)) flash("Essa não é sua · toque numa das bolas que piscam", true);
-      else flash("Toque numa das bolas que piscam (ou no giz pra desistir)");
+      else if (balls.some(b => b.in && b.n && Math.hypot(b.x - x, b.y - y) < R*2.2)) flash("Essa não é sua", true);
+      else if (!chalkFree) flash("Toque numa das suas bolas");
       return;
     }
     cv.setPointerCapture(e.pointerId); activePtr = e.pointerId;
@@ -2968,13 +2946,17 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     homeOpts();
   }
   const LV_NAMES = ["Fácil", "Médio", "Difícil", "Pro"], BETS = [1, 2, 3, 5, 10];
+  let duroPref = store.get("duro", "0") === "1";
   function homeOpts(){
     const lv = document.getElementById("o-lvl"), bt = document.getElementById("o-bet"), fm = document.getElementById("o-fmt");
     lv.innerHTML = `Computador: <b>${LV_NAMES[cpuLevel] || "Médio"}</b>`;
     bt.innerHTML = `Aposta: <b>${initialWager}</b> <i class="coin"></i>`;
     fm.innerHTML = `Partida: <b>${matchFmt === "bo3" ? "Melhor de 3" : "Contínua"}</b>`;
     lv.hidden = bt.hidden = fm.hidden = TREINO;
+    const du = document.getElementById("o-duro"); du.innerHTML = `Jogo duro: <b>${duroPref ? "Sim" : "Não"}</b>`; du.classList.toggle("duro-on", duroPref);
+    const qs = document.getElementById("q-sub"); if (qs) qs.textContent = `Regional · contra o computador (${LV_NAMES[cpuLevel] || "Médio"})` + (duroPref ? " · jogo duro" : "");
   }
+  document.getElementById("o-duro").onclick = () => { duroPref = !duroPref; store.set("duro", duroPref ? "1" : "0"); homeOpts(); flash(duroPref ? "Jogo duro: sem giz, linha curta e caçapa justa" : "Jogo duro desligado"); };
   document.getElementById("o-lvl").onclick = () => { cpuLevel = (cpuLevel + 1) % 4; store.set("lvl", String(cpuLevel)); homeOpts(); };
   document.getElementById("o-bet").onclick = () => { initialWager = BETS[(BETS.indexOf(initialWager) + 1) % BETS.length] || 3; store.set("bet", String(initialWager)); homeOpts(); };
   document.getElementById("o-fmt").onclick = () => { matchFmt = matchFmt === "bo3" ? "cont" : "bo3"; store.set("fmt", matchFmt); homeOpts(); };
@@ -3016,7 +2998,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     doNext(r);
   };
   function startGame(cpuMode){
-    inMatch = true;
+    inMatch = true; if (!(net && !net.host)) DURO = duroPref;
     vsCPU = cpuMode; wins = [0, 0]; series = [0, 0]; gameNo = 0; lastWinner = -1; wager = initialWager; rack(0); modes.hidden = true; menu.hidden = true;
     document.getElementById("resume").hidden = false; document.getElementById("next").hidden = true;
     document.getElementById("menuTitle").textContent = "Sinuca Mobile";
@@ -3024,7 +3006,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     netMenuButtons();
     if (TREINO){ flash("Treino · arraste a branca para onde quiser e treine as matadas"); return; }
     if (net){ flash(`${net.code === "BT" ? "Bluetooth" : "Online"} · ${RULE_NAME()}` + (matchFmt === "bo3" ? " · melhor de 3" : "") + ` · aposta ${wager} — ${net.me === 0 ? "você sai" : `${PEER()} sai`}`); return; }
-    flash(RULE_NAME() + " · " + (cpuMode ? `Contra o computador (${LEVELS[cpuLevel].name})` : "2 jogadores") + (matchFmt === "bo3" ? " · melhor de 3" : " · jogo contínuo") + " — " + (cpuMode ? "você sai" : "Jogador 1 sai"));
+    flash(RULE_NAME() + (DURO ? " · jogo duro" : "") + " · " + (cpuMode ? `Contra o computador (${LEVELS[cpuLevel].name})` : "2 jogadores") + (matchFmt === "bo3" ? " · melhor de 3" : " · jogo contínuo") + " — " + (cpuMode ? "você sai" : "Jogador 1 sai"));
   }
   // menu inicial: adversário, nível, aposta e formato (lembra a última escolha)
   let oppMode = store.get("opp", "cpu");
@@ -3050,7 +3032,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   mark(".lvl", "l", String(cpuLevel)); mark(".bet", "w", String(initialWager)); mark(".fmt", "f", matchFmt); setOpp(oppMode);
   function homeQuick(full){
     document.getElementById("hQuick").hidden = !!full; document.getElementById("hFull").hidden = !full;
-    document.getElementById("q-sub").textContent = `Regional · contra o computador (${LV_NAMES[cpuLevel] || "Médio"})`;
+    homeOpts();
   }
   document.getElementById("q-play").onclick = () => { setRules("reg"); showStep(); setOpp("cpu"); document.getElementById("m-play").onclick(); };
   document.getElementById("q-more").onclick = () => homeQuick(true);
@@ -3098,7 +3080,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (!net || !m || !m.t) return;
     if (m.t === "hello"){                                                 // convidado recebe as regras do anfitrião
       if (net.host) return;
-      ruleMode = m.rules; TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = false;
+      ruleMode = m.rules; TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = false; DURO = !!m.duro;
       matchFmt = m.fmt === "bo3" ? "bo3" : "cont"; initialWager = m.wager | 0 || 1; net.peerFicha = m.ficha | 0;
       // mesa do tamanho que cabe nas DUAS telas (a menor das duas); a tela maior ganha uma bordinha
       forcedExtra = Math.min(naturalExtra, Math.max(0, m.ex | 0)); resize();
@@ -3145,7 +3127,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       try { const o = typeof m === "string" ? JSON.parse(m) : m; onNetMsg(o); if (host && o && RELAY.has(o.t)) relay(o); } catch(e){ console.error(e); }   // anfitrião repassa pra quem assiste
     });
     link.on("close", () => { if (net === mine) netLost("Conexão perdida"); });
-    if (host) net.send({t: "hello", rules: ruleMode, fmt: matchFmt, wager: initialWager, ficha: parseInt(store.get("ficha0", "0")) || 0, ex: naturalExtra, uid: UID, nick: myNick()});
+    if (host){ DURO = duroPref; RAILS = null; }
+    if (host) net.send({t: "hello", rules: ruleMode, duro: DURO ? 1 : 0, fmt: matchFmt, wager: initialWager, ficha: parseInt(store.get("ficha0", "0")) || 0, ex: naturalExtra, uid: UID, nick: myNick()});
   }
   window.__netLink = netLink;
   // ---------- Modo espectador: quem tem o código/link assiste ao vivo (a mesa calcula igualzinho) ----------
@@ -3155,7 +3138,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function relay(m){ for (const c of watchers) try { c.send(m); } catch(e){} }
   function snapshot(){
     return {t: "snap", b: balls.map(b => [b.n, b.x, b.y, b.in ? 1 : 0]), turn, groups, scores, chalk, pots, inHand, breakShot, lastChance, wins, series, gameNo, lastWinner,
-      ficha, wager, rules: ruleMode, fmt: matchFmt, rackSeq, gameOver, ex: forcedExtra, names: [NAME0(0) === "Você" ? myNick() : PEER(), NAME0(1) === "Você" ? myNick() : PEER()]};
+      ficha, wager, rules: ruleMode, duro: DURO ? 1 : 0, fmt: matchFmt, rackSeq, gameOver, ex: forcedExtra, names: [NAME0(0) === "Você" ? myNick() : PEER(), NAME0(1) === "Você" ? myNick() : PEER()]};
   }
   function watchStart(){
     if (!net || !net.host || net.spect || watchPeer) return;
@@ -3240,7 +3223,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     c.on("data", m => { if (net !== mine || !m || m.t === "snap") return; net.lastRx = performance.now(); try { onNetMsg(m); } catch(e){ console.error(e); } });
     c.on("close", () => { if (net === mine) netLost("A transmissão caiu"); });
     // mesa igualzinha à dos jogadores
-    ruleMode = s.rules; TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = false; matchFmt = s.fmt === "bo3" ? "bo3" : "cont";
+    ruleMode = s.rules; TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = false; DURO = !!s.duro; matchFmt = s.fmt === "bo3" ? "bo3" : "cont";
     forcedExtra = s.ex == null ? null : s.ex; resize();
     inMatch = true; vsCPU = false; cpu = null;
     rackCore(0);
@@ -3369,6 +3352,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     },
     rails: () => rails().map(s => [s.x1, s.y1, s.x1 + s.dx, s.y1 + s.dy]),
     setJaw: o => { Object.assign(JAW, o); RAILS = null; },
+    setDuro: (on, o) => { DURO = !!on; if (o) Object.assign(DURO_P, o); RAILS = null; },
     pockets: () => pockets.map(p => ({x: p.x, y: p.y, r: p.r, c: p.c})), WH: () => [W, H, R],
     bench: n => { const t = performance.now(); for (let i = 0; i < n; i++) simulate(Math.random()*6.28, 0.3 + Math.random()*0.7, {x:0, y:0}); return (performance.now() - t)/n; },
     geo: () => ({ox, oy, scale, FX, FY, chalk: {x: CHALK.x, y: CHALK.y}, menu: {x: MENU.x + MENU.w/2, y: MENU.y + MENU.h/2}, balls: balls.filter(b => b.in).map(b => [b.n, b.x, b.y]), targets: targetsFor(turn).map(b => b.n), chalkPick, chalkShot: chalkShot && chalkShot.n, chalkN: chalk[chalkOwner()], aim, power, mode, mus: {mode: MUS.mode, timer: !!MUS.timer, ctx: MUS.ctx && MUS.ctx.state, tracks: MUS.tracks.length, playing: !!(MUS.el && !MUS.el.paused)}}),
@@ -3799,6 +3783,11 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     const raw = paused ? 0 : raw0, dt = Math.min(0.033, raw);
     if ((cueWatch = (!paused && !moving && !strike && !cpu && !gameOver && inMatch && cue() && !cue().in) ? cueWatch + raw0 : 0) > 1.2){ cueWatch = 0; ensureCue(); }
     if (paused){ draw(0); requestAnimationFrame(loop); return; }
+    if (chalkAnim){                                                     // giz: mira girando suave até a tacada certa
+      if (!chalkShot || moving || strike) chalkAnim = null;
+      else { chalkAnim.t = Math.min(1, chalkAnim.t + raw/chalkAnim.dur); const k = chalkAnim.t, e = k < .5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2)/2;
+        aim = chalkAnim.from + chalkAnim.d*e; if (k >= 1){ aim = chalkShot.a; chalkAnim = null; } }
+    }
     if (moving){
       // física sempre no mesmo passo do simulador (a tacada sai igualzinho ao previsto) e o desenho
       // é suavizado entre um passo e outro, para as bolas andarem lisinhas em todo quadro
@@ -3812,6 +3801,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
           if (allStopped()){ chalkAcc = 0; break; }
         }
         renderAlpha = chalkAcc/step;
+        if (chalkFixed){ const hv = Math.min(0.05, raw); for (const b of balls){ if (!b.in) continue; const rs = Math.hypot(b.rx, b.ry);   // giro desenhado a cada quadro (lisinho)
+          if (rs > 0.5){ b.q = qnorm(qmul(qaxis(b.ry/rs, -b.rx/rs, 0, rs*hv/R), b.q)); b.dirty = true; }
+          if (b.sz){ b.q = qnorm(qmul(qaxis(0, 0, 1, b.sz*hv/R*0.4), b.q)); b.dirty = true; } } }
       } else { physics(dt); renderAlpha = 1; }                            // tacada normal: física no ritmo da tela (giro e movimento lisinhos)
       if (allStopped() && sinkFx.length === 0){
         chalkFixed = false; chalkAcc = 0; renderAlpha = 1; balls.forEach(b => { b.px = b.x; b.py = b.y; });
