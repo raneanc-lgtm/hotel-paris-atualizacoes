@@ -456,7 +456,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       </div>
     </div><div class="opt donobox" id="donoBox" hidden><span>✦ Modo Slim</span>
       <div class="lvls dono" role="group" aria-label="Poderes do dono">
-        <button class="chip" data-k="giz" type="button">Giz secreto</button><button class="chip" data-k="mira" type="button">Mira completa</button><button class="chip" data-k="fichas" type="button">Fichas à vontade</button><button class="chip" id="donoCoins" type="button">+100 fichas</button><button class="chip" id="donoOut" type="button">Sair</button>
+        <button class="chip" data-k="giz" type="button">Giz secreto</button><button class="chip" data-k="dedo" type="button">Dedo na caçapa</button><button class="chip" data-k="curva" type="button">Atrapalhar mira</button><button class="chip" id="donoOut" type="button">Sair</button>
       </div>
     </div><div class="opt verline"><span id="verTxt"></span><button class="chip" id="verCheck" type="button" hidden>Procurar atualização</button></div>
     </section>
@@ -693,6 +693,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 
   // ---------- Estado ----------
   let balls = [], turn = 0, aim = 0, power = 0, moving = false, strike = null;
+  // Modo Slim na vez do adversário: SABN = o que vale pra próxima tacada dele · SABA = o que vale na tacada rolando agora
+  let SABN = {blk: []}, SABA = {blk: [], cv: 0, t: 0}, netSab = {blk: [], cv: 0}, sabK = 0;
   let pocketedThisShot = [], scores = [[],[]], sinkFx = [], introT = 1;
   let spin = {x:0, y:0}, wheelOff = 0, wheelVel = 0, wheelHot = 0, wheelWarned = false;
   let groups = [null, null], firstContact = null, gameOver = false, SIM = false;
@@ -707,7 +709,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let gfx = store.get("gfx", "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26101913;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26101914;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -991,6 +993,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     for (let it = 0; it < n; it++){
       for (const b of balls){
         if (!b.in) continue;
+        if (!SIM && SABA.cv && b.n === 0 && firstContact === null && SABA.t < 0.6){   // atrapalhar: a branca entorta de levinho no caminho
+          const an = SABA.cv*h, ca = Math.cos(an), sa = Math.sin(an), vx = b.vx, rx = b.rx;
+          b.vx = vx*ca - b.vy*sa; b.vy = vx*sa + b.vy*ca; b.rx = rx*ca - b.ry*sa; b.ry = rx*sa + b.ry*ca; SABA.t += h;
+        }
         spinInit(b);
         let ux = b.vx - b.rx, uy = b.vy - b.ry; const us = Math.hypot(ux, uy);
         if (us > 4){
@@ -1024,6 +1030,15 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
         const far = b.x < -70 || b.x > W + 70 || b.y < -70 || b.y > H + 70;
         for (const p of pockets){
           const dp = Math.hypot(p.x - b.x, p.y - b.y);
+          if (!SIM && b.n && SABA.blk.length && SABA.blk.includes(pockets.indexOf(p)) && dp < p.r + R){   // dedo na caçapa: a bola "espirra" na boca, como se batesse na quina
+            if (dp < p.r - POCKET_IN + 2){
+              const nx = (b.x - p.x)/dp, ny = (b.y - p.y)/dp, vn = b.vx*nx + b.vy*ny;
+              b.x = p.x + nx*(p.r - POCKET_IN + 2.5); b.y = p.y + ny*(p.r - POCKET_IN + 2.5);
+              if (vn < 0){ b.vx -= 1.4*vn*nx; b.vy -= 1.4*vn*ny; b.vx *= 0.7; b.vy *= 0.7; b.rx = b.ry = 0; if (!SIM) sfx.rail(-vn); }
+              const out = b.vx*nx + b.vy*ny; if (out < 140){ b.vx += (140 - out)*nx; b.vy += (140 - out)*ny; }   // nunca fica parada em cima do buraco
+            }
+            continue;
+          }
           if (dp < p.r - POCKET_IN || (far && dp < p.r*3)){
             b.in = false; if (!SIM){ sinkFx.push({b, x:b.x, y:b.y, vx:b.vx, vy:b.vy, p, t:0}); sfx.pocket(); buzz(25); }
             b.vx = b.vy = 0; b.rx = b.ry = 0; b.sz = 0; pocketedThisShot.push(b.n); break;
@@ -1745,7 +1760,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (!inMatch || gameOver || moving || strike || cpu || !myTurn()) return;
     if (chalkShot || chalkBusy){ cancelChalk(); return; }
     if (chalkPick){ chalkPick = false; chalkFree = false; return; }
-    chalkPick = true; chalkFree = true; buzz(18);                        // secreto: sem mensagem, só uma vibradinha e a bolinha da tabela acende de leve
+    chalkPick = true; chalkFree = true;                                  // secreto: nada aparece
   }
   // cancelar o giz a qualquer hora (antes de tacar): o giz volta pro contador
   function cancelChalk(msg){
@@ -1775,6 +1790,27 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       chalkAnim = {from: aim, d, t: 0, dur: 0.45 + Math.min(0.6, Math.abs(d)*0.35)};   // a mira vai girando sozinha, como se fosse a mão (nada de pulo)
     }, 40);
   }
+  // vez do adversário do dono? (contra o computador = vez do computador · online = vez do amigo · 2 jogadores = vez do Jogador 2)
+  const oppTurn = () => inMatch && !gameOver && DONO.on && (net ? turn !== net.me : turn === 1) && !TREINO;
+  const curvaV = () => (++sabK % 2 ? 1 : -1)*0.036;                     // ~1,2° no total, pra um lado ou pro outro
+  function sabStart(){                                                  // na hora da tacada: o que vale nela
+    if (net){
+      if (turn === net.me){ SABA = {blk: netSab.blk.slice(), cv: netSab.cv ? curvaV() : 0, t: 0}; netSab.blk = []; }   // eu taco: uso o que o outro mandou (se mandou)
+      return;
+    }
+    if (oppTurn()){ SABA = {blk: DONO.dedo ? SABN.blk.slice() : [], cv: DONO.curva ? curvaV() : 0, t: 0}; }
+    else SABA = {blk: [], cv: 0, t: 0};
+    SABN.blk = [];
+  }
+  function sabSend(){ if (net && DONO.on) net.send({t: "sb", blk: DONO.dedo && oppTurn() ? SABN.blk : [], cv: DONO.curva ? 1 : 0}); }
+  function sabTap(p){                                                   // dono toca numa caçapa na vez do outro: bloqueia (toca de novo: libera)
+    if (!DONO.on || !DONO.dedo || !oppTurn() || (net && (moving || strike))) return false;
+    const x = p.x - FX, y = p.y - FY;
+    const i = pockets.findIndex(q => Math.hypot(q.x - x, q.y - y) < 52); if (i < 0) return false;
+    const k = SABN.blk.indexOf(i); if (k >= 0) SABN.blk.splice(k, 1); else SABN.blk.push(i);
+    if (moving && !net) SABA.blk = SABN.blk.slice();                   // contra o computador vale até com a bola andando
+    sabSend(); buzz(k >= 0 ? 8 : 14); return true;
+  }
   function shoot(p, fromCPU){ if (moving || strike || gameOver || p < 0.03 || (cpu && !fromCPU)) return; if (chalkBusy && !fromCPU){ flash("Aguarde…"); return; } if (chalkShot && !fromCPU){
       // giz = tacada garantida: qualquer força que puxar vira a força testada mais perto, com a mira e o efeito exatos do teste
       p = chalkShot.good.reduce((x, y) => Math.abs(y - p) < Math.abs(x - p) ? y : x); chalkFixed = true;
@@ -1783,8 +1819,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       chalkShot = null;
     }
     if (!fromCPU) lastPw = p;
+    sabStart();
     strike = {p, t:0}; inHand = false; breakShot = false; chalkPick = false; chalkBusy = false; chalkGen++; shotCleared = TRAD && groupClear(turn);
-    if (net && turn === net.me){ const c = cue(); net.send({t: "shot", p, a: aim, sp: {x: spin.x, y: spin.y}, cx: c.x, cy: c.y, fx: chalkFixed}); }
+    if (net && turn === net.me){ const c = cue(); net.send({t: "shot", p, a: aim, sp: {x: spin.x, y: spin.y}, cx: c.x, cy: c.y, fx: chalkFixed, sb: SABA.blk.length || SABA.cv ? {blk: SABA.blk, cv: SABA.cv} : undefined}); }
   }
 
   // ---------- Desenho ----------
@@ -2055,10 +2092,6 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function drawChalk(){
     if (!inMatch) return;
     CHALK.x = SPINB.x - 86;
-    if ((chalkFree && (chalkPick || chalkBusy)) || (chalkShot && chalkShot.free)){   // giz secreto ligado: a bolinha da tabela acende de leve (só quem sabe percebe)
-      const gl = ctx.createRadialGradient(30, 489, 1, 30, 489, 13); gl.addColorStop(0, "rgba(255,220,120,.85)"); gl.addColorStop(1, "rgba(255,220,120,0)");
-      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(30, 489, 13, 0, Math.PI*2); ctx.fill();
-    }
     if (DURO) return;                                                   // jogo duro: o giz nem aparece
     const k = chalkOwner(), n = chalk[k], ready = chalkReady(), size = 68;
     const px = Math.round(size*scale*dpr), spr = sprite("chalk", px, paintChalk);
@@ -2323,7 +2356,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       for (const b of targetsFor(turn)){ ctx.beginPath(); ctx.arc(b.x, b.y, R + 6, 0, Math.PI*2); ctx.stroke(); }
       ctx.restore();
     }
-    if (lineStyle === "mod"){ drawAimModern(c, p, dx, dy, c.x + dx*p.t, c.y + dy*p.t); return; }
+    if (lineStyle === "mod" && !(chalkShot && !chalkShot.free)){ drawAimModern(c, p, dx, dy, c.x + dx*p.t, c.y + dy*p.t); return; }
     const gx = c.x + dx*p.t, gy = c.y + dy*p.t;
     const LW = 2.2, col = "rgba(255,255,255,.9)";
     ctx.save(); ctx.translate(FX, FY); ctx.lineCap = "round";
@@ -2333,6 +2366,29 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     // bola-fantasma (onde a branca encosta)
     ctx.fillStyle = "rgba(255,255,255,.12)";
     ctx.beginPath(); ctx.arc(gx, gy, R, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    if (chalkShot && !chalkShot.free){                               // giz normal: mostra o caminho da bola até a caçapa
+      const t = balls.find(b => b.n === chalkShot.n && b.in);
+      if (t){
+        const pulse = 0.6 + 0.4*Math.sin(performance.now()/160);
+        ctx.strokeStyle = `rgba(255,210,80,${pulse})`; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(t.x, t.y, R + 5, 0, Math.PI*2); ctx.stroke();
+        ctx.setLineDash([14, 10]); ctx.lineDashOffset = -performance.now()/40; ctx.lineWidth = 3.2; ctx.strokeStyle = "rgba(255,210,80,.95)";
+        if (chalkShot.trObj && chalkShot.trObj.length > 1){                // caminho de verdade (com as tabelas) da bola até a caçapa
+          ctx.beginPath(); chalkShot.trObj.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+          if (chalkShot.kind === 1 && chalkShot.trCue){                     // e o da branca indo na tabela
+            ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 2.4; ctx.beginPath();
+            let stop = chalkShot.trCue.length; for (let i = 1; i < chalkShot.trCue.length; i++){ const q = chalkShot.trCue[i]; if (Math.hypot(q[0] - t.x, q[1] - t.y) < 2*R + 2){ stop = i + 1; break; } }
+            chalkShot.trCue.slice(0, stop).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+          }
+        } else {
+          const dx2 = chalkShot.px - t.x, dy2 = chalkShot.py - t.y, d2 = Math.hypot(dx2, dy2);
+          ctx.beginPath(); ctx.moveTo(t.x + dx2/d2*(R + 6), t.y + dy2/d2*(R + 6)); ctx.lineTo(chalkShot.px, chalkShot.py); ctx.stroke();
+        }
+        ctx.setLineDash([]);
+        ctx.fillStyle = "rgba(255,210,80,.35)"; ctx.beginPath(); ctx.arc(chalkShot.px, chalkShot.py, 16, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore(); return;
+    }
     if (guideMode !== "full"){ ctx.restore(); return; }
     if (!p.hit && p.wall){
       // mirando na tabela: mostra para onde a branca volta depois de bater nela
@@ -2479,6 +2535,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (Math.hypot(p.x-SPINB.x, p.y-SPINB.y) < SPINB.r+12){ if (!busy()) openSpin(); return; }
     if (panelRect && !moving && inRect(p, panelRect, 6)){ openReset(); return; }
     if (inMatch && Math.hypot(p.x - CHALK.x, p.y - CHALK.y) < CHALK.r){ useChalk(); return; }
+    if (sabTap(p)) return;
     if (inMatch && DONO.on && DONO.giz && Math.hypot(p.x - 30, p.y - 489) < 30 && !inRect(p, POWER, 4) && !inWheelZone(p)){ secretChalk(); return; }   // bolinha de baixo da tabela da esquerda: giz secreto
     if (busy()) return;
     if (chalkBusy) return;   // não mexe na mesa enquanto o giz calcula
@@ -2665,7 +2722,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   const DONO_HASH = "c0480ed98ef3b2af53ab20b72529bfd6cd02d858";
   // só vale dentro do app e só com a senha certa guardada no aparelho (a senha não fica escrita no jogo, só uma "impressão digital" dela)
   const donoHex = t => [...sha1(new TextEncoder().encode(t))].map(b => b.toString(16).padStart(2, "0")).join("");
-  var DONO = {on: !!window.SinucaApp && donoHex(store.get("dono_key", "")) === "c0480ed98ef3b2af53ab20b72529bfd6cd02d858", giz: store.get("dono_giz", "1") === "1", mira: store.get("dono_mira", "1") === "1", fichas: store.get("dono_fichas", "1") === "1"};
+  var DONO = {on: !!window.SinucaApp && donoHex(store.get("dono_key", "")) === "c0480ed98ef3b2af53ab20b72529bfd6cd02d858", giz: store.get("dono_giz", "1") === "1", mira: false, fichas: false, dedo: store.get("dono_dedo", "1") === "1", curva: store.get("dono_curva", "0") === "1"};
   const donoAtivo = k => DONO.on && DONO[k];                              // vale offline e online (o jogo é do dono)
   const sha1hex = t => [...sha1(new TextEncoder().encode(t))].map(b => b.toString(16).padStart(2, "0")).join("");
   let slimVisto = false;                                                  // disfarce: o painel só aparece depois da senha/digital nesta sessão
@@ -2706,10 +2763,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   };
   document.getElementById("donoPass").addEventListener("keydown", e => { if (e.key === "Enter") donoTry(); });
   document.querySelectorAll(".dono .chip[data-k]").forEach(c => c.onclick = () => {
-    const k = c.dataset.k; DONO[k] = !DONO[k]; store.set("dono_" + k, DONO[k] ? "1" : "0"); donoUI(); donoChalk();
+    const k = c.dataset.k; DONO[k] = !DONO[k]; store.set("dono_" + k, DONO[k] ? "1" : "0"); donoUI(); donoChalk(); sabSend();
   });
   document.getElementById("donoOut").onclick = () => { DONO.on = false; store.set("dono_key", ""); store.set("dono", ""); donoUI(); donoChalk(); try { window.SinucaApp && window.SinucaApp.slimSair && window.SinucaApp.slimSair(); } catch(e){} flash("Modo Slim desligado neste aparelho"); };
-  document.getElementById("donoCoins").onclick = () => document.getElementById("p-coins").onclick();
   document.getElementById("p-coins").onclick = () => {
     ficha[0] += 100; store.set("ficha0", String(ficha[0])); document.getElementById("balance").textContent = ficha[0];
     flash(`💰 +100 fichas · você tem ${ficha[0]}`); fillMenuInfo();
@@ -3091,6 +3147,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     if (m.t === "hello"){                                                 // convidado recebe as regras do anfitrião
       if (net.host) return;
       ruleMode = m.rules; TRAD = ruleMode === "trad"; BOL = ruleMode === "bol"; TREINO = false; DURO = !!m.duro;
+      setTimeout(() => { try { sabSend(); } catch(e){} }, 800);
       matchFmt = m.fmt === "bo3" ? "bo3" : "cont"; initialWager = m.wager | 0 || 1; net.peerFicha = m.ficha | 0;
       // mesa do tamanho que cabe nas DUAS telas (a menor das duas); a tela maior ganha uma bordinha
       forcedExtra = Math.min(naturalExtra, Math.max(0, m.ex | 0)); resize();
@@ -3112,7 +3169,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
       const c = cue(); if (c){ c.x = c.px = m.cx; c.y = c.py = m.cy; }
       aim = m.a; spin = {x: m.sp.x, y: m.sp.y}; power = 0; chalkFixed = !!m.fx; chalkAcc = 0; netAimTo = null;
       strike = {p: m.p, t: 0}; inHand = false; breakShot = false; shotCleared = TRAD && groupClear(turn);
+      SABA = {blk: m.sb && Array.isArray(m.sb.blk) ? m.sb.blk.slice(0, 6) : [], cv: m.sb ? +m.sb.cv || 0 : 0, t: 0}; SABN.blk = [];
     }
+    else if (m.t === "sb"){ netSab = {blk: turn === net.me && Array.isArray(m.blk) ? m.blk.slice(0, 6) : [], cv: +m.cv || 0}; }
     else if (m.t === "end"){
       if (moving || strike){
         netPendingEnd = m; clearTimeout(netEndTimer);
@@ -3364,11 +3423,13 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     setJaw: o => { Object.assign(JAW, o); RAILS = null; },
     setDuro: (on, o) => { DURO = !!on; if (o) Object.assign(DURO_P, o); RAILS = null; },
     duro: () => DURO,
+    sab: () => ({SABA, SABN, netSab}),
     pockets: () => pockets.map(p => ({x: p.x, y: p.y, r: p.r, c: p.c})), WH: () => [W, H, R],
     bench: n => { const t = performance.now(); for (let i = 0; i < n; i++) simulate(Math.random()*6.28, 0.3 + Math.random()*0.7, {x:0, y:0}); return (performance.now() - t)/n; },
     geo: () => ({ox, oy, scale, FX, FY, chalk: {x: CHALK.x, y: CHALK.y}, menu: {x: MENU.x + MENU.w/2, y: MENU.y + MENU.h/2}, balls: balls.filter(b => b.in).map(b => [b.n, b.x, b.y]), targets: targetsFor(turn).map(b => b.n), chalkPick, chalkShot: chalkShot && chalkShot.n, chalkN: chalk[chalkOwner()], aim, power, mode, mus: {mode: MUS.mode, timer: !!MUS.timer, ctx: MUS.ctx && MUS.ctx.state, tracks: MUS.tracks.length, playing: !!(MUS.el && !MUS.el.paused)}}),
     regraTeste: (g, fc, fr, pc) => { groups = g; turn = 0; firstContact = fc; firstRails = fr; pocketedThisShot = pc.slice(); pc.forEach(n => { const b = balls.find(o => o.n === n); if (b) b.in = false; }); endShot(); return {scores: scores.map(x => x.slice()), removed: balls.filter(b => !b.in).map(b => b.n), why: document.getElementById('foulWhy').textContent}; }};
   function startOnline(){
+    setTimeout(() => { try { sabSend(); } catch(e){} }, 800);
     net.live = true; rackSeq = 0; netPendingRack = null; netPendingEnd = null;
     ficha[net.me] = parseInt(store.get("ficha0", "0")) || 0; ficha[1 - net.me] = net.peerFicha;
     addFriend(net.peerUid, net.peerNick);                                // jogou uma vez: vira amigo pra chamar direto depois
