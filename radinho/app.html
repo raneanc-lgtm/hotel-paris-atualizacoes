@@ -468,7 +468,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 21;
+const APP_VERSAO = 22;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -571,6 +571,24 @@ function modoChat(){                 // 'som' | 'vibra' | 'mudo'
   }
   return sel === 'vibra' || sel === 'mudo' ? sel : 'som';
 }
+const standbyNativo = () => !!(window.RadinhoNativo && typeof RadinhoNativo.standby === 'function');
+const escondido = () => document.visibilityState !== 'visible';
+function sincronizarStandby(){        // APK novo: o Android fica escutando o canal mesmo com o app fechado
+  if (!standbyNativo()) return;
+  try{
+    const u = firebase.auth().currentUser;
+    if (!canal || !refCanal || saindo || !u){ RadinhoNativo.standby(''); return; }
+    RadinhoNativo.standby(JSON.stringify({
+      rt: u.refreshToken, uid, canal, nome, key: FIREBASE_CONFIG.apiKey,
+      fundo: modoFundo(),
+      chat: LS.get('radinho_chatmodo') || (LS.get('radinho_somchat') === '0' ? 'vibra' : 'som'),
+      chatAte: parseInt(LS.get('radinho_chatate')) || 0,
+      mut: Object.keys(mutadosLocal)
+    }));
+    RadinhoNativo.visivel(!escondido());
+  }catch(e){}
+}
+function desligarStandby(){ if (standbyNativo()) try{ RadinhoNativo.standby(''); }catch(e){} }
 function notificarNativo(titulo, texto, tipo, som){   // usado pelo APK novo quando ele tiver notificação nativa
   try{ if (window.RadinhoNativo && RadinhoNativo.notificar) RadinhoNativo.notificar(String(titulo), String(texto), tipo, !!som); }catch(e){}
 }
@@ -807,7 +825,7 @@ async function temAcesso(c){
   }catch(e){ return false; }
 }
 async function removido(){
-  if (saindo) return; saindo = true;
+  if (saindo) return; saindo = true; desligarStandby();
   const ban = canal ? await estaBanido(canal) : false;
   LS.set('radinho_aviso', ban ? 'Você foi banido do canal pelo administrador.'
                               : 'Você precisa entrar no canal de novo (o canal ou a senha mudou).');
@@ -867,6 +885,8 @@ async function conectarCanal(){
   setInterval(varrerExpirados, 5000);
   atualizarVisor();
   setTimeout(() => LS.set('radinho_boot', '0'), 6000); // app subiu bem
+  setTimeout(sincronizarStandby, 1500);
+  setInterval(sincronizarStandby, 20 * 60000);          // renova o login do stand-by
 }
 function renderOnline(lista){
   onlineAtual = lista;
@@ -947,6 +967,7 @@ function adicionarHistorico(key, m){
 function chegou(key, m){
   if (!m) return;
   adicionarHistorico(key, m);
+  if (escondido() && standbyNativo()) return;    // app fora da tela: quem toca é o stand-by do Android
   if (carregado && m.uid !== uid && !mutadosLocal[m.uid] && (agora() - (m.ts || 0)) < JANELA_AUTO){
     const item = { key, nome: m.nome, mime: m.mime, ts: m.ts || agora() };
     vibrar([90, 60, 90]);
@@ -1196,7 +1217,7 @@ function addChat(key, m){
       naoLidas++; atualizarBadge();
       if (aba !== 'chat') aviso('💬 ' + m.nome + ': ' + String(m.txt).slice(0, 60));
     }
-    const modo = modoChat();
+    const modo = (escondido() && standbyNativo()) ? 'mudo' : modoChat();   // fora da tela o stand-by avisa
     if (modo !== 'mudo'){
       vibrar(60);
       if (document.visibilityState !== 'visible') notificarNativo('💬 ' + m.nome, String(m.txt).slice(0, 120), 'chat', modo === 'som');
@@ -1422,7 +1443,7 @@ async function apagarItem(onde, key){
   }catch(e){ aviso('Não deu pra apagar: ' + (e.message || e), 5000); }
 }
 function fecharPessoa(){ $('fundoP').hidden = true; pessoaAtual = null; }
-function salvarMutLocal(){ LS.set('radinho_mutlocal', JSON.stringify(mutadosLocal)); }
+function salvarMutLocal(){ LS.set('radinho_mutlocal', JSON.stringify(mutadosLocal)); sincronizarStandby(); }
 function prepararPessoa(){
   $('pFechar').onclick = fecharPessoa;
   $('fundoP').onclick = e => { if (e.target.id === 'fundoP') fecharPessoa(); };
@@ -1805,11 +1826,11 @@ function prepararAjustes(){
   };
   $('swVibra').onchange = e => { cfgLocal.vibra = e.target.checked; LS.set('radinho_vibra', cfgLocal.vibra ? '1' : '0'); };
   $('selChat').onchange = e => {
-    const v = e.target.value; LS.set('radinho_chatmodo', v);
+    const v = e.target.value; LS.set('radinho_chatmodo', v); setTimeout(sincronizarStandby, 50);
     if (v === '1h' || v === '8h') LS.set('radinho_chatate', String(Date.now() + (v === '1h' ? 3600000 : 28800000)));
     aviso({ som: 'Chat com som.', vibra: 'Chat só vai vibrar.', '1h': 'Chat silenciado por 1 hora.', '8h': 'Chat silenciado por 8 horas.', mudo: 'Chat no silencioso.' }[v]);
   };
-  $('selFundo').onchange = e => { LS.set('radinho_fundo', e.target.value); aviso(e.target.value === 'B' ? 'Minimizado: toca o toque e o áudio espera você abrir.' : 'Minimizado: toca o toque e já fala o áudio.', 4000); };
+  $('selFundo').onchange = e => { LS.set('radinho_fundo', e.target.value); sincronizarStandby(); aviso(e.target.value === 'B' ? 'Minimizado: toca o toque e o áudio espera você abrir.' : 'Minimizado: toca o toque e já fala o áudio.', 4000); };
 
   $('btnSenha').onclick = trocarSenha;
   $('btnNovoCanal').onclick = novoCanal;
@@ -1835,7 +1856,7 @@ function prepararAjustes(){
   $('faixaBtn').onclick = () => location.reload();
 
   $('btnSair').onclick = async () => {
-    saindo = true;
+    saindo = true; desligarStandby();
     try{ await refCanal.child('online/' + uid).remove(); }catch(e){}
     LS.del('radinho_canal'); location.reload();
   };
@@ -1870,6 +1891,7 @@ $('btnEntrar').onclick = async () => {
 /* ---------------- ciclo de vida ---------------- */
 document.addEventListener('pointerdown', () => { if (!ctx || ctx.state !== 'running') destravarAudio(); }, true);
 document.addEventListener('visibilitychange', () => {
+  if (standbyNativo()) try{ RadinhoNativo.visivel(!escondido()); }catch(e){}
   if (document.visibilityState === 'visible'){
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(()=>{});
     resetarAudio();
@@ -1909,7 +1931,7 @@ window.addEventListener('pagehide', () => { if (gravando) parar(); soltarMic(); 
   atualizarDica();
   checarGitHub(); setInterval(checarGitHub, 600000);
   if (nome && canal && await temAcesso(canal)){ await conectarCanal(); if (cfgLocal.tela) ligarTela(); }
-  else telas('tEntrar');
+  else { telas('tEntrar'); desligarStandby(); }
 })();
 </script>
 </body>
