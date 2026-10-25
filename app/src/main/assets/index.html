@@ -411,6 +411,18 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .buyfloat{position:absolute; left:50%; top:42%; transform:translate(-50%, 0); font:900 1.3rem var(--body); color:#5be37a; text-shadow:0 2px 6px rgba(0,0,0,.7); pointer-events:none; animation:bfloat .9s ease-out forwards; white-space:nowrap}
 .buyfloat.minus{top:58%; color:#ff8a6a; font-size:1rem; animation-delay:.1s}
 @keyframes bfloat{0%{opacity:0; transform:translate(-50%, 10px) scale(.8)} 25%{opacity:1; transform:translate(-50%, 0) scale(1.1)} 100%{opacity:0; transform:translate(-50%, -40px) scale(1)}}
+
+/* versão Lite */
+.liteopts{display:none}
+html.lite .liteopts{display:flex; flex-direction:column; gap:10px}
+html.lite #m-shop, html.lite .hbal, html.lite #m-opts, html.lite #q-more, html.lite #p-opts, html.lite #p-watch, html.lite #p-music, html.lite #p-coins{display:none !important}
+.lrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.lrow > span{min-width:96px; color:var(--muted); font:700 .78rem var(--body); letter-spacing:.1em; text-transform:uppercase}
+.lchips{display:flex; gap:6px; flex-wrap:wrap; flex:1}
+.lchips button{all:unset; flex:1; min-width:70px; text-align:center; padding:9px 10px; border-radius:10px; background:#1a1612; border:1px solid var(--line); color:var(--chalk); font:700 .9rem var(--body); cursor:pointer}
+.lchips button.on{background:var(--brass); color:#1a1209; border-color:var(--brass)}
+html.lite .hplay{min-height:84px}
+html.lite .menulogo{display:none}
 </style>
 
 <div id="safe" aria-hidden="true" style="position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)"></div>
@@ -460,6 +472,10 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     <div class="hquick" id="hQuick">
       <button class="hbig hplay" id="q-play" type="button"><i class="tico"><svg><use href="#i-play"/></svg></i><span><b>Jogar</b><em id="q-sub">Regional · contra o computador</em></span></button>
       <button class="hbig hmore" id="q-more" type="button"><i class="tico"><svg><use href="#i-grid"/></svg></i><span><b>Outros modos</b><em>Tradicional, Bolinho, Treino, 2 jogadores, com amigo</em></span></button>
+    </div>
+    <div class="liteopts" id="liteOpts">
+      <div class="lrow"><span>Dificuldade</span><div class="lchips" id="lLvl"><button type="button" data-v="0">Fácil</button><button type="button" data-v="1">Médio</button><button type="button" data-v="2">Difícil</button><button type="button" data-v="3">Pro</button></div></div>
+      <div class="lrow"><span>Resolução</span><div class="lchips" id="lGfx"><button type="button" data-v="low">Leve</button><button type="button" data-v="bal">Equilibrada</button><button type="button" data-v="max">Máxima</button></div></div>
     </div>
     <div class="hfull" id="hFull" hidden>
     <button class="hback" id="q-back" type="button"><svg class="ic"><use href="#i-back"/></svg> Voltar</button>
@@ -945,6 +961,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     return g ? `+${g} mira longa grátis!` : "";
   }
   function useLong(){
+    if (LITE) return;
     if (!inMatch || gameOver || moving || strike || cpu || !myTurn() || (net && net.spect)) return;
     if (DURO){ flash("Jogo duro: sem mira longa", true); return; }
     if (longOn){
@@ -961,6 +978,9 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let groups = [null, null], firstContact = null, gameOver = false, SIM = false;
   let vsCPU = false, cpuLevel = 1, cpu = null;
   let wins = [0, 0], gameNo = 0, matchFmt = "cont";            // "cont" = contínuo, "bo3" = melhor de 3
+  const LITE = !!window.SINUCA_LITE;                                    // versão Lite: só contra o computador, sem som, sem giz, sem mira longa
+  if (LITE) document.documentElement.classList.add("lite");
+  if (LITE) addEventListener("DOMContentLoaded", () => { const h = document.querySelector(".sc-title h2"); if (h) h.textContent = "Sinuca Lite"; });
   const store = { get(k, d){ try { const v = localStorage.getItem("sinuca_" + k); return v === null ? d : v; } catch(e){ return d; } },
                   set(k, v){ try { localStorage.setItem("sinuca_" + k, v); } catch(e){} } };
   let guideMode = store.get("guide", "full");
@@ -970,14 +990,14 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // celular fraco (pouca memória ou poucos núcleos) já começa no leve
   const weakPhone = () => { try { return (navigator.deviceMemory && navigator.deviceMemory <= 3) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4); } catch(e){ return false; } };
   const fpsMon = {t: 0, n: 0};
-  let gfx = store.get("gfx", "") || (weakPhone() ? "low" : "max");                                            // qualidade gráfica: max (2K) · bal · low
+  let gfx = store.get("gfx", "") || (LITE || weakPhone() ? "low" : "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26102404;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26102405;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
-  const BET = () => vsCPU || !!net;                                              // tem aposta de fichas?
+  const BET = () => !LITE && (vsCPU || !!net);                                              // tem aposta de fichas?
   let cueRails = 0, firstRails = 0, lastChance = null;                                          // tabelas da branca na tacada · última chance (regional)
   let tShots = 0, tPots = 0, series = [0, 0];                                 // series: pontos gerais (séries de melhor de 3 ganhas)                                                    // contadores do treino   // "bol" = Bolinho (3 bolas, quem matar a última vence)   // "reg" = Sinuca Regional (2 a 15) · "trad" = Sinuca Tradicional (bola 1 de castigo)
   let shotCleared = false;                                                     // (tradicional) o jogador da vez já tinha limpado o grupo quando tacou?
@@ -1182,6 +1202,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   // Sons de impacto: estalo curto de ruído filtrado (sem "tom" que fica soando, que é o que dava cara de sininho)
   function hit(parts, vol){
+    if (LITE) return;
     const a = audio(); if (!a || vol < 0.01) return;
     const now = a.currentTime; if (now - sfxT > 0.04){ sfxT = now; sfxBudget = 0; } if (++sfxBudget > 5) return;
     const out = a.createGain(); out.gain.value = Math.min(1, vol); out.connect(a.destination);
@@ -2010,6 +2031,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     return best;
   }
   function useChalk(){
+    if (LITE) return;
     if ((chalkShot || chalkBusy) && myTurn() && !moving && !strike){ cancelChalk(); return; }   // tocou no giz com a mira travada/calculando: cancela
     if (!chalkReady()){
       if (DURO) return;                                                  // jogo duro: sem giz
@@ -2026,6 +2048,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   // giz secreto do Modo Slim: a bolinha de baixo da tabela da esquerda
   let chalkFree = false, chalkAnim = null;
   function secretChalk(){
+    if (LITE) return;
     if (!inMatch || gameOver || moving || strike || cpu || !myTurn()) return;
     if (chalkShot || chalkBusy){ cancelChalk(); return; }
     if (chalkPick){ chalkPick = false; chalkFree = false; return; }
@@ -2072,7 +2095,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     SABN.blk = [];
   }
   function sabSend(){ if (net && DONO.on) net.send({t: "sb", blk: DONO.dedo && oppTurn() ? SABN.blk : [], cv: DONO.curva ? 1 : 0}); }
-  function sabTap(p){                                                   // dono toca numa caçapa na vez do outro: bloqueia (toca de novo: libera)
+  function sabTap(p){
+    if (LITE) return false;                                                   // dono toca numa caçapa na vez do outro: bloqueia (toca de novo: libera)
     if (!DONO.on || !DONO.dedo || !oppTurn() || (net && (moving || strike))) return false;
     const x = p.x - FX, y = p.y - FY;
     const i = pockets.findIndex(q => Math.hypot(q.x - x, q.y - y) < 52); if (i < 0) return false;
@@ -2272,6 +2296,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   // botão da mira longa: mira verde quando ligada, dourada quando dá pra usar, cinza quando não dá
   function drawLongBtn(){
+    if (LITE) return;
     if (!inMatch) return;
     const b = LONGB, r = b.r, ok = !DURO && !gameOver, on = !!longOn;
     ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.beginPath(); ctx.arc(b.x, b.y + 3, r + 6, 0, Math.PI*2); ctx.fill();
@@ -2401,7 +2426,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   function drawChalk(){
     if (!inMatch) return;
     CHALK.x = LONGB.x - 86;
-    if (DURO) return;                                                   // jogo duro: o giz nem aparece
+    if (DURO || LITE) return;                                           // jogo duro e Lite: o giz nem aparece
     const gz = gizById(gizCur()), n = TREINO ? Infinity : gizTotal(), size = 68;
     const px = Math.round(size*scale*dpr), spr = sprite("chalk_" + gz.id, px, (g, p) => paintChalk(g, p, gz.c));
     ctx.globalAlpha = n > 0 ? 1 : 0.55; ctx.drawImage(spr, CHALK.x - size/2, CHALK.y - size/2 - 2, size, size); ctx.globalAlpha = 1;
@@ -2422,6 +2447,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   let panelRect = null;                                                  // onde o placar está desenhado (tocar abre "zerar pontuação")
   function drawFichas(){
     panelRect = null;
+    if (LITE) return;
     if (!inMatch) return;
     const slot = fichaSlot(), font = FONT();
     if (TREINO){
@@ -3067,6 +3093,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   }
   let donoHold = 0;
   const donoOpen = () => {
+    if (LITE) return;
     { document.getElementById("donoPass").value = ""; buzz(20);
       // a digital só vale num celular onde a senha já foi digitada uma vez (senão qualquer um destravava com a própria digital)
       let bio = false; try { bio = DONO.on && !!(window.SinucaApp && window.SinucaApp.digitalDisponivel && window.SinucaApp.digitalDisponivel()); } catch(e){}
@@ -3311,6 +3338,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     document.getElementById("musClear").hidden = !MUS.tracks.length;
   }
   function musApply(){
+    if (LITE) return;
     if (MUS.mode === "jogo" && !document.hidden){ musStopFile(); musGenStart(); MUS.started = true; }
     else if (MUS.mode === "minhas"){ musGenStop(); if (!MUS.el) musPlayFile(); else if (!document.hidden) MUS.el.play().catch(() => {}); }
     else { musGenStop(); musStopFile(); }                               // desligada ou app de fora: o jogo fica quieto
@@ -3403,7 +3431,7 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
     doNext(r);
   };
   function startGame(cpuMode){
-    inMatch = true; longFree = 0; longOn = null; if (!(net && !net.host)) DURO = duroPref;
+    inMatch = true; longFree = 0; longOn = null; if (!(net && !net.host)) DURO = duroPref && !LITE;
     vsCPU = cpuMode; wins = [0, 0]; series = [0, 0]; gameNo = 0; lastWinner = -1; wager = initialWager; rack(0); modes.hidden = true; menu.hidden = true;
     document.getElementById("resume").hidden = false; document.getElementById("next").hidden = true;
     document.getElementById("menuTitle").textContent = "Sinuca Mobile";
@@ -3435,7 +3463,16 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
   chipGroup(".bet", ch => { initialWager = +ch.dataset.w; store.set("bet", String(initialWager)); });
   chipGroup(".fmt", ch => { matchFmt = ch.dataset.f; store.set("fmt", matchFmt); });
   mark(".lvl", "l", String(cpuLevel)); mark(".bet", "w", String(initialWager)); mark(".fmt", "f", matchFmt); setOpp(oppMode);
+  function liteUI(){
+    if (!LITE) return;
+    document.querySelectorAll("#lLvl button").forEach(b => b.classList.toggle("on", +b.dataset.v === cpuLevel));
+    document.querySelectorAll("#lGfx button").forEach(b => b.classList.toggle("on", b.dataset.v === gfx));
+  }
+  document.querySelectorAll("#lLvl button").forEach(b => b.onclick = () => { cpuLevel = +b.dataset.v; store.set("lvl", String(cpuLevel)); homeOpts(); liteUI(); });
+  document.querySelectorAll("#lGfx button").forEach(b => b.onclick = () => { gfx = b.dataset.v; store.set("gfx", gfx); store.set("gfx_user", "1"); Object.keys(spriteCache).forEach(k => delete spriteCache[k]); resize(); liteUI(); });
   function homeQuick(full){
+    if (LITE) full = false;
+    liteUI();
     document.getElementById("hQuick").hidden = !!full; document.getElementById("hFull").hidden = !full;
     homeOpts();
   }
