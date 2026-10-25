@@ -100,42 +100,55 @@ class Atualizador {
         web.post(() -> web.evaluateJavascript(codigo, null));
     }
 
-    /** procura atualização (no máximo a cada 15 min) */
+    private long espera = 0;
+
+    /** procura atualização: depois de dar certo espera 5 min; se falhar, tenta de novo em 30 s (e vai aumentando até 5 min) */
     void verificar(boolean forcar) {
         long agora = System.currentTimeMillis();
-        if (rodando || (!forcar && agora - ultima < 15 * 60 * 1000L)) return;
+        if (rodando) { if (forcar) js("window.__updEstado && window.__updEstado('ocupado')"); return; }
+        if (!forcar && agora - ultima < espera) return;
         ultima = agora;
         rodando = true;
         new Thread(() -> {
-            try { checar(); } catch (Exception e) { /* sem internet: tenta depois */ }
-            finally { rodando = false; }
+            boolean ok = false;
+            for (int t = 0; t < 3 && !ok; t++) {                     // até 3 tentativas seguidas (rede do celular oscila)
+                try { ok = checar(forcar); } catch (Exception e) { ok = false; }
+                if (!ok) try { Thread.sleep(2500L * (t + 1)); } catch (InterruptedException ie) { break; }
+            }
+            if (ok) espera = 5 * 60 * 1000L;
+            else {
+                espera = Math.min(5 * 60 * 1000L, Math.max(30 * 1000L, espera * 2));
+                if (forcar) js("window.__updEstado && window.__updEstado('erro')");
+            }
+            rodando = false;
         }).start();
     }
 
-    private void checar() throws Exception {
+    private boolean checar(boolean avisar) throws Exception {
         JSONObject v = new JSONObject(new String(baixar(BASE + "versao.json?t=" + System.currentTimeMillis(), 64 * 1024), StandardCharsets.UTF_8));
         int web = v.optInt("web", 0);
-        if (web > versaoWeb()) {
-            byte[] html = baixar(BASE + "index.html?v=" + web, 16 * 1024 * 1024);
+        boolean nova = web > versaoWeb();
+        if (nova) {
+            byte[] html = baixar(BASE + "index.html?v=" + web + "&t=" + System.currentTimeMillis(), 16 * 1024 * 1024);
             String s = new String(html, StandardCharsets.UTF_8);
             // só aceita o arquivo certo e inteiro
-            if (html.length > 150000 && s.contains("WEB_VER = " + web + ";") && s.trim().endsWith("</html>")) {
-                if (!dir.exists() && !dir.mkdirs()) return;
-                File tmp = new File(dir, "index.tmp");
-                try (FileOutputStream o = new FileOutputStream(tmp)) { o.write(html); }
-                File f = arquivoWeb();
-                if (f.exists() && !f.delete()) return;
-                if (!tmp.renameTo(f)) return;
-                prefs.edit().putInt("web", web).apply();
-                js("window.__atualizou && window.__atualizou(" + web + ")");
-            }
+            if (!(html.length > 150000 && s.contains("WEB_VER = " + web + ";") && s.trim().endsWith("</html>"))) return false;   // veio cortado: tenta de novo
+            if (!dir.exists() && !dir.mkdirs()) return false;
+            File tmp = new File(dir, "index.tmp");
+            try (FileOutputStream o = new FileOutputStream(tmp)) { o.write(html); o.getFD().sync(); }
+            File f = arquivoWeb();
+            if (f.exists() && !f.delete()) return false;
+            if (!tmp.renameTo(f)) return false;
+            prefs.edit().putInt("web", web).commit();
+            js("window.__atualizou && window.__atualizou(" + web + ")");
         }
         int nativo = v.optInt("nativo", 0);
         String url = v.optString("apkUrl", ""), nome = v.optString("apk", "");
         if (nativo > nativoEmbutido && url.startsWith("https://")) {
             apkUrl = url;
             js("window.__apkNovo && window.__apkNovo(" + JSONObject.quote(nome) + ")");
-        }
+        } else if (!nova && avisar) js("window.__updEstado && window.__updEstado('nada', " + versaoWeb() + ")");
+        return true;
     }
 
     /** baixa o APK novo e abre o instalador do Android */
