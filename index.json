@@ -140,6 +140,13 @@
       "file": "pacotes/HotelParis-1.9.36-para-1.9.37.hpupdate",
       "sha256": "802e763ded7e8782ae680b2d93eecdeadf899bb3b5368a5396ce4eb183f09807",
       "at": "2026-10-25T18:47:22.913588Z"
+    },
+    {
+      "from": "1.9.37",
+      "version": "1.9.38",
+      "file": "pacotes/HotelParis-1.9.37-para-1.9.38.hpupdate",
+      "sha256": "720640770985321a4e4e659813a44c1f5be90d9d30ed9129fa05516a02701c76",
+      "at": "2026-10-25T19:40:06.091920Z"
     }
   ]
 }
