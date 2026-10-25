@@ -51,17 +51,10 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- link pra assistir partida: sinucamobile://assistir/CODIGO -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="sinucamobile" android:host="assistir" />
-            </intent-filter>
         </activity>
         <provider
             android:name=".ApkProvider"
-            android:authorities="com.slimcreative.sinucamobile.apk"
+            android:authorities="${applicationId}.apk"
             android:exported="false"
             android:grantUriPermissions="true" />
     </application>

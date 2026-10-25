@@ -2,7 +2,7 @@ name: Gerar APK do Sinuca Mobile
 
 on:
   push:
-    branches: [ sinuca-mobile ]
+    branches: [ sinuca-lite ]
   workflow_dispatch:
 
 permissions:
@@ -34,21 +34,21 @@ jobs:
             exit 1
           fi
           mkdir -p saida
-          cp app/build/outputs/apk/release/app-release.apk "saida/SinucaMobile-1.${{ github.run_number }}.apk"
+          cp app/build/outputs/apk/release/app-release.apk "saida/SinucaLite-1.${{ github.run_number }}.apk"
 
       - name: Guardar o APK (aba Actions)
         uses: actions/upload-artifact@v4
         with:
-          name: SinucaMobile-1.${{ github.run_number }}
+          name: SinucaLite-1.${{ github.run_number }}
           path: saida/*.apk
 
       - name: Publicar para baixar (aba Releases)
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: sinuca-mobile-1.${{ github.run_number }}
-          name: Sinuca Mobile 1.${{ github.run_number }}
+          tag_name: sinuca-lite-1.${{ github.run_number }}
+          name: Sinuca Lite 1.${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           body: |
-            APK do Sinuca Mobile (Slim Creative). Baixe o arquivo .apk abaixo e instale no celular.
+            APK do Sinuca Lite (Slim Creative), versão leve só contra o computador. Baixe o arquivo .apk abaixo e instale no celular.
             Cada versão nova instala por cima da anterior, sem perder fichas nem configurações.
           files: saida/*.apk

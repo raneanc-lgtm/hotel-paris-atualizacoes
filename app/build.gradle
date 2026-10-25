@@ -7,7 +7,7 @@ android {
     compileSdk 34
 
     defaultConfig {
-        applicationId "com.slimcreative.sinucamobile"
+        applicationId "com.slimcreative.sinucalite"
         minSdk 24
         targetSdk 34
         // a automação do GitHub passa o número da compilação: cada APK novo instala por cima do anterior

@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets;
  * 2) App (APK): se mudou a parte do Android, avisa e instala com um toque (o Android pede confirmação).
  */
 class Atualizador {
-    static final String BASE = "https://raneanc-lgtm.github.io/hotel-paris-atualizacoes/sinuca/";
+    static final String BASE = "https://raneanc-lgtm.github.io/hotel-paris-atualizacoes/sinuca-lite/";
     static final String PAGINA = "file:///android_asset/index.html";
 
     private final Activity act;
