@@ -994,7 +994,7 @@ html.lite .menulogo{display:none}
   let gfx = store.get("gfx", "") || (LITE || weakPhone() ? "low" : "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26102405;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26102406;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -1160,7 +1160,7 @@ html.lite .menulogo{display:none}
   function resize(){
     const sw = window.innerWidth, sh = window.innerHeight, rot = sh > sw, dev = window.devicePixelRatio || 1;
     // qualidade gráfica: máxima = resolução nativa do celular até 2K (2560 px no lado maior) · equilibrada = 2x · leve = 1,5x
-    dpr = gfx === "max" ? Math.max(1, Math.min(dev, 3, 2560/Math.max(sw, sh))) : gfx === "bal" ? Math.min(dev, 1.75) : Math.min(dev, 1, 900/Math.max(sw, sh)*1.1);   // leve: resolução baixa de verdade
+    dpr = gfx === "max" ? Math.max(1, Math.min(dev, 3, 2560/Math.max(sw, sh))) : gfx === "bal" ? Math.min(dev, 1.75) : Math.min(dev, 0.8, 900/Math.max(sw, sh)*0.9);   // leve: resolução baixa de verdade
     // celular em pé (app não gira): desenha a mesa deitada, é só virar o aparelho
     const vw = rot ? sh : sw, vh = rot ? sw : sh;
     const g = document.getElementById("game");
@@ -2776,20 +2776,20 @@ html.lite .menulogo{display:none}
     g.fillStyle = r; g.fillRect(0,0,64,64); return shadowC;
   }
   let ballBudget = 0, frameNo = 0, frameT0 = 0;
-  const BALL_MS = () => gfx === "max" ? 5 : gfx === "bal" ? 4 : 1.5;
+  const BALL_MS = () => gfx === "max" ? 5 : gfx === "bal" ? 4 : 2.5;
   function drawBallAt(b, x, y, k, alpha){
     const full = R*scale*dpr, fast = moving && Math.hypot(b.vx || 0, b.vy || 0) > 260;
-    const want = fast ? Math.max(10, full*(gfx === "max" ? 0.85 : gfx === "bal" ? 0.75 : 0.6)) : full;                     // bola correndo: textura menor (ninguém nota no movimento)
+    const want = fast ? Math.max(10, full*(gfx === "max" ? 0.85 : gfx === "bal" ? 0.75 : 0.5)) : full;                     // bola correndo: textura menor (ninguém nota no movimento)
     // giro das bolas com orçamento de TEMPO por quadro (na saída 16 bolas giram juntas: as rápidas giram a 30 por segundo, ninguém nota)
     const age = frameNo - (b.rf || 0);
-    if (!b.cv || (!moving && b.cvR !== full) || (b.dirty && ((ballBudget > 0 && performance.now() - frameT0 < BALL_MS() && (!fast || age >= (gfx === "low" ? 6 : 2))) || age > (gfx === "low" ? 12 : 4)))){ renderBall(b, want); ballBudget--; b.rf = frameNo; }
+    if (!b.cv || (!moving && b.cvR !== full) || (b.dirty && ((ballBudget > 0 && performance.now() - frameT0 < BALL_MS() && (!fast || age >= 2)) || age > (gfx === "low" ? 5 : 4)))){ renderBall(b, want); ballBudget--; b.rf = frameNo; }
     const size = b.cv.width/b.cvR*R*k;
     ctx.globalAlpha = alpha; ctx.drawImage(b.cv, FX+x-size/2, FY+y-size/2, size, size); ctx.globalAlpha = 1;
   }
 
   function draw(dt){
     ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle = "#000"; ctx.fillRect(0,0,cv.width,cv.height);
-    ballBudget = gfx === "max" ? 16 : gfx === "bal" ? 10 : 2; frameNo++; frameT0 = performance.now();                                                       // no máximo 7 bolas redesenhadas por quadro (o resto no próximo)
+    ballBudget = gfx === "max" ? 16 : gfx === "bal" ? 10 : 8; frameNo++; frameT0 = performance.now();                                                       // no máximo 7 bolas redesenhadas por quadro (o resto no próximo)
     ctx.setTransform(dpr*scale,0,0,dpr*scale,dpr*ox,dpr*oy);
     ctx.setTransform(1,0,0,1,0,0); if (tableLayer) ctx.drawImage(tableLayer, 0, 0);
     ctx.setTransform(dpr*scale,0,0,dpr*scale,dpr*ox,dpr*oy);
@@ -4383,7 +4383,7 @@ html.lite .menulogo{display:none}
       // física sempre no mesmo passo do simulador (a tacada sai igualzinho ao previsto) e o desenho
       // é suavizado entre um passo e outro, para as bolas andarem lisinhas em todo quadro
       // passo fixo: giz (igual ao simulador) e partida com amigo (os dois celulares calculam a MESMA tacada, passo a passo)
-      const step = chalkFixed ? 1/30 : net ? 1/120 : 0;
+      const step = chalkFixed ? 1/30 : 1/120;                          // passo fixo sempre + desenho suavizado entre os passos (liso até em celular lento)
       if (step){
         chalkAcc += Math.min(0.1, raw);                                   // celular mais lento recupera o atraso em vez de ficar para trás
         while (chalkAcc >= step){
