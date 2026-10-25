@@ -352,7 +352,8 @@ body{background:#2a2a2a; color:var(--chalk); font-family:var(--body); overflow:h
 .home .shopbtn{width:auto; padding:0 12px; gap:6px; border-color:var(--brass); color:#f2c45a; font:800 .85rem var(--body)}
 .home .shopbtn .ic{width:20px; height:20px}
 @container game (max-width:560px){ .home .shopbtn span{display:none} .home .shopbtn{width:42px; padding:0} }
-.shopcard{width:min(760px, 94vw); max-height:92vh; overflow:auto}
+.shopcard{width:min(760px, 94vw); max-height:92vh; overflow:auto; position:relative}
+.shopcard .xbtn{position:sticky; top:0; right:auto; align-self:flex-end; flex:none; margin-bottom:-52px; width:44px; height:44px; font-size:1.15rem; z-index:3}
 .shopgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; margin-top:8px}
 .cueitem{display:flex; flex-direction:column; gap:6px; padding:10px 12px; border-radius:12px; background:#1a1612; border:1px solid var(--line)}
 .cueitem.sel{border-color:#5be37a; box-shadow:0 0 0 1px #5be37a inset}
@@ -542,7 +543,7 @@ html.lite .menulogo{display:none}
       </div>
     </div><div class="opt donobox" id="donoBox" hidden><span>✦ Modo Slim</span>
       <div class="lvls dono" role="group" aria-label="Poderes do dono">
-        <button class="chip" data-k="giz" type="button">Giz secreto</button><button class="chip" data-k="dedo" type="button">Dedo na caçapa</button><button class="chip" data-k="curva" type="button">Atrapalhar mira</button><button class="chip" data-k="fichas" type="button">Fichas infinitas</button><button class="chip" id="donoOut" type="button">Sair</button>
+        <button class="chip" data-k="giz" type="button">Giz secreto</button><button class="chip" data-k="dedo" type="button">Dedo na caçapa</button><button class="chip" data-k="curva" type="button">Atrapalhar mira</button><button class="chip" data-k="fichas" type="button">Fichas infinitas</button><button class="chip" data-k="livre" type="button">Tacos e giz livres</button><button class="chip" id="donoOut" type="button">Sair</button>
       </div>
     </div><div class="opt verline"><span id="verTxt"></span><button class="chip" id="verCheck" type="button" hidden>Procurar atualização</button></div>
     </section>
@@ -925,7 +926,7 @@ html.lite .menulogo{display:none}
     }
     parts = keep; ctx.restore();
   }
-  const gizCur = () => { const sel = gizSel || store.get("giz_sel", "agua"); if (gizN(sel) > 0 || TREINO) return sel; const f = GIZ.find(g => gizN(g.id) > 0); return f ? f.id : sel; };
+  const gizCur = () => { const sel = gizSel || store.get("giz_sel", "agua"); if (gizN(sel) > 0 || TREINO || slimLivre()) return sel; const f = GIZ.find(g => gizN(g.id) > 0); return f ? f.id : sel; };
   const RAR = [{n: "Comum", c: "#9aa1ab"}, {n: "Raro", c: "#3d8bff"}, {n: "Épico", c: "#b05cff"}, {n: "Lendário", c: "#ffb020"}];
   const CUES = [   // f = força máxima · m = tamanho da linha de mira (vantagem dos tacos melhores)
     {id: 0, nome: "Clássico",      preco: 0, rar: 0,   f: 1.00, m: 1.00, sh: [236,206,150], fa: [38,20,12],  pt: [232,196,128], pf: [150,20,25],  gl: [70,70,70],   gd: [24,24,24], sl: [92,30,18],  mt: [205,208,214]},
@@ -938,9 +939,9 @@ html.lite .menulogo{display:none}
   let cueOwn = null, cueSel = 0;
   function cueLoad(){
     cueOwn = (store.get("cues_own", "0") || "0").split(",").map(Number).filter(n => CUES[n]); if (!cueOwn.includes(0)) cueOwn.push(0);
-    cueSel = +store.get("cue_sel", "0"); if (!cueOwn.includes(cueSel)) cueSel = 0;
+    cueSel = +store.get("cue_sel", "0"); if (!CUES[cueSel] || (!cueOwn.includes(cueSel) && !slimLivre())) cueSel = 0;
   }
-  const myCue = () => { if (!cueOwn) cueLoad(); return CUES[cueSel] || CUES[0]; };
+  const myCue = () => { if (!cueOwn) cueLoad(); if (!cueOwn.includes(cueSel) && !slimLivre()) return CUES[0]; return CUES[cueSel] || CUES[0]; };
   const otherShoots = () => !!cpu || (vsCPU && turn === 1) || (!!net && turn !== net.me);
   const shooterCue = () => otherShoots() ? CUES[0] : myCue();           // computador e o amigo aparecem com o taco clássico aqui
   const aimK = () => otherShoots() ? 1 : myCue().m;
@@ -949,7 +950,8 @@ html.lite .menulogo{display:none}
     if (net){ if (!net.spect) store.set("ficha0", String(ficha[net.me])); } else { store.set("ficha0", String(ficha[0])); store.set("ficha1", String(ficha[1])); }
     const el = document.getElementById("balance"); if (el) el.textContent = ficha[net ? net.me : 0];
   }
-  const fichaInf = () => !!(DONO && DONO.on && DONO.fichas);          // Modo Slim: gastar não desconta
+  const fichaInf = () => !!(DONO && DONO.on && DONO.fichas);
+  const slimLivre = () => !!(typeof DONO !== "undefined" && DONO && DONO.on && DONO.livre);   // Modo Slim: qualquer taco e giz sem gastar          // Modo Slim: gastar não desconta
   function spendF(n){ if (fichaInf()) return true; const i = myF(); if ((ficha[i] | 0) < n) return false; ficha[i] = (ficha[i] | 0) - n; saveF(); return true; }
   // bola matada por gente (não pelo computador): +1 ficha · 2 bolas na mesma vez = 1 mira longa grátis
   function potsCredit(me, n){
@@ -993,7 +995,7 @@ html.lite .menulogo{display:none}
   let gfx = store.get("gfx", "") || (LITE || weakPhone() ? "low" : "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26102406;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26102408;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -2039,7 +2041,7 @@ html.lite .menulogo{display:none}
       return;
     }
     if (chalkPick){ chalkPick = false; chalkFree = false; flash("Giz guardado"); return; }    // tocou de novo no giz: desiste
-    const tem = GIZ.filter(g => TREINO || gizN(g.id) > 0);
+    const tem = GIZ.filter(g => TREINO || slimLivre() || gizN(g.id) > 0);
     if (tem.length > 1){ openGizPick(tem); return; }                     // tem mais de uma cor: escolhe qual usar
     gizSel = tem[0].id; chalkPick = true; chalkFree = false;
     flash(`Giz de ${tem[0].nome} · toque na bola`);
@@ -2057,7 +2059,7 @@ html.lite .menulogo{display:none}
   // cancelar o giz a qualquer hora (antes de tacar): o giz volta pro contador
   function cancelChalk(msg){
     let any = false; const secret = chalkFree || (chalkShot && chalkShot.free); chalkAnim = null;
-    if (chalkShot){ if (!chalkShot.free) gizAdd(chalkShot.giz || gizCur(), 1); chalkShot = null; any = true; }
+    if (chalkShot){ if (!chalkShot.free && !chalkShot.lv) gizAdd(chalkShot.giz || gizCur(), 1); chalkShot = null; any = true; }
     if (chalkBusy){ chalkBusy = false; chalkGen++; any = true; }
     if (chalkPick){ chalkPick = false; any = true; }
     chalkFree = false;
@@ -2075,7 +2077,7 @@ html.lite .menulogo{display:none}
       const free = chalkFree;
       if ((!free && !chalkReady()) || chalkShot || turn !== myTurnNow || moving || strike || gameOver) return;
       if (!sh){ chalkPick = true; flash(`Sem jogada na ${n} · escolha outra`, true); return; }
-      if (!free){ sh.giz = gizCur(); gizAdd(sh.giz, -1); }             // gasta 1 uso da cor escolhida (o secreto não gasta)
+      if (!free){ sh.giz = gizCur(); sh.lv = slimLivre(); if (!sh.lv) gizAdd(sh.giz, -1); }   // Modo Slim "livre": usa sem descontar             // gasta 1 uso da cor escolhida (o secreto não gasta)
       chalkFree = false; sh.free = free;
       chalkShot = sh; spin = {x:0, y:0}; updateDot();
       let d = sh.a - aim; d = Math.atan2(Math.sin(d), Math.cos(d));
@@ -2422,18 +2424,18 @@ html.lite .menulogo{display:none}
   }
   const CHALK = {x: 0, y: 29, r: 30};
   const chalkOwner = () => net ? (net.spect ? turn : net.me) : vsCPU ? 0 : turn;
-  const chalkReady = () => !DURO && inMatch && !gameOver && !moving && !strike && !cpu && (TREINO || gizTotal() > 0) && myTurn() && !(net && net.spect);
+  const chalkReady = () => !DURO && inMatch && !gameOver && !moving && !strike && !cpu && (TREINO || slimLivre() || gizTotal() > 0) && myTurn() && !(net && net.spect);
   function drawChalk(){
     if (!inMatch) return;
     CHALK.x = LONGB.x - 86;
     if (DURO || LITE) return;                                           // jogo duro e Lite: o giz nem aparece
     const gz = gizById(gizCur()), n = TREINO ? Infinity : gizTotal(), size = 68;
     const px = Math.round(size*scale*dpr), spr = sprite("chalk_" + gz.id, px, (g, p) => paintChalk(g, p, gz.c));
-    ctx.globalAlpha = n > 0 ? 1 : 0.55; ctx.drawImage(spr, CHALK.x - size/2, CHALK.y - size/2 - 2, size, size); ctx.globalAlpha = 1;
+    const nOk = n > 0 || slimLivre(); ctx.globalAlpha = nOk ? 1 : 0.55; ctx.drawImage(spr, CHALK.x - size/2, CHALK.y - size/2 - 2, size, size); ctx.globalAlpha = 1;
     // quantos usos ainda tem (todas as cores)
     const bx = CHALK.x + 26, by = CHALK.y + 14;
     ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.beginPath(); ctx.arc(bx + 1, by + 2, 13, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = n > 0 ? "#f2c45a" : "#8a8a8a"; ctx.beginPath(); ctx.arc(bx, by, 13, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = nOk ? "#f2c45a" : "#8a8a8a"; ctx.beginPath(); ctx.arc(bx, by, 13, 0, Math.PI*2); ctx.fill();
     ctx.strokeStyle = "#1a1209"; ctx.lineWidth = 1.5; ctx.stroke();
     ctx.fillStyle = "#1a1209"; ctx.font = `900 18px ${FONT()}`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(n === Infinity ? "∞" : String(n), bx, by + 1);
   }
@@ -3076,7 +3078,7 @@ html.lite .menulogo{display:none}
   const DONO_HASH = "c0480ed98ef3b2af53ab20b72529bfd6cd02d858";
   // só vale dentro do app e só com a senha certa guardada no aparelho (a senha não fica escrita no jogo, só uma "impressão digital" dela)
   const donoHex = t => [...sha1(new TextEncoder().encode(t))].map(b => b.toString(16).padStart(2, "0")).join("");
-  var DONO = {on: !!window.SinucaApp && donoHex(store.get("dono_key", "")) === "c0480ed98ef3b2af53ab20b72529bfd6cd02d858", giz: store.get("dono_giz", "1") === "1", mira: false, fichas: store.get("dono_fichas_inf", "0") === "1", dedo: store.get("dono_dedo", "1") === "1", curva: store.get("dono_curva", "0") === "1"};
+  var DONO = {on: !!window.SinucaApp && donoHex(store.get("dono_key", "")) === "c0480ed98ef3b2af53ab20b72529bfd6cd02d858", giz: store.get("dono_giz", "1") === "1", mira: false, fichas: store.get("dono_fichas_inf", "0") === "1", dedo: store.get("dono_dedo", "1") === "1", curva: store.get("dono_curva", "0") === "1", livre: store.get("dono_livre", "0") === "1"};
   const donoAtivo = k => DONO.on && DONO[k];                              // vale offline e online (o jogo é do dono)
   const sha1hex = t => [...sha1(new TextEncoder().encode(t))].map(b => b.toString(16).padStart(2, "0")).join("");
   let slimVisto = false;                                                  // disfarce: o painel só aparece depois da senha/digital nesta sessão
@@ -3124,7 +3126,8 @@ html.lite .menulogo{display:none}
   };
   document.getElementById("donoPass").addEventListener("keydown", e => { if (e.key === "Enter") donoTry(); });
   document.querySelectorAll(".dono .chip[data-k]").forEach(c => c.onclick = () => {
-    const k = c.dataset.k; DONO[k] = !DONO[k]; store.set("dono_" + (k === "fichas" ? "fichas_inf" : k), DONO[k] ? "1" : "0"); donoUI(); donoChalk(); sabSend();
+    const k = c.dataset.k; DONO[k] = !DONO[k]; if (k === "livre" && !DONO[k]) cueLoad();   // desligou: volta pro taco que você comprou
+    store.set("dono_" + (k === "fichas" ? "fichas_inf" : k), DONO[k] ? "1" : "0"); donoUI(); donoChalk(); sabSend();
   });
   document.getElementById("donoOut").onclick = () => { DONO.on = false; store.set("dono_key", ""); store.set("dono", ""); donoUI(); donoChalk(); try { window.SinucaApp && window.SinucaApp.slimSair && window.SinucaApp.slimSair(); } catch(e){} flash("Modo Slim desligado neste aparelho"); };
   document.getElementById("p-coins").onclick = () => {
@@ -3522,7 +3525,7 @@ html.lite .menulogo{display:none}
     shopExtrato();
     const grid = document.getElementById("shopGrid"); grid.innerHTML = ""; shopShows = [];
     for (const c of CUES){
-      const own = cueOwn.includes(c.id), sel = cueSel === c.id;
+      const own = cueOwn.includes(c.id) || slimLivre(), sel = cueSel === c.id && (cueOwn.includes(c.id) || slimLivre());
       const el = document.createElement("div"); el.className = "cueitem" + (sel ? " sel" : "");
       el.style.setProperty("--rc", RAR[c.rar].c);
       const rb = document.createElement("span"); rb.className = "rar"; rb.textContent = RAR[c.rar].n; el.appendChild(rb);
@@ -3536,9 +3539,9 @@ html.lite .menulogo{display:none}
       const bt = document.createElement("button"); bt.type = "button";
       if (sel){ bt.className = "using"; bt.textContent = "Em uso"; }
       else if (own){ bt.textContent = "Usar"; bt.onclick = () => { cueSel = c.id; store.set("cue_sel", String(c.id)); shopRender(); }; }
-      else { bt.className = "buy"; bt.innerHTML = `Comprar · ${c.preco} <i class="coin"></i>`; bt.disabled = !fichaInf() && bal < c.preco;
-        bt.onclick = () => { if (!fichaInf() && (ficha[0] | 0) < c.preco) return; if (!fichaInf()) ficha[0] -= c.preco; store.set("ficha0", String(ficha[0])); document.getElementById("balance").textContent = ficha[0];
-          cueOwn.push(c.id); store.set("cues_own", cueOwn.join(",")); cueSel = c.id; store.set("cue_sel", String(c.id)); buyFx(bt, el, `Taco ${c.nome}!`, c.preco); }; }
+      else { bt.className = "buy"; bt.innerHTML = `Comprar · ${c.preco} <i class="coin"></i>`; bt.disabled = bal < c.preco;   // taco só com fichas de verdade
+        bt.onclick = () => { if ((ficha[0] | 0) < c.preco) return; ficha[0] -= c.preco; store.set("ficha0", String(ficha[0])); document.getElementById("balance").textContent = ficha[0];
+          cueOwn.push(c.id); store.set("cues_own", cueOwn.join(",")); cueSel = c.id; store.set("cue_sel", String(c.id)); buyFx(bt, el, `Taco ${c.nome}!`, c.preco, true); }; }
       el.appendChild(bt); grid.appendChild(el);
       requestAnimationFrame(() => {                                       // vitrine: holofote, sombra no chão e o taco inclinado
         const w = cv2.clientWidth || 260, h = w*86/300, d = Math.min(3, window.devicePixelRatio || 1); cv2.width = Math.round(w*d); cv2.height = Math.round(h*d);
@@ -3570,11 +3573,11 @@ html.lite .menulogo{display:none}
     box.querySelectorAll("canvas[data-g]").forEach(c => gizCanvas(c, gizById(c.dataset.g), 26));
   }
   // compra: botão afunda, fica verde "Comprado!", o cartão brilha e sobe o "+" na tela
-  function buyFx(bt, card, txt, preco){
+  function buyFx(bt, card, txt, preco, pago){
     buzz(18); try { sfx.pocket(); } catch(e){}
     bt.classList.add("bought"); bt.innerHTML = "✓ Comprado!"; bt.disabled = true; card.classList.add("pulse");
     const f = document.createElement("span"); f.className = "buyfloat"; f.textContent = txt; card.appendChild(f);
-    if (!fichaInf()){ const m = document.createElement("span"); m.className = "buyfloat minus"; m.innerHTML = `-${preco} <i class="coin"></i>`; card.appendChild(m); }
+    if (pago || !fichaInf()){ const m = document.createElement("span"); m.className = "buyfloat minus"; m.innerHTML = `-${preco} <i class="coin"></i>`; card.appendChild(m); }
     shopExtrato(shopTab === "giz" ? gizSel : true);
     setTimeout(() => { if (!shopBox.hidden) shopRender(); }, 900);
   }
@@ -3842,7 +3845,8 @@ html.lite .menulogo{display:none}
     let v = WEB_VER; try { if (window.SinucaApp && window.SinucaApp.versaoWeb) v = Math.max(v, window.SinucaApp.versaoWeb()); } catch(e){}
     document.getElementById("verTxt").textContent = `Versão do jogo ${v}` + (window.SinucaApp ? " · atualiza sozinho com internet" : "");
     const b = document.getElementById("verCheck");
-    if (window.SinucaApp && window.SinucaApp.procurarAtualizacao){ b.hidden = false; b.onclick = () => { window.SinucaApp.procurarAtualizacao(); flash("Procurando atualização…"); }; }
+    if (window.SinucaApp && window.SinucaApp.procurarAtualizacao){ b.hidden = false; b.onclick = () => { window.SinucaApp.procurarAtualizacao(); flash("Procurando atualização…"); };
+    window.__updEstado = (st, v) => { if (st === "nada") flash(`Você já está na versão mais nova (${v})`); else if (st === "erro") flash("Não deu pra procurar agora · confira a internet", true); else if (st === "ocupado") flash("Já estou procurando, espera uns segundos…"); }; }
   })();
   // ---------- Mini chat (jogadores conversam; quem assiste lê) ----------
   let chatUnread = false, chatLast = 0;
