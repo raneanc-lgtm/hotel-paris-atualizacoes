@@ -1002,7 +1002,7 @@ button:focus, button:focus-visible, .chip:focus, .chip:focus-visible, .tile:focu
   let gfx = store.get("gfx", "") || (LITE || weakPhone() ? "low" : "max");                                            // qualidade gráfica: max (2K) · bal · low
   let lineStyle = store.get("lstyle", "pad");                                   // "pad" = linhas finas · "mod" = faixa com setas                                    // sensibilidade da roda de mira
   let ruleMode = "reg", TRAD = ruleMode === "trad", BOL = ruleMode === "bol", TREINO = ruleMode === "treino";
-  const WEB_VER = 26102409;                                                   // versão do jogo (o app baixa a mais nova sozinho)
+  const WEB_VER = 26102410;                                                   // versão do jogo (o app baixa a mais nova sozinho)
   let net = null;                                                              // partida online: {host, me, code, send, close}
   let netCap = null, netPendingEnd = null, netPendingRack = null, netAimT = 0, netAimSig = "", netEndTimer = 0;
   const myTurn = () => net ? turn === net.me : (!vsCPU || turn === 0);         // é a minha vez de mexer na mesa?
@@ -2464,8 +2464,9 @@ button:focus, button:focus-visible, .chip:focus, .chip:focus-visible, .tile:focu
       const txt = `TREINO  ·  Tacadas ${tShots}  ·  Matadas ${tPots}`;
       ctx.font = `italic 800 22px ${font}`; const w = ctx.measureText(txt).width + 50;
       panelRect = {x: slot.cx - w/2, y: slot.cy - 23, w, h: 46};
-      ctx.fillStyle = "rgba(0,0,0,.52)"; rr(slot.cx - w/2, slot.cy - 23, w, 46, 23); ctx.fill();
-      ctx.strokeStyle = "rgba(242,196,90,.35)"; ctx.lineWidth = 1.5; rr(slot.cx - w/2, slot.cy - 23, w, 46, 23); ctx.stroke();
+      { const tg = ctx.createLinearGradient(0, slot.cy - 23, 0, slot.cy + 23); tg.addColorStop(0, "#2b1e14"); tg.addColorStop(1, "#130d08"); ctx.fillStyle = tg; }
+      rr(slot.cx - w/2, slot.cy - 23, w, 46, 23); ctx.fill();
+      ctx.strokeStyle = "#c9a24a"; ctx.lineWidth = 2; rr(slot.cx - w/2, slot.cy - 23, w, 46, 23); ctx.stroke();
       ctx.fillStyle = "#f2c45a"; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(txt, slot.cx, slot.cy + 1);
       return;
     }
@@ -2474,40 +2475,69 @@ button:focus, button:focus-visible, .chip:focus, .chip:focus-visible, .tile:focu
       return;
     }
     const {cx, cy} = slot;
-    // placar + fichas: [nome] [ficha saldo] (vitórias) <aposta> (vitórias) [saldo ficha] [nome]
-    const badge = (x, n) => {
-      ctx.fillStyle = "#d9a441"; ctx.beginPath(); ctx.arc(x, cy, 16, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = "rgba(26,18,9,.7)"; ctx.lineWidth = 1.5; ctx.stroke();
-      ctx.fillStyle = "#1a1209"; ctx.font = `900 21px ${font}`; ctx.textAlign = "center"; ctx.fillText(String(n), x, cy + 1);
-    };
-    const mid = BET() ? 34 : 18;                                      // meia-largura do miolo (aposta ou "x")
-    const sideW = (name, bal) => {
-      ctx.font = `italic 800 22px ${font}`; let w = 12 + 32 + 14 + 4 + ctx.measureText(name).width;
-      if (BET()){ ctx.font = `900 26px ${font}`; w += 26 + 6 + ctx.measureText(String(bal)).width + 16; }
-      return w;
-    };
+    // placar organizado e sólido: [nome · saldo · vitórias] [APOSTA] [vitórias · saldo · nome]
+    const H2 = 48, y0 = cy - H2/2, bet = BET(), cw = bet ? 86 : 44;
     let names = [NAME(0), NAME(1)];
-    const widthOf = nm => 2*(mid + Math.max(sideW(nm[0], ficha[0]), sideW(nm[1], ficha[1])) + 22);   // painel simétrico
-    let W2 = widthOf(names);
-    if (W2 > slot.w - 10){ names = net ? ["Você", "Amigo"] : vsCPU ? ["Você", "CPU"] : ["P-1", "P-2"]; W2 = widthOf(names); }
-    panelRect = {x: cx - W2/2, y: cy - 23, w: W2, h: 46};
-    ctx.fillStyle = "rgba(0,0,0,.52)"; rr(cx - W2/2, cy - 23, W2, 46, 23); ctx.fill();
-    ctx.strokeStyle = "rgba(242,196,90,.35)"; ctx.lineWidth = 1.5; rr(cx - W2/2, cy - 23, W2, 46, 23); ctx.stroke();
-    ctx.textBaseline = "middle";
+    const pillW = i => { ctx.font = `900 20px ${font}`; return 30 + ctx.measureText(String(ficha[i] | 0)).width + 14; };
+    const sideW = nm => { ctx.font = `italic 800 21px ${font}`; return 8 + 30 + 10 + (bet ? Math.max(pillW(0), pillW(1)) + 10 : 0) + Math.max(ctx.measureText(nm[0]).width, ctx.measureText(nm[1]).width) + 30; };
+    let W2 = cw + 2*sideW(names);
+    if (W2 > slot.w - 10){ names = net ? ["Você", "Amigo"] : vsCPU ? ["Você", "CPU"] : ["P-1", "P-2"]; W2 = cw + 2*sideW(names); }
+    const SW = (W2 - cw)/2, xl = cx - W2/2;
+    panelRect = {x: xl, y: y0, w: W2, h: H2};
+    // fundo sólido (madeira escura) com borda dourada
+    let gr = ctx.createLinearGradient(0, y0, 0, y0 + H2); gr.addColorStop(0, "#2b1e14"); gr.addColorStop(1, "#130d08");
+    ctx.fillStyle = "#000"; rr(xl - 1, y0 + 2, W2 + 2, H2 + 1, H2/2); ctx.fill();
+    ctx.fillStyle = gr; rr(xl, y0, W2, H2, H2/2); ctx.fill();
+    // lado de quem joga: destaque dourado
     for (let i = 0; i < 2; i++){
-      const d = i ? 1 : -1;                                           // -1 = esquerda (P-1), +1 = direita (P-2)
-      let x = cx + d*(mid + 12 + 16);
-      badge(x, wins[i]); x += d*(16 + 14);
-      if (BET()){
-        ctx.font = `900 26px ${font}`; const bw = ctx.measureText(String(ficha[i])).width;
-        ctx.textAlign = i ? "left" : "right"; ctx.fillStyle = "#ffffff"; ctx.fillText(String(ficha[i]), x, cy + 1);
-        x += d*(bw + 6 + 13); drawChip(x, cy, 13); x += d*(13 + 20);
-      }
-      ctx.textAlign = i ? "left" : "right"; ctx.font = `italic 800 22px ${font}`;
-      ctx.fillStyle = turn === i ? "#f2c45a" : "#d8d8d8"; ctx.fillText(names[i], x, cy + 1);
+      if (turn !== i || gameOver) continue;
+      const sx = i ? cx + cw/2 - 2 : xl;
+      ctx.save(); rr(xl, y0, W2, H2, H2/2); ctx.clip();
+      const hg = ctx.createLinearGradient(0, y0, 0, y0 + H2); hg.addColorStop(0, "#4a3417"); hg.addColorStop(1, "#24180c");
+      ctx.fillStyle = hg; ctx.fillRect(sx, y0, SW + 2, H2); ctx.restore();
     }
-    if (BET()) drawChip(cx, cy - 4, 27, wager, 2);                     // meio: a aposta (pilha de fichas)
-    else { ctx.font = `900 22px ${font}`; ctx.textAlign = "center"; ctx.fillStyle = "#f2c45a"; ctx.fillText("×", cx, cy + 1); }
+    ctx.strokeStyle = "#c9a24a"; ctx.lineWidth = 2; rr(xl, y0, W2, H2, H2/2); ctx.stroke();
+    // miolo: a aposta
+    ctx.textBaseline = "middle";
+    if (bet){
+      const bx = cx - cw/2 + 4, bw = cw - 8;
+      const cg = ctx.createLinearGradient(0, y0 + 4, 0, y0 + H2 - 4); cg.addColorStop(0, "#ffe08a"); cg.addColorStop(1, "#c98a14");
+      ctx.fillStyle = cg; rr(bx, y0 + 4, bw, H2 - 8, 10); ctx.fill();
+      ctx.strokeStyle = "#7a520c"; ctx.lineWidth = 1.5; rr(bx, y0 + 4, bw, H2 - 8, 10); ctx.stroke();
+      ctx.fillStyle = "#4a2f08"; ctx.font = `900 10px ${font}`; ctx.textAlign = "center"; ctx.fillText("APOSTA", cx, y0 + 13);
+      ctx.font = `900 21px ${font}`; const tw = ctx.measureText(String(wager)).width, iw = 27, gx0 = cx - (iw + 4 + tw)/2;
+      if (IMG.ficha.complete && IMG.ficha.naturalWidth) ctx.drawImage(IMG.ficha, gx0 - 2, cy + 6 - iw/2 - 1, iw + 2, iw + 2);
+      ctx.fillStyle = "#1a1209"; ctx.textAlign = "left"; ctx.fillText(String(wager), gx0 + iw + 4, cy + 7);
+    } else {
+      ctx.fillStyle = "#c9a24a"; ctx.beginPath(); ctx.arc(cx, cy, 15, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#1a1209"; ctx.font = `900 14px ${font}`; ctx.textAlign = "center"; ctx.fillText("VS", cx, cy + 1);
+    }
+    // os dois lados
+    for (let i = 0; i < 2; i++){
+      const d = i ? 1 : -1;
+      let x = cx + d*(cw/2 + 8);
+      // vitórias
+      const wx = x + d*15;
+      ctx.fillStyle = "#0e0a07"; ctx.beginPath(); ctx.arc(wx, cy, 16, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#d9a441"; ctx.beginPath(); ctx.arc(wx, cy, 14, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = "#1a1209"; ctx.font = `900 18px ${font}`; ctx.textAlign = "center"; ctx.fillText(String(wins[i]), wx, cy + 1);
+      x += d*(30 + 10);
+      // saldo de fichas numa pílula
+      if (bet){
+        const pw = pillW(i), px = i ? x : x - pw;
+        ctx.fillStyle = "#0e0a07"; rr(px, cy - 15, pw, 30, 15); ctx.fill();
+        ctx.strokeStyle = "#3d2c1c"; ctx.lineWidth = 1.5; rr(px, cy - 15, pw, 30, 15); ctx.stroke();
+        if (IMG.ficha1.complete && IMG.ficha1.naturalWidth) ctx.drawImage(IMG.ficha1, px + 1, cy - 14, 28, 28);
+        ctx.fillStyle = "#ffffff"; ctx.font = `900 20px ${font}`; ctx.textAlign = "left"; ctx.fillText(String(ficha[i] | 0), px + 31, cy + 1);
+        x += d*(pw + 10);
+      }
+      // nome (dourado na vez) + setinha
+      const on = turn === i && !gameOver;
+      ctx.font = `italic 800 21px ${font}`; ctx.textAlign = i ? "left" : "right";
+      ctx.fillStyle = on ? "#f2c45a" : "#e6e0d4"; ctx.fillText(names[i], x, cy + 1);
+      if (on){ const nw = ctx.measureText(names[i]).width, ax = x + d*(nw + 10);
+        ctx.fillStyle = "#f2c45a"; ctx.beginPath(); ctx.moveTo(ax + d*6, cy); ctx.lineTo(ax - d*3, cy - 6); ctx.lineTo(ax - d*3, cy + 6); ctx.closePath(); ctx.fill(); }
+    }
   }
 
 
