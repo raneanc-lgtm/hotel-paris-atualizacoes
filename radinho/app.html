@@ -480,7 +480,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 23;
+const APP_VERSAO = 24;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1186,7 +1186,7 @@ async function pegarVez(){
     r.onDisconnect().remove().catch(()=>{});
     minhaVez = true;
     return true;
-  }catch(e){ return false; }
+  }catch(e){ return true; }   // regras antigas no servidor (sem trava): deixa falar como antes
 }
 function soltarVez(){
   if (!minhaVez || !refCanal) return;
