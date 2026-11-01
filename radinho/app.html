@@ -370,6 +370,14 @@
       <label class="sw"><input type="checkbox" id="swTrava"><b></b></label>
     </div>
     <div class="opcao">
+      <span>Voice Talk (falar sem apertar)<small>Com o app aberto, começa a transmitir sozinho quando você fala e envia quando você para</small></span>
+      <label class="sw"><input type="checkbox" id="swVox"><b></b></label>
+    </div>
+    <div id="voxSens" hidden>
+      <div class="opcao" style="border-bottom:0;padding-bottom:4px"><span>Sensibilidade do Voice Talk<small id="lblVox">Média</small></span></div>
+      <input type="range" id="rgVox" min="1" max="3" step="1" value="2">
+    </div>
+    <div class="opcao">
       <span>Manter vivo em segundo plano<small>Segura o áudio ativo pra receber chamadas com o app minimizado</small></span>
       <label class="sw"><input type="checkbox" id="swVivo"><b></b></label>
     </div>
@@ -480,7 +488,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 24;
+const APP_VERSAO = 25;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -571,8 +579,11 @@ const cfgLocal = {
   tela:    LS.get('radinho_tela') === '1',
   vibra:   LS.get('radinho_vibra') !== '0',
   somChat: LS.get('radinho_somchat') !== '0',
-  silencio: LS.get('radinho_silencio') === '1'
+  silencio: LS.get('radinho_silencio') === '1',
+  vox:      LS.get('radinho_vox') === '1',
+  voxSens:  parseInt(LS.get('radinho_voxsens') || '2')
 };
+const vox = { stream: null, ctx: null, an: null, buf: null, timer: null, acima: 0, abaixo: 0, abrindo: false, ultimoSom: 0 };
 const VEZ_MS = (MAX_SEG + 8) * 1000;    // a vez de falar expira sozinha se alguém travar
 let vez = null, minhaVez = false, privado = null, envioPara = null, privCarregado = false;
 const privAud = {};
@@ -890,6 +901,7 @@ async function conectarCanal(){
   refCanal.child('mudos').on('value', s => {
     mudos = s.val() || {};
     const antes = souMudo; souMudo = !!mudos[uid];
+    if (souMudo) voxDesligar(); else if (antes) setTimeout(voxLigar, 300);
     if (souMudo && !antes){ aviso('Você foi silenciado neste canal.', 4000); if (gravando) parar(); }
     if (!souMudo && antes) aviso('Você pode falar de novo!');
     $('inMsg').disabled = souMudo;
@@ -917,6 +929,7 @@ async function conectarCanal(){
   atualizarVisor();
   setTimeout(() => LS.set('radinho_boot', '0'), 6000); // app subiu bem
   setTimeout(sincronizarStandby, 1500);
+  setTimeout(voxLigar, 1200);
   setInterval(sincronizarStandby, 20 * 60000);          // renova o login do stand-by
 }
 function renderOnline(lista){
@@ -1148,6 +1161,7 @@ function mimeSuportado(){
 }
 async function pegarMic(){
   clearTimeout(micTO);
+  if (vox.stream && vox.stream.getTracks().some(t => t.readyState === 'live')) return vox.stream;   // Voice Talk já está com o mic aberto
   if (stream && stream.getTracks().some(t => t.readyState === 'live')) return stream;
   stream = await navigator.mediaDevices.getUserMedia({
     audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: true, channelCount: 1 }
@@ -1169,6 +1183,63 @@ function resetarAudio(){          // reabre o som em modo mídia depois de usar 
   garantirCtx();
   if (cfgLocal.vivo) ligarVivo();
   carregarToque();
+}
+/* ---------------- Voice Talk (VOX) ---------------- */
+const VOX_LIMIAR = { 1: 0.07, 2: 0.04, 3: 0.022 };   // baixa, média, alta
+function voxPode(){ return cfgLocal.vox && refCanal && !saindo && !souMudo && !escondido(); }
+async function voxLigar(){
+  if (!voxPode() || vox.stream || vox.abrindo) return;
+  vox.abrindo = true;
+  try{
+    vox.stream = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: false, noiseSuppression: true, autoGainControl: false, channelCount: 1 }
+    });
+    if (!voxPode()){ voxDesligar(); return; }
+    vox.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const src = vox.ctx.createMediaStreamSource(vox.stream);
+    vox.an = vox.ctx.createAnalyser(); vox.an.fftSize = 1024;
+    vox.buf = new Float32Array(vox.an.fftSize);
+    src.connect(vox.an);
+    vox.acima = 0; vox.abaixo = 0;
+    vox.timer = setInterval(voxTique, 50);
+    textoPTT();
+  }catch(e){
+    aviso('Voice Talk precisa do microfone. Libere a permissão do Radinho.', 5000);
+    voxDesligar();
+  }finally{ vox.abrindo = false; }
+}
+function voxDesligar(){
+  clearInterval(vox.timer); vox.timer = null;
+  if (vox.transmitindo && gravando) parar();
+  vox.transmitindo = false;
+  if (vox.stream){ try{ vox.stream.getTracks().forEach(t => t.stop()); }catch(e){} vox.stream = null; micUsado = true; }
+  if (vox.ctx){ try{ vox.ctx.close(); }catch(e){} vox.ctx = null; }
+  vox.an = null;
+  textoPTT();
+}
+function voxTique(){
+  if (!vox.an || !voxPode()){ if (!voxPode()) voxDesligar(); return; }
+  if (vox.ctx && vox.ctx.state === 'suspended') vox.ctx.resume().catch(()=>{});
+  vox.an.getFloatTimeDomainData(vox.buf);
+  let soma = 0; for (let i = 0; i < vox.buf.length; i++) soma += vox.buf[i] * vox.buf[i];
+  const nivel = Math.sqrt(soma / vox.buf.length);
+  const limiar = VOX_LIMIAR[cfgLocal.voxSens] || 0.04;
+  const agoraMs = Date.now();
+  if (tocando || fila.length) vox.ultimoSom = agoraMs;          // não confundir o áudio que está tocando com a sua voz
+  if (vox.transmitindo){
+    if (!gravando){ vox.transmitindo = false; vox.abaixo = 0; return; }
+    vox.abaixo = nivel < limiar * 0.6 ? vox.abaixo + 50 : 0;
+    if (vox.abaixo >= 1300){ vox.transmitindo = false; vox.abaixo = 0; parar(); }   // parou de falar: envia
+    return;
+  }
+  if (gravando || gravChat || tocando || fila.length || agoraMs - vox.ultimoSom < 700) { vox.acima = 0; return; }
+  if (!privado && quemTemVez()) { vox.acima = 0; return; }     // canal ocupado: espera
+  vox.acima = nivel > limiar ? vox.acima + 50 : 0;
+  if (vox.acima >= 150){
+    vox.acima = 0; vox.transmitindo = true;
+    apertado = true;
+    comecar().then(() => { if (!gravando) vox.transmitindo = false; textoPTT(); });
+  }
 }
 function quemTemVez(){                  // nome de quem está com a vez de falar no canal (ou null)
   if (vez && vez.uid !== uid && (agora() - (vez.ts || 0)) < VEZ_MS) return vez.nome || 'Alguém';
@@ -1200,6 +1271,8 @@ function textoPTT(){
   $('ptt').classList.toggle('ocupado', !!ocupado);
   if (ocupado){ $('pttTxt').textContent = 'CANAL OCUPADO'; $('pttTxt').classList.remove('on'); return; }
   $('pttTxt').textContent = souMudo ? 'VOCÊ ESTÁ SILENCIADO'
+    : (cfgLocal.vox && gravando && vox.transmitindo) ? 'FALANDO... (VOICE TALK)'
+    : (cfgLocal.vox && !gravando && vox.stream) ? 'VOICE TALK: É SÓ FALAR'
     : gravando ? (cfgLocal.trava ? 'TOQUE PARA ENVIAR' : 'FALANDO...')
                : (cfgLocal.trava ? 'TOQUE PARA FALAR' : 'SEGURE PARA FALAR');
   $('pttTxt').classList.toggle('on', gravando);
@@ -1216,7 +1289,8 @@ async function comecar(){
   }
   const mime = mimeSuportado();
   if (mime === null){ aviso('Este aparelho não suporta gravação.'); apertado = false; return; }
-  try{ await pegarMic(); }
+  let st;
+  try{ st = await pegarMic(); }
   catch(e){ aviso('Sem acesso ao microfone. Libere a permissão do Radinho nas configurações do Android.', 5000); apertado = false; return; }
   if (!apertado || !naTela()) { soltarMic(); apertado = false; return; }
   if (!envioPara){
@@ -1230,8 +1304,8 @@ async function comecar(){
 
   pararTocar();
   const opts = { audioBitsPerSecond: BITRATE }; if (mime) opts.mimeType = mime;
-  try{ rec = new MediaRecorder(stream, opts); }
-  catch(e){ rec = new MediaRecorder(stream); }
+  try{ rec = new MediaRecorder(st, opts); }
+  catch(e){ rec = new MediaRecorder(st); }
   chunks = [];
   rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); };
   rec.onstop = () => { soltarMic(); enviar(); };
@@ -1408,11 +1482,12 @@ async function comecarAudioChat(){
   const mime = mimeSuportado();
   if (mime === null){ aviso('Este aparelho não suporta gravação.'); return; }
   destravarAudio();
-  try{ await pegarMic(); }
+  let stc;
+  try{ stc = await pegarMic(); }
   catch(e){ aviso('Sem acesso ao microfone. Libere a permissão do Radinho nas configurações do Android.', 5000); return; }
   pararTocar();
   const opts = { audioBitsPerSecond: BITRATE }; if (mime) opts.mimeType = mime;
-  try{ recChat = new MediaRecorder(stream, opts); }catch(e){ recChat = new MediaRecorder(stream); }
+  try{ recChat = new MediaRecorder(stc, opts); }catch(e){ recChat = new MediaRecorder(stc); }
   chunksChat = []; cancelouChat = false;
   recChat.ondataavailable = e => { if (e.data && e.data.size) chunksChat.push(e.data); };
   recChat.onstop = () => { soltarMic(); enviarAudioChat(); };
@@ -1958,6 +2033,21 @@ function prepararAjustes(){
     $('lblVol').textContent = e.target.value + '%';
     if (ganho) ganho.gain.value = cfgLocal.vol;
   };
+  $('swVox').checked = cfgLocal.vox;
+  $('voxSens').hidden = !cfgLocal.vox;
+  $('rgVox').value = cfgLocal.voxSens;
+  const nomesSens = { 1: 'Baixa (lugar barulhento)', 2: 'Média', 3: 'Alta (lugar silencioso)' };
+  $('lblVox').textContent = nomesSens[cfgLocal.voxSens] || 'Média';
+  $('swVox').onchange = e => {
+    cfgLocal.vox = e.target.checked; LS.set('radinho_vox', cfgLocal.vox ? '1' : '0');
+    $('voxSens').hidden = !cfgLocal.vox;
+    if (cfgLocal.vox){ voxLigar(); aviso('🎙 Voice Talk ligado: com o app aberto, é só falar que ele transmite.', 4500); }
+    else { voxDesligar(); aviso('Voice Talk desligado. Volta a ser no botão.'); }
+  };
+  $('rgVox').oninput = e => {
+    cfgLocal.voxSens = parseInt(e.target.value) || 2; LS.set('radinho_voxsens', String(cfgLocal.voxSens));
+    $('lblVox').textContent = nomesSens[cfgLocal.voxSens] || 'Média';
+  };
   $('swTrava').onchange = e => {
     if (gravando) parar();
     cfgLocal.trava = e.target.checked; LS.set('radinho_trava', cfgLocal.trava ? '1' : '0'); textoPTT();
@@ -2005,7 +2095,7 @@ function prepararAjustes(){
   $('btnSilencio').onclick = alternarSilencio;
   renderSilencio(); renderAlvo();
   $('btnSair').onclick = async () => {
-    saindo = true; desligarStandby();
+    saindo = true; desligarStandby(); voxDesligar();
     try{ await refCanal.child('online/' + uid).remove(); }catch(e){}
     LS.del('radinho_canal'); location.reload();
   };
@@ -2041,6 +2131,7 @@ $('btnEntrar').onclick = async () => {
 document.addEventListener('pointerdown', () => { if (!ctx || ctx.state !== 'running') destravarAudio(); }, true);
 document.addEventListener('visibilitychange', () => {
   if (standbyNativo()) try{ RadinhoNativo.visivel(!escondido()); }catch(e){}
+  if (escondido()) voxDesligar(); else setTimeout(voxLigar, 400);
   if (document.visibilityState === 'visible'){
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(()=>{});
     resetarAudio();
