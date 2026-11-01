@@ -554,6 +554,10 @@
     <button class="btn" id="btnPublicar" data-ic="upload">Publicar atualização (arquivo .html)</button>
 
     <h4>SEGURANÇA</h4>
+    <div class="opcao" id="opDigital" hidden>
+      <span>Entrar com a digital<small>Ao segurar o palhaço, pede a digital em vez da senha</small></span>
+      <label class="sw"><input type="checkbox" id="swDigital"><b></b></label>
+    </div>
     <button class="btn sec" id="btnTrocarMaster" data-ic="lock">Trocar a senha de administrador</button>
     <button class="btn sec" id="btnFecharM">Fechar</button>
   </div>
@@ -565,7 +569,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 29;
+const APP_VERSAO = 30;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1222,29 +1226,62 @@ async function hashMaster(senha){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('radinho-master:' + senha));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+const temDigital = () => !!(window.RadinhoNativo && typeof RadinhoNativo.digital === 'function');
+function pedirDigital(){                 // APK novo: abre a digital do Android e espera a resposta
+  return new Promise(res => {
+    try{ RadinhoNativo.digital('Painel master do Radinho'); }catch(e){ res('erro'); return; }
+    let n = 0;
+    const t = setInterval(() => {
+      let st = 'pendente';
+      try{ st = RadinhoNativo.digitalResultado(); }catch(e){ st = 'erro'; }
+      if (st !== 'pendente' || ++n > 400){ clearInterval(t); res(st === 'pendente' ? 'erro' : st); }
+    }, 150);
+  });
+}
+async function lerSenhaMaster(){         // a senha é única: procura no servidor e na cópia guardada neste aparelho
+  let salvo = null, falhou = false;
+  try{ salvo = (await db.ref('segredos/master/hash').once('value')).val(); }catch(e){ falhou = true; }
+  const local = LS.get('radinho_master');
+  if (!salvo && local) salvo = local;
+  if (salvo && salvo !== local) LS.set('radinho_master', salvo);
+  return { salvo, falhou };
+}
+async function salvarSenhaMaster(senha){
+  const h = await hashMaster(senha);
+  LS.set('radinho_master', h);
+  try{ await db.ref('segredos/master/hash').set(h); }catch(e){}
+}
 async function abrirMaster(){
   if (!souAdmin()) return;
   if (!masterOk){
-    let salvo = null;
-    try{ salvo = (await db.ref('segredos/master/hash').once('value')).val(); }catch(e){}
+    const { salvo } = await lerSenhaMaster();
     if (!salvo){
-      const r = await janela({ titulo: '🤡 Criar senha de administrador', texto: 'Essa é a senha principal do Radinho. Ela abre o painel master. Guarde bem.',
+      const r = await janela({ titulo: '🤡 Criar senha de administrador', texto: 'Essa é a senha principal e única do Radinho. Ela abre o painel master. Guarde bem.',
         campos: [{ id: 's1', label: 'Senha (mínimo 4)', senha: true, minusculo: true }, { id: 's2', label: 'Repita a senha', senha: true, minusculo: true }], ok: 'Criar' });
       if (!r) return;
       if (r.s1.length < 4){ aviso('A senha precisa ter pelo menos 4 caracteres.'); return; }
       if (r.s1 !== r.s2){ aviso('As senhas não batem.'); return; }
-      try{ await db.ref('segredos/master/hash').set(await hashMaster(r.s1)); }
-      catch(e){ aviso('Não deu pra salvar a senha. Cole as regras novas no Firebase.', 5000); return; }
-      aviso('Senha criada! ✅');
+      await salvarSenhaMaster(r.s1);
+      aviso(temDigital() ? 'Senha criada! ✅ Da próxima vez dá pra entrar com a digital.' : 'Senha criada! ✅', 4500);
     } else {
-      const r = await janela({ titulo: '🤡 Painel master', texto: 'Digite a senha de administrador.', campos: [{ id: 's', label: 'Senha', senha: true, minusculo: true }], ok: 'Entrar' });
-      if (!r) return;
-      if ((await hashMaster(r.s)) !== salvo){ vibrar([60, 60, 60]); aviso('Senha errada.'); return; }
+      let liberou = false;
+      if (temDigital() && LS.get('radinho_digital') !== '0'){
+        const d = await pedirDigital();
+        if (d === 'ok') liberou = true;
+        else if (d === 'indisponivel') aviso('Esse celular não tem digital cadastrada. Use a senha.', 4000);
+      }
+      if (!liberou){
+        const r = await janela({ titulo: '🤡 Painel master', texto: 'Digite a senha de administrador.', campos: [{ id: 's', label: 'Senha', senha: true, minusculo: true }], ok: 'Entrar' });
+        if (!r) return;
+        if ((await hashMaster(r.s)) !== salvo){ vibrar([60, 60, 60]); aviso('Senha errada.'); return; }
+      }
     }
     masterOk = true;
   }
   $('selTTL').value = String(ttlMs());
   $('selModo').value = cfgApp.modo === 'aprovacao' ? 'aprovacao' : 'aberto';
+  $('opDigital').hidden = !temDigital();
+  $('swDigital').checked = LS.get('radinho_digital') !== '0';
   $('fundoM').hidden = false;
   vigiarContas();
 }
@@ -1342,11 +1379,12 @@ function prepararMaster(){
   $('mFiltroTodos').onclick = () => { filtroContas = 'todos'; renderContas(); };
   $('mFiltroOn').onclick = () => { filtroContas = 'on'; renderContas(); };
   $('mFiltroEsp').onclick = () => { filtroContas = 'esp'; renderContas(); };
+  $('swDigital').onchange = e => { LS.set('radinho_digital', e.target.checked ? '1' : '0'); aviso(e.target.checked ? '👆 Digital ligada pro painel master.' : 'Digital desligada: vai pedir a senha.'); };
   $('btnTrocarMaster').onclick = async () => {
     const r = await janela({ titulo: 'Trocar a senha de administrador', campos: [{ id: 's1', label: 'Senha nova (mínimo 4)', senha: true, minusculo: true }, { id: 's2', label: 'Repita', senha: true, minusculo: true }], ok: 'Trocar' });
     if (!r) return;
     if (r.s1.length < 4 || r.s1 !== r.s2){ aviso('Senha muito curta ou as duas não batem.'); return; }
-    try{ await db.ref('segredos/master/hash').set(await hashMaster(r.s1)); aviso('Senha trocada! ✅'); }catch(e){ aviso('Erro ao salvar a senha.'); }
+    await salvarSenhaMaster(r.s1); aviso('Senha trocada! ✅');
   };
 }
 function renderAlvo(){
@@ -2630,6 +2668,7 @@ document.addEventListener('pointerdown', () => { if (!ctx || ctx.state !== 'runn
 document.addEventListener('visibilitychange', () => {
   if (standbyNativo()) try{ RadinhoNativo.visivel(!escondido()); }catch(e){}
   if (escondido()) voxDesligar(); else setTimeout(voxLigar, 400);
+  if (escondido()){ masterOk = false; if (!$('fundoM').hidden) fecharMaster(); }
   if (!escondido() && temBolha() && LS.get('radinho_bolha') === '1'){
     if (!RadinhoNativo.podeBolha()) aviso('Falta liberar "Exibir sobre outros apps" pro botão flutuante aparecer.', 5000);
     else { const sw = $('swBolha'); if (sw) sw.checked = true; }
