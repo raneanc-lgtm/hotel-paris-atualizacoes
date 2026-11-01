@@ -373,6 +373,10 @@
       <span>Voice Talk (falar sem apertar)<small>Com o app aberto, começa a transmitir sozinho quando você fala e envia quando você para</small></span>
       <label class="sw"><input type="checkbox" id="swVox"><b></b></label>
     </div>
+    <div class="opcao" id="opBolha" style="display:none">
+      <span>Botão flutuante<small>O palhaço fica boiando na tela quando você sai do app: segure pra falar, toque pra abrir, arraste pra mover</small></span>
+      <label class="sw"><input type="checkbox" id="swBolha"><b></b></label>
+    </div>
     <div id="voxSens" hidden>
       <div class="opcao" style="border-bottom:0;padding-bottom:4px"><span>Sensibilidade do Voice Talk<small id="lblVox">Média</small></span></div>
       <input type="range" id="rgVox" min="1" max="3" step="1" value="2">
@@ -488,7 +492,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 27;
+const APP_VERSAO = 28;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -608,6 +612,8 @@ function sincronizarStandby(){        // APK novo: o Android fica escutando o ca
     RadinhoNativo.standby(JSON.stringify({
       rt: u.refreshToken, uid, canal, nome, key: FIREBASE_CONFIG.apiKey,
       fundo: modoFundo(), silencio: !!cfgLocal.silencio,
+      bolha: LS.get('radinho_bolha') === '1' && temBolha(),
+      privado: privado ? { id: privado.id, nome: privado.nome } : null,
       chat: LS.get('radinho_chatmodo') || (LS.get('radinho_somchat') === '0' ? 'vibra' : 'som'),
       chatAte: parseInt(LS.get('radinho_chatate')) || 0,
       mut: Object.keys(mutadosLocal)
@@ -615,6 +621,7 @@ function sincronizarStandby(){        // APK novo: o Android fica escutando o ca
     RadinhoNativo.visivel(!escondido());
   }catch(e){}
 }
+const temBolha = () => !!(window.RadinhoNativo && typeof RadinhoNativo.podeBolha === 'function');
 function desligarStandby(){ if (standbyNativo()) try{ RadinhoNativo.standby(''); }catch(e){} }
 function notificarNativo(titulo, texto, tipo, som){   // usado pelo APK novo quando ele tiver notificação nativa
   try{ if (window.RadinhoNativo && RadinhoNativo.notificar) RadinhoNativo.notificar(String(titulo), String(texto), tipo, !!som); }catch(e){}
@@ -1075,7 +1082,7 @@ function escolherAlvo(){
 function mudarPrivado(p){
   if (gravando) return;
   privado = p;
-  renderAlvo(); textoPTT(); atualizarVisor();
+  renderAlvo(); textoPTT(); atualizarVisor(); sincronizarStandby();
   aviso(p ? '🔒 Privado com ' + p.nome + '. Só ele ouve.' : '📢 Voltou a falar com todos do canal.');
 }
 function renderSilencio(){
@@ -2089,6 +2096,25 @@ function prepararAjustes(){
     $('lblVol').textContent = e.target.value + '%';
     if (ganho) ganho.gain.value = cfgLocal.vol;
   };
+  $('opBolha').style.display = temBolha() ? '' : 'none';
+  $('swBolha').checked = LS.get('radinho_bolha') === '1' && temBolha();
+  $('swBolha').onchange = async e => {
+    if (e.target.checked){
+      if (!RadinhoNativo.podeBolha()){
+        const ok = await confirmar('Liberar o botão flutuante', 'O Android vai abrir a tela "Exibir sobre outros apps". Ative o Radinho lá e volte pra cá.', 'Abrir');
+        if (!ok){ e.target.checked = false; return; }
+        LS.set('radinho_bolha', '1');
+        RadinhoNativo.pedirPermissaoBolha();
+      } else {
+        LS.set('radinho_bolha', '1');
+        aviso('🤡 Botão flutuante ligado: ele aparece quando você sair do app.', 4500);
+      }
+    } else {
+      LS.set('radinho_bolha', '0');
+      aviso('Botão flutuante desligado.');
+    }
+    sincronizarStandby();
+  };
   $('swVox').checked = cfgLocal.vox;
   $('voxSens').hidden = !cfgLocal.vox;
   $('rgVox').value = cfgLocal.voxSens;
@@ -2188,6 +2214,11 @@ document.addEventListener('pointerdown', () => { if (!ctx || ctx.state !== 'runn
 document.addEventListener('visibilitychange', () => {
   if (standbyNativo()) try{ RadinhoNativo.visivel(!escondido()); }catch(e){}
   if (escondido()) voxDesligar(); else setTimeout(voxLigar, 400);
+  if (!escondido() && temBolha() && LS.get('radinho_bolha') === '1'){
+    if (!RadinhoNativo.podeBolha()) aviso('Falta liberar "Exibir sobre outros apps" pro botão flutuante aparecer.', 5000);
+    else { const sw = $('swBolha'); if (sw) sw.checked = true; }
+    sincronizarStandby();
+  }
   if (document.visibilityState === 'visible'){
     if (ctx && ctx.state === 'suspended') ctx.resume().catch(()=>{});
     resetarAudio();
