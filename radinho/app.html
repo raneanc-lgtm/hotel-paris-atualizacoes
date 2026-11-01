@@ -488,7 +488,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 26;
+const APP_VERSAO = 27;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1185,7 +1185,13 @@ function resetarAudio(){          // reabre o som em modo mídia depois de usar 
   carregarToque();
 }
 /* ---------------- Voice Talk (VOX) ---------------- */
-const VOX_LIMIAR = { 1: 0.07, 2: 0.04, 3: 0.022 };   // baixa, média, alta
+// Sensibilidade: 1 = baixa (lugar barulhento), 2 = média, 3 = alta (lugar silencioso)
+const VOX_SENS = {
+  1: { acimaRuido: 3.2, tom: 0.62, banda: 0.62, plano: 0.38 },
+  2: { acimaRuido: 2.4, tom: 0.52, banda: 0.55, plano: 0.45 },
+  3: { acimaRuido: 1.8, tom: 0.44, banda: 0.48, plano: 0.52 }
+};
+let descartarVox = false;
 function voxPode(){ return cfgLocal.vox && refCanal && !saindo && !souMudo && !escondido(); }
 async function voxLigar(){
   if (!voxPode() || vox.stream || vox.abrindo) return;
@@ -1197,8 +1203,10 @@ async function voxLigar(){
     if (!voxPode()){ voxDesligar(); return; }
     vox.ctx = new (window.AudioContext || window.webkitAudioContext)();
     const src = vox.ctx.createMediaStreamSource(vox.stream);
-    vox.an = vox.ctx.createAnalyser(); vox.an.fftSize = 1024;
+    vox.an = vox.ctx.createAnalyser(); vox.an.fftSize = 2048; vox.an.smoothingTimeConstant = 0;
     vox.buf = new Float32Array(vox.an.fftSize);
+    vox.fbuf = new Float32Array(vox.an.frequencyBinCount);
+    vox.ruido = 0; vox.hist = []; vox.ultimaVoz = 0; vox.vozMs = 0;
     src.connect(vox.an);
     vox.acima = 0; vox.abaixo = 0;
     vox.timer = setInterval(voxTique, 50);
@@ -1217,26 +1225,73 @@ function voxDesligar(){
   vox.an = null;
   textoPTT();
 }
+/* Detector de VOZ (não de barulho): a voz humana tem tom (é periódica entre ~90 e 380 Hz),
+   concentra energia na faixa 250–3500 Hz e tem espectro "com picos". Barulho (vento, motor,
+   TV chiando, carro) é contínuo e espalhado. Ele também aprende o barulho de fundo do lugar. */
+function voxAnalisar(){
+  const x = vox.buf, n = x.length, sr = vox.ctx.sampleRate;
+  vox.an.getFloatTimeDomainData(x);
+  let soma = 0; for (let i = 0; i < n; i++) soma += x[i] * x[i];
+  const rms = Math.sqrt(soma / n);
+  // 1) tom: autocorrelação normalizada no período da voz
+  const minLag = Math.floor(sr / 380), maxLag = Math.min(Math.floor(sr / 90), n - 64);
+  const N = n - maxLag;
+  let e0 = 0; for (let i = 0; i < N; i += 2) e0 += x[i] * x[i];
+  let tom = 0;
+  if (e0 > 1e-9){
+    for (let lag = minLag; lag <= maxLag; lag += 2){
+      let c = 0, e1 = 0;
+      for (let i = 0; i < N; i += 2){ const b = x[i + lag]; c += x[i] * b; e1 += b * b; }
+      if (e1 > 1e-9){ const v = c / Math.sqrt(e0 * e1); if (v > tom) tom = v; }
+    }
+  }
+  // 2) espectro: fração de energia na faixa da voz e "planura" (barulho é plano, voz tem picos)
+  let banda = 0, plano = 1;
+  try{
+    vox.an.getFloatFrequencyData(vox.fbuf);
+    const hz = sr / vox.an.fftSize;
+    let tot = 0, voz = 0, somaLog = 0, somaLin = 0, k = 0;
+    for (let b = 1; b < vox.fbuf.length; b++){
+      const f = b * hz; if (f < 80 || f > 8000) continue;
+      const pw = Math.pow(10, Math.max(-140, vox.fbuf[b]) / 10);
+      tot += pw;
+      if (f >= 250 && f <= 3500){ voz += pw; if (f >= 300 && f <= 3000){ somaLog += Math.log(pw + 1e-20); somaLin += pw; k++; } }
+    }
+    if (tot > 0) banda = voz / tot;
+    if (k && somaLin > 0) plano = Math.exp(somaLog / k) / (somaLin / k);
+  }catch(e){ banda = 1; plano = 0; }
+  return { rms, tom, banda, plano };
+}
 function voxTique(){
   if (!vox.an || !voxPode()){ if (!voxPode()) voxDesligar(); return; }
   if (vox.ctx && vox.ctx.state === 'suspended') vox.ctx.resume().catch(()=>{});
-  vox.an.getFloatTimeDomainData(vox.buf);
-  let soma = 0; for (let i = 0; i < vox.buf.length; i++) soma += vox.buf[i] * vox.buf[i];
-  const nivel = Math.sqrt(soma / vox.buf.length);
-  const limiar = VOX_LIMIAR[cfgLocal.voxSens] || 0.04;
+  const a = voxAnalisar();
+  const cfg = VOX_SENS[cfgLocal.voxSens] || VOX_SENS[2];
   const agoraMs = Date.now();
+  const ruido = vox.ruido || a.rms;
+  const ehVoz = a.rms > Math.max(0.004, ruido * cfg.acimaRuido) && a.tom > cfg.tom && a.banda > cfg.banda && a.plano < cfg.plano;
+  if (!ehVoz){   // aprende o barulho de fundo (desce rápido, sobe devagar)
+    vox.ruido = !vox.ruido ? a.rms : (a.rms < vox.ruido ? vox.ruido * 0.85 + a.rms * 0.15 : vox.ruido * 0.99 + a.rms * 0.01);
+  }
+  vox.hist.push(ehVoz); if (vox.hist.length > 6) vox.hist.shift();
+  if (ehVoz) vox.ultimaVoz = agoraMs;
   if (tocando || fila.length) vox.ultimoSom = agoraMs;          // não confundir o áudio que está tocando com a sua voz
+
   if (vox.transmitindo){
-    if (!gravando){ vox.transmitindo = false; vox.abaixo = 0; return; }
-    vox.abaixo = nivel < limiar * 0.6 ? vox.abaixo + 50 : 0;
-    if (vox.abaixo >= 1300){ vox.transmitindo = false; vox.abaixo = 0; parar(); }   // parou de falar: envia
+    if (!gravando){ vox.transmitindo = false; return; }
+    if (ehVoz) vox.vozMs += 50;
+    if (agoraMs - vox.ultimaVoz >= 900){                        // a VOZ parou (mesmo com barulho): envia
+      vox.transmitindo = false;
+      if (vox.vozMs < 400) descartarVox = true;                  // foi só um barulho curto: não envia
+      parar();
+    }
     return;
   }
-  if (gravando || gravChat || tocando || fila.length || agoraMs - vox.ultimoSom < 700) { vox.acima = 0; return; }
-  if (!privado && quemTemVez()) { vox.acima = 0; return; }     // canal ocupado: espera
-  vox.acima = nivel > limiar ? vox.acima + 50 : 0;
-  if (vox.acima >= 150){
-    vox.acima = 0; vox.transmitindo = true;
+  if (gravando || gravChat || tocando || fila.length || agoraMs - vox.ultimoSom < 700) return;
+  if (!privado && quemTemVez()) return;                          // canal ocupado: espera
+  const votos = vox.hist.filter(Boolean).length;
+  if (votos >= 4){                                               // ~200 ms de voz de verdade
+    vox.hist = []; vox.transmitindo = true; vox.vozMs = 200;
     apertado = true;
     comecar().then(() => { if (!gravando) vox.transmitindo = false; textoPTT(); });
   }
@@ -1348,6 +1403,7 @@ function blobB64(blob){
 }
 async function enviar(){
   const dur = (Date.now() - tIni) / 1000;
+  if (descartarVox){ descartarVox = false; setTimeout(resetarAudio, 400); return; }
   if (dur < 0.5 || !chunks.length){ aviso('Muito curto. Segure o palhaço enquanto fala.'); return; }
   const tipo = (rec && rec.mimeType) || 'audio/webm';
   try{
