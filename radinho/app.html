@@ -433,6 +433,17 @@
   .contas li .pt.off{background:#3a3f46;box-shadow:none}
   .contas li .sep-cont{display:block;font-size:11px;letter-spacing:2px;color:var(--sub);padding:4px 2px}
   #fundoC{z-index:40}
+  .dm-bar{display:flex;align-items:center;gap:10px;margin:2px 0 8px;padding:8px 10px;border-radius:12px;background:#201a33;border:1px solid #4a3a78;flex:none}
+  .dm-bar[hidden]{display:none}
+  .dm-bar .alvo{margin:0;padding:6px 10px}
+  .dm-quem{flex:1;min-width:0}
+  .dm-quem b{display:flex;align-items:center;gap:6px;font-size:15px;color:#e6dcff}
+  .dm-quem small{color:#b9a8e8;font-size:12px}
+  .msgs-dm{flex:1;min-height:0;overflow-y:auto;padding:6px 4px 12px;display:flex;flex-direction:column;gap:2px;-webkit-user-select:text;user-select:text}
+  .msgs-dm[hidden],#msgs[hidden],.alvo[hidden]{display:none!important}
+  .nlida{background:var(--verm);color:#fff;font-size:11px;font-weight:800;min-width:20px;height:20px;line-height:20px;border-radius:10px;padding:0 6px;text-align:center;flex:none}
+  .contas li .acao-ic{display:grid;place-items:center;width:38px;height:38px;border-radius:10px;border:1px solid var(--borda);background:var(--corpo);color:var(--txt);flex:none}
+  .contas li .acao-ic svg.i{width:18px;height:18px}
   #camera{position:fixed;inset:0;z-index:80;background:#000;display:flex;flex-direction:column}
   #camera[hidden]{display:none}
   #camVideo{flex:1;min-height:0;width:100%;object-fit:cover;background:#000}
@@ -517,7 +528,12 @@
   <div class="painel" id="pChat" hidden>
     <button class="alvo btn-contatos" id="btnContatos"></button>
     <div class="nota" id="notaTTL">As mensagens, fotos e áudios somem 3 minutos depois de enviados</div>
+    <div class="dm-bar" id="dmBar" hidden>
+      <button class="alvo" id="dmVoltar"></button>
+      <div class="dm-quem"><b id="dmNome"></b><small id="dmSt"></small></div>
+    </div>
     <div id="msgs"><div class="vazio" id="chatVazio">Nenhuma mensagem agora. Manda a primeira!</div></div>
+    <div id="msgsDm" class="msgs-dm" hidden></div>
     <div class="compor">
       <div class="campo">
         <button class="ib" id="btnCancelarGrav" aria-label="Descartar áudio" data-ic="trash" hidden></button>
@@ -632,6 +648,7 @@
   <div class="painel-aj pessoa">
     <h2 id="pNome"></h2>
     <div class="info" id="pInfo"></div>
+    <button class="btn sec" id="pDm"></button>
     <button class="btn sec" id="pPriv"></button>
     <button class="btn sec" id="pMutarLocal"></button>
     <button class="btn sec" id="pMutarTodos" hidden></button>
@@ -726,7 +743,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 33;
+const APP_VERSAO = 34;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -847,6 +864,8 @@ const STATUS = {
 };
 const radioCalado = () => cfgLocal.silencio || cfgLocal.status === 'ocup';   // silencioso ou "ocupado"
 let membrosAtual = {};
+let dmCom = null, dmRefAtual = null, dmIdx = {}, dmUlt = null;
+let dmLidos = {}; try{ dmLidos = JSON.parse(localStorage.getItem('radinho_dmlidos') || '{}') || {}; }catch(e){}
 const VEZ_MS = (MAX_SEG + 8) * 1000;    // a vez de falar expira sozinha se alguém travar
 let vez = null, minhaVez = false, privado = null, envioPara = null, privCarregado = false;
 const privAud = {};
@@ -1146,13 +1165,14 @@ function mudarAba(a){
   $('abaChat').classList.toggle('ativa', a === 'chat');
   $('pRadio').hidden = a !== 'radio';
   $('pChat').hidden  = a !== 'chat';
-  if (a === 'chat'){ naoLidas = 0; atualizarBadge(); rolarFim(true); }
+  if (a === 'chat'){ naoLidas = 0; if (dmCom) marcarDmLida(dmCom.id); atualizarBadge(); rolarFim(true); }
   else $('bdRadio').hidden = true;
 }
 function atualizarBadge(){
   const b = $('bdChat');
-  b.textContent = naoLidas > 99 ? '99+' : naoLidas;
-  b.hidden = naoLidas === 0;
+  const t = naoLidas + totalDmNaoLidas();
+  b.textContent = t > 99 ? '99+' : t;
+  b.hidden = t === 0;
 }
 
 /* ---------------- entrar / criar canal ---------------- */
@@ -1226,6 +1246,7 @@ async function conectarCanal(){
   refCanal.child('online').on('value', s => renderOnline(s.val() || {}), falhou);
   refCanal.child('membros').on('value', s => { membrosAtual = s.val() || {}; renderBtnContatos(); if (!$('fundoC').hidden) renderContatos(); }, () => {});
   marcarMembro();
+  vigiarDms();
   refCanal.child('info').on('value', s => {
     infoCanal = s.val(); if (!infoCanal){ falhou(); return; }
     if (podeGerir()) guardarCanal(canal, infoCanal.titulo);
@@ -1233,7 +1254,7 @@ async function conectarCanal(){
   }, () => {});
   refCanal.child('vez').on('value', s => { vez = s.val(); textoPTT(); atualizarVisor(); }, () => {});
   privCarregado = false;
-  const pq = refCanal.child('privIn/' + uid).orderByChild('ts').startAt(limiteTTL());
+  const pq = refPriv().orderByChild('ts').startAt(limiteTTL());
   pq.on('child_added', s => chegouPriv(s.key, s.val()), () => {});
   pq.once('value', () => { privCarregado = true; }, () => {});
   renderAlvo();
@@ -1264,6 +1285,7 @@ async function conectarCanal(){
   iniciarChat(falhou);
   limparAntigas();
   setInterval(limparAntigas, 30000);
+  setInterval(limparDmsAntigas, 30000);
   setInterval(varrerExpirados, 5000);
   atualizarVisor();
   setTimeout(() => LS.set('radinho_boot', '0'), 6000); // app subiu bem
@@ -1305,10 +1327,10 @@ function limparAntigas(){
     s.forEach(c => { upd['msgs/' + c.key] = null; upd['audios/' + c.key] = null; });
     if (Object.keys(upd).length) refCanal.update(upd).catch(()=>{});
   }, () => {});
-  refCanal.child('privIn/' + uid).orderByChild('ts').endAt(limite).once('value', s => {
+  refPriv().orderByChild('ts').endAt(limite).once('value', s => {
     const upd = {};
-    s.forEach(c => { upd['privIn/' + uid + '/' + c.key] = null; });
-    if (Object.keys(upd).length) refCanal.update(upd).catch(()=>{});
+    s.forEach(c => { upd[c.key] = null; });
+    if (Object.keys(upd).length) refPriv().update(upd).catch(()=>{});
   }, () => {});
   refCanal.child('chat').orderByChild('ts').endAt(limite).once('value', s => {
     const upd = {};
@@ -1382,7 +1404,7 @@ function chegou(key, m){
 }
 function chegouPriv(key, m){
   if (!m) return;
-  if ((m.ts || 0) < limiteTTL()){ refCanal.child('privIn/' + uid + '/' + key).remove().catch(()=>{}); return; }
+  if ((m.ts || 0) < limiteTTL()){ refPriv().child(key).remove().catch(()=>{}); return; }
   if (m.b64) privAud[key] = m.b64;
   adicionarHistorico(key, Object.assign({}, m, { priv: true, b64: undefined }));
   if (!privCarregado || m.uid === uid || mutadosLocal[m.uid] || (agora() - (m.ts || 0)) >= JANELA_AUTO) return;
@@ -1616,6 +1638,113 @@ function mudarPrivado(p){
   const stP = p && onlineAtual[p.id] && onlineAtual[p.id].st;
   aviso(p ? 'Privado com ' + p.nome + '. Só ele ouve.' + (stP === 'ocup' ? ' Ele está ocupado: vai ouvir depois.' : '') : 'Voltou a falar com todos do canal.', 4000);
 }
+/* ---------------- conversa privada por texto ---------------- */
+const parDm = id => [uid, id].sort().join('__');
+const refPriv = () => db.ref('privIn2/' + canal + '/' + uid);           // áudios privados que chegam pra você
+const refDm = id => db.ref('dms/' + canal + '/' + parDm(id));            // conversa de texto entre vocês dois
+const refDmIdx = () => db.ref('dmIdx/' + canal + '/' + uid);              // suas conversas e avisos de mensagem nova
+const dmNaoLida = id => { const e = dmIdx[id]; return !!(e && e.ult && e.ult !== uid && (e.ts || 0) > (dmLidos[canal + '|' + id] || 0)); };
+const totalDmNaoLidas = () => Object.keys(dmIdx).filter(dmNaoLida).length;
+function marcarDmLida(id){
+  const e = dmIdx[id]; dmLidos[canal + '|' + id] = Math.max(agora(), (e && e.ts) || 0);
+  try{ localStorage.setItem('radinho_dmlidos', JSON.stringify(dmLidos)); }catch(err){}
+  atualizarBadge(); renderBtnContatos();
+}
+function vigiarDms(){
+  refDmIdx().on('value', s => {
+    const antes = dmIdx; dmIdx = s.val() || {};
+    Object.keys(dmIdx).forEach(id => {                         // mensagem nova de alguém
+      const e = dmIdx[id], a = antes[id];
+      if (dmUlt !== null && e.ult && e.ult !== uid && (!a || (e.ts || 0) > (a.ts || 0)) && !(dmCom && dmCom.id === id && aba === 'chat' && !escondido())){
+        if (mutadosLocal[id]) return;
+        vibrar(60);
+        aviso('Mensagem privada de ' + (e.nome || 'alguém') + ': ' + String(e.txt || '').slice(0, 60), 4000);
+        if (escondido()) notificarNativo((e.nome || 'Alguém') + ' (privado)', String(e.txt || '').slice(0, 120), 'chat', modoChat() === 'som');
+        else if (modoChat() === 'som' && !tocando && !gravando) try{ bip('msg'); }catch(err){}
+      }
+    });
+    dmUlt = 1;
+    atualizarBadge(); renderBtnContatos(); if (!$('fundoC').hidden) renderContatos();
+  }, () => {});
+}
+function abrirDm(id, n){
+  if (!id || id === uid) return;
+  fecharDm(true);
+  dmCom = { id, nome: n || 'Contato' };
+  mudarAba('chat');
+  $('msgs').hidden = true; $('msgsDm').hidden = false; $('msgsDm').innerHTML = '';
+  $('dmBar').hidden = false; $('btnContatos').hidden = true;
+  $('dmNome').innerHTML = icp('lock', 14) + esc(dmCom.nome);
+  const on = onlineAtual[id]; const st = on && (STATUS[on.st] || STATUS.disp);
+  $('dmSt').textContent = 'Conversa privada • ' + (on ? 'online' + (st && st !== STATUS.disp ? ', ' + st.nome.toLowerCase() : '') : 'fora do ar');
+  $('btnFoto').hidden = true; $('btnCamera').hidden = true;
+  $('inMsg').placeholder = 'Mensagem privada pra ' + dmCom.nome;
+  iconeEnviar();
+  dmVazio();
+  const lim = limiteTTL();
+  dmRefAtual = refDm(id).orderByChild('ts').startAt(lim || 0).limitToLast(CHAT_MAX);
+  dmRefAtual.on('child_added', snap => addDm(snap.key, snap.val()), () => { $('msgsDm').innerHTML = '<div class="vazio">Não deu pra abrir a conversa. Cole as regras novas no Firebase.</div>'; });
+  dmRefAtual.on('child_removed', snap => { const el = document.getElementById('d_' + snap.key); if (el) el.remove(); dmVazio(); });
+  marcarDmLida(id);
+}
+function fecharDm(silencioso){
+  if (dmRefAtual){ dmRefAtual.off(); dmRefAtual = null; }
+  dmCom = null;
+  $('msgs').hidden = false; $('msgsDm').hidden = true; $('dmBar').hidden = true; $('btnContatos').hidden = false;
+  $('btnFoto').hidden = false; $('btnCamera').hidden = false;
+  $('inMsg').placeholder = souMudo ? 'Você está silenciado' : 'Mensagem';
+  iconeEnviar();
+  if (!silencioso) rolarFim(true);
+}
+function dmVazio(){
+  const box = $('msgsDm');
+  if (!box.querySelector('.bolha') && !box.querySelector('.vazio')) box.innerHTML = '<div class="vazio">Nenhuma mensagem com ' + esc(dmCom ? dmCom.nome : '') + ' ainda. Só vocês dois veem esta conversa.</div>';
+}
+function addDm(key, m){
+  if (!m || !m.txt || document.getElementById('d_' + key)) return;
+  const ts = m.ts || agora();
+  if (ttlMs() && ts < limiteTTL()) return;
+  const box = $('msgsDm'); const vz = box.querySelector('.vazio'); if (vz) vz.remove();
+  const minha = m.uid === uid;
+  const ult = box.lastElementChild;
+  const cont = ult && ult.dataset.uid === m.uid && (ts - parseInt(ult.dataset.ts || 0)) < 120000;
+  const el = document.createElement('div');
+  el.id = 'd_' + key; el.dataset.ts = ts; el.dataset.uid = m.uid;
+  el.className = 'bolha' + (minha ? ' minha' : '') + (cont ? ' cont' : '');
+  el.innerHTML = '<div class="tx">' + esc(m.txt) + '</div><div class="hr">' + hora(ts) + '</div>';
+  const fim = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+  box.appendChild(el);
+  if (minha || fim) requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
+  if (dmCom && aba === 'chat' && !escondido()) marcarDmLida(dmCom.id);
+}
+async function enviarDm(txt){
+  const para = dmCom; if (!para) return;
+  const ref = refDm(para.id).push();
+  const prev = txt.slice(0, 80);
+  try{
+    await ref.set({ uid, nome, txt: txt.slice(0, 1000), ts: TS() });
+    const upd = {};
+    upd['dmIdx/' + canal + '/' + para.id + '/' + uid] = { nome, txt: prev, ts: TS(), ult: uid };      // avisa a outra pessoa
+    upd['dmIdx/' + canal + '/' + uid + '/' + para.id] = { nome: para.nome, txt: prev, ts: TS(), ult: uid };   // sua lista de conversas
+    await db.ref().update(upd);
+  }catch(e){
+    $('inMsg').value = txt; ajustarAltura();
+    aviso(souMudo ? 'Você está silenciado.' : 'Não deu pra enviar no privado. Cole as regras novas no Firebase.', 5000);
+  }
+}
+function limparDmsAntigas(){
+  if (!refCanal || !ttlMs()) return;
+  const lim = limiteTTL();
+  Object.keys(dmIdx).forEach(id => {
+    const ref = refDm(id);
+    ref.orderByChild('ts').endAt(lim).once('value', s => {
+      const upd = {}; s.forEach(c => { upd[c.key] = null; });
+      if (Object.keys(upd).length) ref.update(upd).catch(()=>{});
+    }, () => {});
+  });
+  document.querySelectorAll('#msgsDm [data-ts]').forEach(el => { if (parseInt(el.dataset.ts) < lim) el.remove(); });
+}
+
 /* ---------------- contatos do canal (online e offline) ---------------- */
 function marcarMembro(){                  // deixa seu nome e "visto por último" na lista do canal
   if (!refCanal || !uid) return;
@@ -1630,18 +1759,19 @@ function contatos(){                      // todo mundo do canal: online primeir
     const on = onlineAtual[id], m = membrosAtual[id] || {};
     return { id, nome: (on && on.nome) || m.nome || 'Sem nome', online: !!on, st: on && on.st, visto: m.visto || m.ts || 0 };
   });
-  lista.sort((a, b) => (b.online - a.online) || a.nome.localeCompare(b.nome, 'pt-BR'));
+  lista.sort((a, b) => (b.online - a.online) || (dmNaoLida(b.id) - dmNaoLida(a.id)) || a.nome.localeCompare(b.nome, 'pt-BR'));
   return lista;
 }
 function renderBtnContatos(){
   const b = $('btnContatos'); if (!b) return;
   const l = contatos(), on = l.filter(c => c.online).length;
-  b.innerHTML = ic('users') + '<span>Contatos do canal • ' + on + ' online de ' + (l.length + 1) + '</span>';
+  const nl = totalDmNaoLidas();
+  b.innerHTML = ic('users') + '<span>Contatos e privado • ' + on + ' online de ' + (l.length + 1) + '</span>' + (nl ? '<span class="nlida">' + nl + '</span>' : '');
 }
 function abrirContatos(){ renderContatos(); $('fundoC').hidden = false; }
 function renderContatos(){
   const l = contatos(), ul = $('lstContatos');
-  $('cInfo').textContent = l.filter(c => c.online).length + ' online agora • ' + (l.length + 1) + ' no canal (contando você). Toque num contato pra falar no privado ou ver as opções.';
+  $('cInfo').textContent = l.filter(c => c.online).length + ' online agora • ' + (l.length + 1) + ' no canal (contando você). Toque num contato pra conversar no privado por texto. No botão do lado tem as outras opções.';
   ul.innerHTML = '';
   if (!l.length){ ul.innerHTML = '<li class="vz" style="cursor:default">Ainda não tem mais ninguém neste canal. Use Convidar em Ajustes.</li>'; return; }
   let secao = null;
@@ -1654,8 +1784,11 @@ function renderContatos(){
     const cargo = c.id === adminUid ? icp('crown', 13) + ' ' : ehMod(c.id) ? icp('star', 13) + ' ' : '';
     li.innerHTML = '<i class="pt ' + (c.online ? 'on' : 'off') + '" style="' + (c.online ? 'background:' + st.cor + ';box-shadow:0 0 6px ' + st.cor : '') + '"></i>' +
       '<div><b>' + cargo + esc(c.nome) + (mudos[c.id] ? ' ' + icp('mute', 13) : '') + '</b><small>' +
-      (c.online ? st.nome : 'visto ' + tempoAtras(c.visto)) + '</small></div>' + ic('lock');
-    li.onclick = () => { $('fundoC').hidden = true; abrirPessoa(c.id, c.nome); };
+      (c.online ? st.nome : 'visto ' + tempoAtras(c.visto)) + (dmIdx[c.id] ? ' • ' + esc(String(dmIdx[c.id].txt || '').slice(0, 30)) : '') + '</small></div>' +
+      (dmNaoLida(c.id) ? '<span class="nlida">nova</span>' : '') +
+      '<button class="acao-ic" aria-label="Opções">' + ic('more') + '</button>';
+    li.onclick = () => { $('fundoC').hidden = true; abrirDm(c.id, c.nome); };
+    li.querySelector('.acao-ic').onclick = e => { e.stopPropagation(); $('fundoC').hidden = true; abrirPessoa(c.id, c.nome); };
     ul.appendChild(li);
   });
 }
@@ -2138,8 +2271,9 @@ async function enviar(){
     const d = Math.round(dur * 10) / 10;
     if (envioPara){                          // privado: só a pessoa escolhida recebe
       const para = envioPara;
-      const key = refCanal.child('privIn/' + para.id).push().key;
-      await refCanal.child('privIn/' + para.id + '/' + key).set({ uid, nome, mime: tipo, dur: d, ts: TS(), b64 });
+      const rp = db.ref('privIn2/' + canal + '/' + para.id);
+      const key = rp.push().key;
+      await rp.child(key).set({ uid, nome, mime: tipo, dur: d, ts: TS(), b64 });
       privAud[key] = b64;
       adicionarHistorico(key, { uid, nome, mime: tipo, dur: d, ts: agora(), priv: true, para: para.nome });
     } else {
@@ -2239,6 +2373,7 @@ async function enviarChat(){
   const txt = inp.value.trim();
   if (!txt) return;
   inp.value = ''; ajustarAltura();
+  if (dmCom) return enviarDm(txt);
   try{
     await refCanal.child('chat').push({ uid, nome, txt: txt.slice(0, 1000), ts: TS() });
   }catch(e){
@@ -2249,7 +2384,7 @@ function ajustarAltura(){ const t = $('inMsg'); t.style.height = 'auto'; t.style
 function iconeEnviar(){
   const b = $('btnEnviar');
   if (gravChat){ b.innerHTML = ic('send'); b.setAttribute('aria-label', 'Enviar áudio'); return; }
-  const temTxt = !!$('inMsg').value.trim();
+  const temTxt = !!$('inMsg').value.trim() || !!dmCom;
   b.innerHTML = ic(temTxt ? 'send' : 'mic');
   b.setAttribute('aria-label', temTxt ? 'Enviar' : 'Gravar áudio');
 }
@@ -2395,6 +2530,7 @@ function prepararChat(){
     e.preventDefault();
     if (gravChat) return pararAudioChat(false);
     if ($('inMsg').value.trim()) return enviarChat();
+    if (dmCom){ $('inMsg').focus(); return; }
     comecarAudioChat();
   });
   $('btnCancelarGrav').addEventListener('pointerdown', e => { e.preventDefault(); pararAudioChat(true); });
@@ -2419,6 +2555,7 @@ function abrirPessoa(id, n){
   if (!id || id === uid) return;
   pessoaAtual = { id, nome: n || '?' };
   $('pNome').textContent = pessoaAtual.nome;
+  icBtn($('pDm'), 'chat', 'Mensagem privada (texto)');
   icBtn($('pPriv'), 'lock', privado && privado.id === id ? 'Já está no privado com ' + pessoaAtual.nome : 'Falar no privado com ' + pessoaAtual.nome);
   const mudoTodos = !!mudos[id], mudoLocal = !!mutadosLocal[id];
   const ver = onlineAtual[id] && onlineAtual[id].v;
@@ -2900,6 +3037,9 @@ function prepararAjustes(){
   $('btnContatos').onclick = abrirContatos;
   $('cFechar').onclick = () => { $('fundoC').hidden = true; };
   $('fundoC').onclick = e => { if (e.target.id === 'fundoC') $('fundoC').hidden = true; };
+  $('pDm').onclick = () => { const pz = pessoaAtual; if (!pz) return; $('fundoP').hidden = true; abrirDm(pz.id, pz.nome); };
+  $('dmVoltar').innerHTML = ic('users') + '<span>Grupo</span>';
+  $('dmVoltar').onclick = () => fecharDm();
   $('pPriv').onclick = () => { const pz = pessoaAtual; if (!pz) return; $('fundoP').hidden = true; mudarPrivado({ id: pz.id, nome: pz.nome }); mudarAba('radio'); };
   renderBtnContatos();
   renderStatus();
