@@ -429,6 +429,10 @@
   .st-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
   .chip .st-txt{font-size:11px;color:var(--sub);margin-left:2px}
   .chip.eu{cursor:pointer;opacity:1}
+  .btn-contatos{margin:2px 0 6px;align-self:stretch;justify-content:center}
+  .contas li .pt.off{background:#3a3f46;box-shadow:none}
+  .contas li .sep-cont{display:block;font-size:11px;letter-spacing:2px;color:var(--sub);padding:4px 2px}
+  #fundoC{z-index:40}
   #camera{position:fixed;inset:0;z-index:80;background:#000;display:flex;flex-direction:column}
   #camera[hidden]{display:none}
   #camVideo{flex:1;min-height:0;width:100%;object-fit:cover;background:#000}
@@ -511,6 +515,7 @@
   </div>
 
   <div class="painel" id="pChat" hidden>
+    <button class="alvo btn-contatos" id="btnContatos"></button>
     <div class="nota" id="notaTTL">As mensagens, fotos e áudios somem 3 minutos depois de enviados</div>
     <div id="msgs"><div class="vazio" id="chatVazio">Nenhuma mensagem agora. Manda a primeira!</div></div>
     <div class="compor">
@@ -627,6 +632,7 @@
   <div class="painel-aj pessoa">
     <h2 id="pNome"></h2>
     <div class="info" id="pInfo"></div>
+    <button class="btn sec" id="pPriv"></button>
     <button class="btn sec" id="pMutarLocal"></button>
     <button class="btn sec" id="pMutarTodos" hidden></button>
     <button class="btn perigo" id="pBanir" hidden>Banir do canal</button>
@@ -635,6 +641,14 @@
   </div>
 </div>
 
+<div class="fundo" id="fundoC" hidden>
+  <div class="painel-aj">
+    <h2 class="tit-ic"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 20a6.5 6.5 0 0 0-2.5-5.1"/></svg>Contatos do canal</h2>
+    <div class="info" id="cInfo"></div>
+    <ul class="contas" id="lstContatos"></ul>
+    <button class="btn sec" id="cFechar">Fechar</button>
+  </div>
+</div>
 <div class="fundo" id="fundoD" hidden>
   <div class="painel-aj">
     <h2 id="dTit"></h2>
@@ -712,7 +726,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 32;
+const APP_VERSAO = 33;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -832,6 +846,7 @@ const STATUS = {
   ause: { nome: 'Ausente',    cor: '#ffc53d', dica: 'Mostra pra galera que você saiu, mas continua recebendo' }
 };
 const radioCalado = () => cfgLocal.silencio || cfgLocal.status === 'ocup';   // silencioso ou "ocupado"
+let membrosAtual = {};
 const VEZ_MS = (MAX_SEG + 8) * 1000;    // a vez de falar expira sozinha se alguém travar
 let vez = null, minhaVez = false, privado = null, envioPara = null, privCarregado = false;
 const privAud = {};
@@ -917,7 +932,7 @@ const ICONES = {
   enter:'<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3"/>',
   more:'<circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/>'
 };
-const icp = (n, px) => '<svg class="i" viewBox="0 0 24 24" style="width:' + px + 'px;height:' + px + 'px;vertical-align:-2px" aria-hidden="true">' + (ICONES[n] || '') + '</svg>';
+const icp = (n, px) => '<svg class="i" viewBox="0 0 24 24" style="display:inline-block;width:' + px + 'px;height:' + px + 'px;vertical-align:-2px" aria-hidden="true">' + (ICONES[n] || '') + '</svg>';
 const ic = n => '<svg class="i" viewBox="0 0 24 24" aria-hidden="true">' + (ICONES[n] || '') + '</svg>';
 function icBtn(el, n, txt){ el.innerHTML = ic(n) + (txt ? '<span>' + esc(txt) + '</span>' : ''); }
 document.querySelectorAll('[data-ic]').forEach(el => el.insertAdjacentHTML('afterbegin', ic(el.dataset.ic)));
@@ -976,7 +991,7 @@ async function vigiarAcesso(){
   }));
   await Promise.race([Promise.all(prontos), new Promise(r => setTimeout(r, 4000))]);
   registrarConta();
-  setInterval(() => { if (!escondido()) registrarConta(); }, 60000);
+  setInterval(() => { if (!escondido()){ registrarConta(); marcarMembro(); } }, 60000);
 }
 let bloqueadoAgora = null;
 function checarBloqueio(){
@@ -1209,6 +1224,8 @@ async function conectarCanal(){
     }
   });
   refCanal.child('online').on('value', s => renderOnline(s.val() || {}), falhou);
+  refCanal.child('membros').on('value', s => { membrosAtual = s.val() || {}; renderBtnContatos(); if (!$('fundoC').hidden) renderContatos(); }, () => {});
+  marcarMembro();
   refCanal.child('info').on('value', s => {
     infoCanal = s.val(); if (!infoCanal){ falhou(); return; }
     if (podeGerir()) guardarCanal(canal, infoCanal.titulo);
@@ -1256,6 +1273,7 @@ async function conectarCanal(){
 }
 function renderOnline(lista){
   onlineAtual = lista;
+  try{ renderBtnContatos(); if (!$('fundoC').hidden) renderContatos(); }catch(e){}
   const el = $('online'); el.innerHTML = '';
   Object.keys(falandoAgora).forEach(k => delete falandoAgora[k]);
   const ids = Object.keys(lista);
@@ -1584,12 +1602,12 @@ function renderAlvo(){
 }
 function escolherAlvo(){
   const acoes = [{ ic: 'users', txt: 'Todos do canal', fn: () => mudarPrivado(null) }];
-  Object.keys(onlineAtual).filter(id => id !== uid).forEach(id => {
-    const n = (onlineAtual[id] && onlineAtual[id].nome) || '?';
-    const st = STATUS[onlineAtual[id] && onlineAtual[id].st];
-    acoes.push({ ic: 'lock', txt: n + (st && st !== STATUS.disp ? '  (' + st.nome.toLowerCase() + ')' : ''), fn: () => mudarPrivado({ id, nome: n }) });
+  contatos().forEach(c => {
+    const st = STATUS[c.st];
+    const info = c.online ? (st && st !== STATUS.disp ? 'online, ' + st.nome.toLowerCase() : 'online') : 'fora do ar, visto ' + tempoAtras(c.visto);
+    acoes.push({ ic: 'lock', txt: c.nome + '  (' + info + ')', fn: () => mudarPrivado({ id: c.id, nome: c.nome }) });
   });
-  folha('Falar com quem?', acoes.length > 1 ? 'No privado, só a pessoa escolhida ouve o que você falar.' : 'Ninguém mais online agora pra conversar no privado.', acoes);
+  folha('Falar com quem?', acoes.length > 1 ? 'No privado, só a pessoa escolhida ouve. Quem está fora do ar recebe quando voltar (dentro do tempo das mensagens).' : 'Ainda não tem mais ninguém neste canal.', acoes);
 }
 function mudarPrivado(p){
   if (gravando) return;
@@ -1597,6 +1615,49 @@ function mudarPrivado(p){
   renderAlvo(); textoPTT(); atualizarVisor(); sincronizarStandby();
   const stP = p && onlineAtual[p.id] && onlineAtual[p.id].st;
   aviso(p ? 'Privado com ' + p.nome + '. Só ele ouve.' + (stP === 'ocup' ? ' Ele está ocupado: vai ouvir depois.' : '') : 'Voltou a falar com todos do canal.', 4000);
+}
+/* ---------------- contatos do canal (online e offline) ---------------- */
+function marcarMembro(){                  // deixa seu nome e "visto por último" na lista do canal
+  if (!refCanal || !uid) return;
+  const d = { nome: nome || '', visto: TS() };
+  const ref = refCanal.child('membros/' + uid);
+  if (souAdmin()) ref.update(d).catch(()=>{});
+  else ref.once('value').then(s => { if (s.exists()) ref.update(d).catch(()=>{}); }).catch(()=>{});
+}
+function contatos(){                      // todo mundo do canal: online primeiro, depois quem está fora
+  const ids = new Set([...Object.keys(membrosAtual || {}), ...Object.keys(onlineAtual || {})]);
+  const lista = [...ids].filter(id => id !== uid && !banidos[id]).map(id => {
+    const on = onlineAtual[id], m = membrosAtual[id] || {};
+    return { id, nome: (on && on.nome) || m.nome || 'Sem nome', online: !!on, st: on && on.st, visto: m.visto || m.ts || 0 };
+  });
+  lista.sort((a, b) => (b.online - a.online) || a.nome.localeCompare(b.nome, 'pt-BR'));
+  return lista;
+}
+function renderBtnContatos(){
+  const b = $('btnContatos'); if (!b) return;
+  const l = contatos(), on = l.filter(c => c.online).length;
+  b.innerHTML = ic('users') + '<span>Contatos do canal • ' + on + ' online de ' + (l.length + 1) + '</span>';
+}
+function abrirContatos(){ renderContatos(); $('fundoC').hidden = false; }
+function renderContatos(){
+  const l = contatos(), ul = $('lstContatos');
+  $('cInfo').textContent = l.filter(c => c.online).length + ' online agora • ' + (l.length + 1) + ' no canal (contando você). Toque num contato pra falar no privado ou ver as opções.';
+  ul.innerHTML = '';
+  if (!l.length){ ul.innerHTML = '<li class="vz" style="cursor:default">Ainda não tem mais ninguém neste canal. Use Convidar em Ajustes.</li>'; return; }
+  let secao = null;
+  l.forEach(c => {
+    const s = c.online ? 'on' : 'off';
+    if (s !== secao){ secao = s; const h = document.createElement('li'); h.style.cssText = 'background:none;border:0;padding:6px 2px 2px;cursor:default';
+      h.innerHTML = '<span class="sep-cont">' + (s === 'on' ? 'ONLINE' : 'FORA DO AR') + '</span>'; ul.appendChild(h); }
+    const st = STATUS[c.st] || STATUS.disp;
+    const li = document.createElement('li');
+    const cargo = c.id === adminUid ? icp('crown', 13) + ' ' : ehMod(c.id) ? icp('star', 13) + ' ' : '';
+    li.innerHTML = '<i class="pt ' + (c.online ? 'on' : 'off') + '" style="' + (c.online ? 'background:' + st.cor + ';box-shadow:0 0 6px ' + st.cor : '') + '"></i>' +
+      '<div><b>' + cargo + esc(c.nome) + (mudos[c.id] ? ' ' + icp('mute', 13) : '') + '</b><small>' +
+      (c.online ? st.nome : 'visto ' + tempoAtras(c.visto)) + '</small></div>' + ic('lock');
+    li.onclick = () => { $('fundoC').hidden = true; abrirPessoa(c.id, c.nome); };
+    ul.appendChild(li);
+  });
 }
 function renderStatus(){
   const b = $('btnStatus'); if (!b) return;
@@ -2358,6 +2419,7 @@ function abrirPessoa(id, n){
   if (!id || id === uid) return;
   pessoaAtual = { id, nome: n || '?' };
   $('pNome').textContent = pessoaAtual.nome;
+  icBtn($('pPriv'), 'lock', privado && privado.id === id ? 'Já está no privado com ' + pessoaAtual.nome : 'Falar no privado com ' + pessoaAtual.nome);
   const mudoTodos = !!mudos[id], mudoLocal = !!mutadosLocal[id];
   const ver = onlineAtual[id] && onlineAtual[id].v;
   $('pInfo').textContent = (mudoTodos ? 'Silenciado pelo administrador. ' : (mudoLocal ? 'Silenciado só pra você. ' : '')) +
@@ -2835,6 +2897,11 @@ function prepararAjustes(){
   $('alvo').onclick = escolherAlvo;
   $('btnVoz').onclick = escolherVoz;
   $('btnStatus').onclick = escolherStatus;
+  $('btnContatos').onclick = abrirContatos;
+  $('cFechar').onclick = () => { $('fundoC').hidden = true; };
+  $('fundoC').onclick = e => { if (e.target.id === 'fundoC') $('fundoC').hidden = true; };
+  $('pPriv').onclick = () => { const pz = pessoaAtual; if (!pz) return; $('fundoP').hidden = true; mudarPrivado({ id: pz.id, nome: pz.nome }); mudarAba('radio'); };
+  renderBtnContatos();
   renderStatus();
   renderVoz(); renderTTL();
   $('btnSilencio').onclick = alternarSilencio;
