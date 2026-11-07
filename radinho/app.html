@@ -546,6 +546,14 @@
   .zap-num-linha .btn{width:auto;margin:0;padding:0 16px}
   #zapNovoLista{flex:1;min-height:120px;overflow-y:auto;margin-bottom:10px}
   #zapNovoLista li small{display:block}
+  .zap-av.zap-com-foto{background-size:cover;background-position:center;color:transparent;text-shadow:none}
+  .zap-av.zap-com-foto svg.i{opacity:0}
+  .zap-anel-av{border-radius:50%;padding:2px;border:2px solid var(--verde);display:inline-flex;flex:none}
+  .zap-anel-av.visto{border-color:#55605a}
+  .zap-anel-av .zap-av{width:38px;height:38px}
+  .zap-ib[hidden]{display:none!important}
+  .zap-ib.zap-ib-on{background:#1f6a45;color:#eafff2}
+  #zapLista li b svg.i{color:var(--verde)}
 </style>
 </head>
 <body>
@@ -645,6 +653,7 @@
       <button class="alvo" id="zapVoltar"></button>
       <span id="zapBarAv"></span>
       <div class="dm-quem"><b id="zapNome"></b><small id="zapSt"></small></div>
+      <button class="ib zap-ib" id="zapVigiarBtn" aria-label="Avisar quando ficar online"></button>
       <button class="ib zap-ib" id="zapApagarBtn" aria-label="Apagar conversa" data-ic="trash"></button>
     </div>
     <div id="zapMsgs" class="msgs-dm" hidden></div>
@@ -862,6 +871,7 @@
       <button class="btn" id="zapNovoIr">Conversar</button>
     </div>
     <input class="zap-busca" id="zapNovoBusca" type="search" placeholder="Buscar nos contatos">
+    <button class="alvo" id="zapSincBtn" style="margin:0 0 8px"></button>
     <ul class="contas" id="zapNovoLista"></ul>
     <button class="btn sec" id="zapNovoFechar">Fechar</button>
   </div>
@@ -878,7 +888,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 38;
+const APP_VERSAO = 39;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -978,7 +988,7 @@ let aba = 'radio', naoLidas = 0, chatCarregado = false, ultimoChat = null;
 let adminUid = null, versaoRemota = 0, attPronta = 0;
 let souMudo = false, saindo = false, infoCanal = null;
 let mudos = {}, banidos = {}, onlineAtual = {};
-let ZAP = { modoStatus: false, statusLista: [], statusVistos: {}, sv: null, iniciado: false, base: '', conectado: false, conversas: [], presencas: {}, jid: null, nome: '', grupo: false, assinatura: '', busca: '', es: null, tStatus: null, telaPareamento: false, camera: false, gravando: false, rec: null, partes: [], cancelou: false, t0: 0, timer: null, limite: null, audio: null, audioBt: null };
+let ZAP = { fotos: {}, vigiados: {}, modoStatus: false, statusLista: [], statusVistos: {}, sv: null, iniciado: false, base: '', conectado: false, conversas: [], presencas: {}, jid: null, nome: '', grupo: false, assinatura: '', busca: '', es: null, tStatus: null, telaPareamento: false, camera: false, gravando: false, rec: null, partes: [], cancelou: false, t0: 0, timer: null, limite: null, audio: null, audioBt: null };
 const falandoAgora = {};
 const cfgLocal = {
   vol:     parseFloat(LS.get('radinho_vol') || '1'),
@@ -3321,7 +3331,10 @@ function zapIniciar(){
   $('zapNovoFechar').onclick = () => { $('zapNovoFundo').hidden = true; };
   $('zapNovoBusca').oninput = zapRenderNovo;
   $('zapNovoIr').onclick = zapNovoPorNumero;
+  $('zapSincBtn').innerHTML = ic('refresh') + '<span>Sincronizar contatos do WhatsApp</span>';
+  $('zapSincBtn').onclick = zapSincronizarContatos;
   $('zapNovoNum').addEventListener('keydown', e => { if (e.key === 'Enter') zapNovoPorNumero(); });
+  $('zapVigiarBtn').onclick = zapAlternarVigia;
   $('zapApagarBtn').onclick = () => { if (ZAP.jid) zapConfirmarApagar(ZAP.jid, ZAP.nome); };
   $('zapSvFechar').onclick = zapFecharStatus;
   $('zapSvTras').onclick = () => zapStatusPasso(-1);
@@ -3359,6 +3372,7 @@ function zapConectarEventos(){
     if (e.tipo === 'status' || e.tipo === 'qr') zapAtualizarStatus();
     else if (e.tipo === 'conversas') zapCarregarLista();
     else if (e.tipo === 'status_novo') zapCarregarStatus();
+    else if (e.tipo === 'alerta_online'){ if (document.visibilityState === 'visible') aviso('🟢 ' + (e.nome || 'Contato') + ' está online agora', 5000); }
     else if (e.tipo === 'mensagem_nova'){
       zapCarregarLista();
       if (ZAP.jid === e.conversaJid) zapCarregarMensagens();
@@ -3389,7 +3403,7 @@ async function zapAtualizarStatus(){
     ZAP.conectado = true;
     $('zapCon').hidden = true;
     $('zapListaBox').hidden = !!ZAP.jid;
-    if (novo) zapCarregarLista();
+    if (novo){ zapCarregarLista(); zapCarregarVigiados(); }
   } else {
     ZAP.conectado = false;
     zapMostrarConexao(d.status === 'aguardando_qr' ? 'parear' : 'conectando', d.qrImagem);
@@ -3467,13 +3481,14 @@ function zapRenderLista(){
     if (c.nao_lidas) li.classList.add('zap-nl');
     const previa = pr === 'digitando' ? '<i class="zap-dig">digitando...</i>' : pr === 'gravando' ? '<i class="zap-dig">gravando áudio...</i>' : esc(String(c.ultima_mensagem_texto || '').slice(0, 60));
     li.innerHTML = zapAvatar(c.jid, c.nome_exibicao, c.eh_grupo, on) +
-      '<div><b>' + esc(c.nome_exibicao) + '</b><small>' + previa + '</small></div>' +
+      '<div><b>' + esc(c.nome_exibicao) + (ZAP.vigiados[c.jid] ? ' ' + icp('bell', 12) : '') + '</b><small>' + previa + '</small></div>' +
       '<span class="zap-hr">' + (c.ultima_mensagem_ts ? zapQuando(c.ultima_mensagem_ts) : '') + '</span>' +
       (c.nao_lidas ? '<span class="nlida">' + c.nao_lidas + '</span>' : '');
     li.onclick = () => { if (li.dataset.segurou){ delete li.dataset.segurou; return; } zapAbrirConversa(c); };
     zapSegurar(li, () => zapConfirmarApagar(c.jid, c.nome_exibicao));
     ul.appendChild(li);
   }
+  zapCarregarFotos(ul);
 }
 
 
@@ -3485,8 +3500,42 @@ function zapIniciais(n){
   return (p[0][0] + (p.length > 1 ? p[p.length - 1][0] : '')).toUpperCase();
 }
 function zapAvatar(jid, nomeC, grupo, on){
-  return '<span class="zap-av" style="background:' + corDe(jid) + '">' + (grupo ? icp('users', 18) : esc(zapIniciais(nomeC))) +
+  const f = ZAP.fotos[jid];
+  const foto = f && f.url ? ';background-image:url(' + f.url + ')' : '';
+  return '<span class="zap-av' + (foto ? ' zap-com-foto' : '') + '" data-foto="' + esc(jid) + '" style="background-color:' + corDe(jid) + foto + '">' + (grupo ? icp('users', 18) : esc(zapIniciais(nomeC))) +
     (on ? '<i class="zap-on"></i>' : '') + '</span>';
+}
+
+// busca as fotos de perfil dos avatares que estão na tela (o motor guarda por 1 dia)
+const zapFilaFotos = new Set();
+function zapCarregarFotos(raiz){
+  (raiz || document).querySelectorAll('.zap-av[data-foto]').forEach(el => {
+    const jid = el.dataset.foto, f = ZAP.fotos[jid];
+    if (f && (f.url || Date.now() - f.t < 10 * 60 * 1000)) return;
+    zapFilaFotos.add(jid);
+  });
+  zapProximaFoto();
+}
+let zapFotosRodando = 0;
+async function zapProximaFoto(){
+  while (zapFotosRodando < 3 && zapFilaFotos.size){
+    const jid = zapFilaFotos.values().next().value; zapFilaFotos.delete(jid);
+    zapFotosRodando++;
+    zapGet('/api/foto/' + zapJ(jid)).then(r => {
+      const url = r && r.foto ? zapUrl('/midia/' + r.foto) : null;
+      ZAP.fotos[jid] = { url: null, t: Date.now() };
+      if (!url) return;
+      const im = new Image();
+      im.onload = () => {        // só troca as iniciais pela foto se ela carregou de verdade
+        ZAP.fotos[jid] = { url, t: Date.now() };
+        document.querySelectorAll('.zap-av[data-foto="' + CSS.escape(jid) + '"]').forEach(el => {
+          el.style.backgroundImage = 'url(' + url + ')'; el.classList.add('zap-com-foto');
+        });
+      };
+      im.src = url;
+    }).catch(() => { ZAP.fotos[jid] = { url: null, t: Date.now() }; })
+      .finally(() => { zapFotosRodando--; zapProximaFoto(); });
+  }
 }
 
 /* ---------- segurar o dedo (menu) ---------- */
@@ -3496,6 +3545,36 @@ function zapSegurar(el, fn){
   el.addEventListener('pointerdown', () => { cancelar(); to = setTimeout(() => { el.dataset.segurou = '1'; vibrar(25); fn(); }, 550); });
   ['pointerup', 'pointerleave', 'pointercancel', 'pointermove'].forEach(ev => el.addEventListener(ev, e => { if (ev !== 'pointermove' || Math.abs(e.movementY) > 4) cancelar(); }));
   el.addEventListener('contextmenu', e => { e.preventDefault(); });
+}
+
+/* ---------- aviso quando o contato ficar online ---------- */
+async function zapCarregarVigiados(){
+  try{ const l = await zapGet('/api/vigiados') || []; ZAP.vigiados = {}; l.forEach(j => ZAP.vigiados[j] = true); }catch(e){}
+  zapRenderVigia();
+}
+function zapRenderVigia(){
+  const b = $('zapVigiarBtn'); if (!b) return;
+  const on = !!(ZAP.jid && ZAP.vigiados[ZAP.jid]);
+  b.innerHTML = ic(on ? 'bell' : 'bellOff');
+  b.classList.toggle('zap-ib-on', on);
+  b.hidden = !ZAP.jid || ZAP.grupo;
+}
+function zapAlternarVigia(){
+  const jid = ZAP.jid, nomeC = ZAP.nome; if (!jid) return;
+  const ligar = !ZAP.vigiados[jid];
+  const aplicar = async () => {
+    try{
+      await zapPost('/api/vigiados/' + zapJ(jid), { ligar });
+      if (ligar) ZAP.vigiados[jid] = true; else delete ZAP.vigiados[jid];
+      zapRenderVigia(); zapRenderLista();
+      aviso(ligar ? 'Vou te avisar quando ' + nomeC + ' ficar online.' : 'Aviso de online desligado pra ' + nomeC + '.', 4000);
+    }catch(e){ aviso('Não deu: ' + e.message, 4000); }
+  };
+  if (!ligar || Object.keys(ZAP.vigiados).length) return aplicar();
+  folha('Avisar quando ficar online', 'Regra do próprio WhatsApp: ele só mostra quem está online se o SEU online também estiver visível. Enquanto tiver pelo menos uma pessoa com aviso ligado, você aparece online pros seus contatos. Desligando todos os avisos, você volta a ficar escondido.', [
+    { ic: 'bell', txt: 'Ligar aviso pra ' + nomeC, fn: aplicar },
+    { ic: 'x', txt: 'Cancelar', fn: () => {} }
+  ]);
 }
 
 /* ---------- apagar conversa ---------- */
@@ -3540,12 +3619,13 @@ function zapRenderListaStatus(){
   const item = (a) => {
     const li = document.createElement('li');
     const n = zapStatusNovos(a);
-    li.innerHTML = '<i class="zap-anel' + (n ? '' : ' visto') + '"></i><div><b>' + esc(a.nome) + '</b><small>' + a.itens.length + ' status • ' + zapQuando(a.ultimo_ts) + '</small></div>' + (n ? '<span class="nlida">' + n + '</span>' : '');
+    li.innerHTML = '<span class="zap-anel-av' + (n ? '' : ' visto') + '">' + zapAvatar(a.autor_jid, a.nome, false, false) + '</span><div><b>' + esc(a.nome) + '</b><small>' + a.itens.length + ' status • ' + zapQuando(a.ultimo_ts) + '</small></div>' + (n ? '<span class="nlida">' + n + '</span>' : '');
     li.onclick = () => zapAbrirStatus(a.autor_jid);
     ul.appendChild(li);
   };
   if (novos.length){ secao('NOVOS'); novos.forEach(item); }
   if (vistos.length){ secao('JÁ VISTOS'); vistos.forEach(item); }
+  zapCarregarFotos(ul);
 }
 function zapAbrirStatus(autor){
   const ordem = [...ZAP.statusLista.filter(a => zapStatusNovos(a) > 0), ...ZAP.statusLista.filter(a => zapStatusNovos(a) === 0)];
@@ -3631,6 +3711,17 @@ function zapRenderNovo(){
     li.onclick = () => zapIniciarCom(c.jid, c.nome);
     ul.appendChild(li);
   }
+  zapCarregarFotos(ul);
+}
+async function zapSincronizarContatos(){
+  const b = $('zapSincBtn'); b.disabled = true; b.innerHTML = ic('refresh') + '<span>Sincronizando... (pode levar até 1 minuto)</span>';
+  try{
+    const r = await zapPost('/api/sincronizar-contatos');
+    ZAP.contatos = await zapGet('/api/contatos') || [];
+    zapRenderNovo();
+    aviso(r.depois > r.antes ? 'Pronto: ' + r.depois + ' contatos da agenda.' : 'Agenda conferida: ' + r.depois + ' contatos.', 5000);
+  }catch(e){ aviso('Não sincronizou: ' + e.message, 6000); }
+  b.disabled = false; b.innerHTML = ic('refresh') + '<span>Sincronizar contatos do WhatsApp</span>';
 }
 async function zapNovoPorNumero(){
   const num = $('zapNovoNum').value.trim();
@@ -3659,6 +3750,8 @@ function zapAbrirConversa(c){
   $('zapBar').hidden = false; $('zapMsgs').hidden = false; $('zapCompor').hidden = false;
   $('zapNome').textContent = c.nome_exibicao;
   $('zapBarAv').innerHTML = zapAvatar(c.jid, c.nome_exibicao, c.eh_grupo, false);
+  zapCarregarFotos($('zapBarAv'));
+  zapRenderVigia();
   $('zapMsgs').innerHTML = '<div class="vazio">Carregando...</div>';
   zapRenderPresenca();
   zapCarregarMensagens(true);
