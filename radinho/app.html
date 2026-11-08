@@ -1200,6 +1200,7 @@
       </div>
       <button class="btn sec" id="btnZapTema" data-ic="paleta">Aparência do Zap (cores, balões, papel de parede)</button>
       <button class="btn sec" id="btnZapSync" data-ic="refresh">Sincronizar contatos do WhatsApp</button>
+      <button class="btn perigo" id="btnZapZerar" data-ic="logout">Desconectar o WhatsApp e gerar código novo</button>
     </div>
     <h4>CONVIDAR</h4>
     <button class="btn" id="btnConvite" data-ic="share">Convidar pra este canal</button>
@@ -1345,7 +1346,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 71;
+const APP_VERSAO = 72;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3631,6 +3632,7 @@ function prepararAjustes(){
   $('btnAjustes').onclick = () => { renderInfoVersao(); renderAdmin(); sincronizarAjustesExtra(); $('fundo').hidden = false; };
   if ($('swSilencio')) $('swSilencio').onchange = () => { if (!!$('swSilencio').checked !== !!cfgLocal.silencio) alternarSilencio(); };
   if ($('swZapOnline')) $('swZapOnline').onchange = () => { zapAlternarEsconder($('swZapOnline').checked); setTimeout(() => { $('swZapOnline').checked = !!(typeof ZAP !== 'undefined' && ZAP.cfg && ZAP.cfg.esconder_online); }, 600); };
+  if ($('btnZapZerar')) $('btnZapZerar').onclick = () => { $('fundo').hidden = true; mudarAba('zap'); zapZerarConexao(); };
   if ($('btnZapTema')) $('btnZapTema').onclick = () => { $('fundo').hidden = true; zapEditorTema(); };
   if ($('btnZapSync')) $('btnZapSync').onclick = () => { $('fundo').hidden = true; if ($('abaZap') && !$('abaZap').hidden) $('abaZap').click(); setTimeout(() => { if (typeof zapAbrirNovo === 'function'){ zapAbrirNovo(); setTimeout(zapSincronizarContatos, 400); } }, 200); };
   $('btnFechar').onclick  = () => { $('fundo').hidden = true; };
@@ -3979,8 +3981,11 @@ function zapMostrarConexao(estado, qr){
   const box = $('zapCon'); box.hidden = false;
   if (estado !== 'parear'){
     box.innerHTML = '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Zap</b></div><div class="info">' +
-      (estado === 'iniciando' ? 'Ligando o Zap...' : 'Conectando ao WhatsApp...') + '</div></div>';
+      (estado === 'iniciando' ? 'Ligando o Zap...' : 'Conectando ao WhatsApp...') + '</div>' +
+      (estado === 'iniciando' ? '' : '<button class="btn sec" id="zapZerar" style="margin-top:14px">Desconectar e gerar código novo</button>' +
+      '<div class="info" style="font-size:12.5px;opacity:.8">Use se ficar preso aqui. Suas conversas e contatos no Zap não são apagados.</div>') + '</div>';
     ZAP.telaPareamento = false;
+    if ($('zapZerar')) $('zapZerar').onclick = zapZerarConexao;
     return;
   }
   if (ZAP.telaPareamento){ const im = $('zapQr'); if (im && qr) im.src = qr; return; }
@@ -3992,8 +3997,20 @@ function zapMostrarConexao(estado, qr){
     '<input id="zapNum" type="tel" inputmode="tel" placeholder="31 99999-9999" value="' + esc(num) + '">' +
     '<button class="btn" id="zapGerar">Gerar código</button>' +
     '<div id="zapCodigo"></div>' +
-    '<details class="zap-qr"><summary>Ou escanear QR de outro aparelho</summary><img id="zapQr" alt="QR"' + (qr ? ' src="' + qr + '"' : '') + '></details></div>';
+    '<details class="zap-qr"><summary>Ou escanear QR de outro aparelho</summary><img id="zapQr" alt="QR"' + (qr ? ' src="' + qr + '"' : '') + '></details>' +
+    '<button class="btn sec" id="zapZerar" style="margin-top:14px">Código não funciona? Começar do zero</button></div>';
   $('zapGerar').onclick = zapGerarCodigo;
+  $('zapZerar').onclick = zapZerarConexao;
+}
+
+async function zapZerarConexao(){
+  const ok = await janela({ titulo: 'Desconectar e começar do zero?', texto: 'O Zap sai da sua conta do WhatsApp e gera um código/QR novo pra conectar de novo.\n\nSuas conversas, contatos e fotos que já estão no Zap continuam aqui.\n\nSe o Zap ainda aparecer em Aparelhos conectados no seu WhatsApp, pode remover ele de lá também.', ok: 'Desconectar', perigo: true });
+  if (!ok) return;
+  try{ await zapPost('/api/desconectar', {}); }catch(e){ aviso('Não desconectou: ' + e.message, 5000); return; }
+  ZAP.telaPareamento = false; ZAP.conectado = false;
+  zapMostrarConexao('conectando');
+  aviso('Desconectado. Em alguns segundos aparece a tela do código.', 5000);
+  clearTimeout(ZAP.tStatus); ZAP.tStatus = setTimeout(zapAtualizarStatus, 2500);
 }
 
 async function zapGerarCodigo(){
@@ -5151,6 +5168,7 @@ function zapMenu(){
   folha('Zap', '', [
     { ic: 'refresh', txt: 'Sincronizar contatos do WhatsApp', fn: () => { zapAbrirNovo(); setTimeout(zapSincronizarContatos, 300); } },
     { ic: esc_ ? 'eye' : 'eyeOff', txt: esc_ ? 'Mostrar meu online' : 'Esconder meu online', fn: () => zapAlternarEsconder(!esc_) },
+    { ic: 'logout', txt: 'Desconectar o WhatsApp (gerar código novo)', perigo: true, fn: zapZerarConexao },
   ]);
 }
 function zapAlternarEsconder(ligar){
