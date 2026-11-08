@@ -1345,7 +1345,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 70;
+const APP_VERSAO = 71;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3872,8 +3872,8 @@ function zapIniciar(){
   $('zapNovoIr').onclick = zapNovoPorNumero;
   $('zapSincBtn').innerHTML = ic('refresh') + '<span>Sincronizar contatos do WhatsApp</span>';
   $('zapSincBtn').onclick = zapSincronizarContatos;
-  $('zapRecupBtn').innerHTML = ic('baixar') + '<span>Recuperar contatos pra agenda do celular</span>';
-  $('zapRecupBtn').onclick = zapRecuperarContatos;
+  $('zapRecupBtn').innerHTML = ic('users') + '<span>Puxar todos os contatos que já tive</span>';
+  $('zapRecupBtn').onclick = zapPuxarContatos;
   $('zapNovoNum').addEventListener('keydown', e => { if (e.key === 'Enter') zapNovoPorNumero(); });
   $('zapQuem').onclick = () => { if (ZAP.jid) zapAbrirPerfil(ZAP.jid); };
   if ($('zapMenuBtn')){ $('zapMenuBtn').innerHTML = ic('more'); $('zapMenuBtn').onclick = zapMenu; }
@@ -4560,9 +4560,13 @@ function zapRenderNovo(){
   if (q) l = l.filter(c => c.nome.toLowerCase().includes(q) || (qd && c.jid.includes(qd)));
   ul.innerHTML = '';
   if (!l.length){ ul.innerHTML = '<li class="vz" style="cursor:default">' + (q ? 'Ninguém com esse nome. Digite o número lá em cima.' : 'Os contatos aparecem aqui conforme o WhatsApp sincroniza. Você também pode digitar o número lá em cima.') + '</li>'; return; }
-  for (const c of l.slice(0, 400)){
+  const cab = document.createElement('li'); cab.className = 'vz'; cab.style.cursor = 'default';
+  cab.textContent = l.length.toLocaleString('pt-BR') + (l.length === 1 ? ' contato' : ' contatos'); ul.appendChild(cab);
+  let n = 0;
+  for (const c of l){
     const li = document.createElement('li');
-    li.innerHTML = zapAvatar(c.jid, c.nome, false, false) + '<div><b>' + esc(c.nome) + '</b><small>' + esc(c.numero) + '</small></div>';
+    // foto só dos primeiros (pedir milhares de fotos de uma vez faz o WhatsApp travar)
+    li.innerHTML = zapAvatar(c.jid, c.nome, false, false).replace(n++ < 120 ? /^$/ : / data-foto="[^"]*"/, '') + '<div><b>' + esc(c.nome) + '</b><small>' + esc(c.numero) + '</small></div>';
     li.onclick = () => zapIniciarCom(c.jid, c.nome);
     ul.appendChild(li);
   }
@@ -4578,25 +4582,22 @@ async function zapSincronizarContatos(){
   }catch(e){ aviso('Não sincronizou: ' + e.message, 6000); }
   b.disabled = false; b.innerHTML = ic('refresh') + '<span>Sincronizar contatos do WhatsApp</span>';
 }
-function zapRecuperarContatos(){
-  folha('Recuperar contatos', 'O Zap baixa tudo que o WhatsApp ainda tem guardado (agenda do servidor, grupos, conversas) e gera um arquivo de contatos pra você importar no celular.', [
-    { ic: 'users', txt: 'Só quem eu já salvei um dia (nome da agenda)', fn: () => zapRecuperarContatosModo('agenda') },
-    { ic: 'users', txt: 'Todos que o WhatsApp conhece (inclui nome do perfil)', fn: () => zapRecuperarContatosModo('todos') },
-    { ic: 'x', txt: 'Cancelar', fn: () => {} }
-  ]);
-}
-async function zapRecuperarContatosModo(modo){
-  const b = $('zapRecupBtn'); b.disabled = true; b.innerHTML = ic('refresh') + '<span>Recuperando... (pode levar 1 ou 2 minutos)</span>';
+async function zapPuxarContatos(){
+  const b = $('zapRecupBtn'); b.disabled = true; b.innerHTML = ic('refresh') + '<span>Puxando do WhatsApp... (1 ou 2 minutos)</span>';
+  let r = null;
   try{
-    const r = await zapPost('/api/contatos/recuperar', { modo });
+    r = await zapPost('/api/contatos/recuperar', {});
     ZAP.contatos = await zapGet('/api/contatos') || []; zapRenderNovo();
-    if (!r.total){ aviso('O WhatsApp não devolveu nenhum contato com número. Tenta o outro modo.', 6000); }
-    else {
-      zapSalvar(r.arquivo, r.arquivo);
-      setTimeout(() => janela({ titulo: r.total + ' contatos recuperados', texto: 'O arquivo ' + r.arquivo + ' foi salvo em Downloads › Zap.\n\nPra voltar tudo pra agenda: abra o app Arquivos (ou Meus Arquivos), entre em Downloads › Zap e toque no arquivo. Escolha Contatos e confirme Importar.\n\nSe algum já existir na sua agenda, o celular junta ou pergunta, conforme o modelo.', ok: 'Entendi', cancelar: false }), 1200);
+    aviso(r.total + ' contatos no Zap (' + r.agenda + ' com nome da sua agenda).', 6000);
+  }catch(e){ aviso('Não puxou: ' + e.message, 6000); }
+  b.disabled = false; b.innerHTML = ic('users') + '<span>Puxar todos os contatos que já tive</span>';
+  if (r && !r.historicoCompleto){
+    const ok = await janela({ titulo: 'Quer puxar MAIS ainda?', texto: 'O máximo vem quando o celular manda o histórico completo (anos de conversas e todos os nomes). O WhatsApp só manda isso na hora de conectar.\n\nO Zap sai e você conecta de novo com o código. Suas conversas aqui continuam. Depois de conectar, deixe o Zap aberto uns minutos enquanto chega tudo.', ok: 'Reconectar agora', cancelar: 'Agora não' });
+    if (ok){
+      try{ await zapPost('/api/reconectar-completo', {}); $('zapNovoFundo').hidden = true; aviso('Desconectado. Conecte de novo com o código.', 6000); setTimeout(zapAtualizarStatus, 2500); }
+      catch(e){ aviso('Não reconectou: ' + e.message, 6000); }
     }
-  }catch(e){ aviso('Não recuperou: ' + e.message, 6000); }
-  b.disabled = false; b.innerHTML = ic('baixar') + '<span>Recuperar contatos pra agenda do celular</span>';
+  }
 }
 async function zapNovoPorNumero(){
   const num = $('zapNovoNum').value.trim();
