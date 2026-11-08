@@ -762,6 +762,15 @@
   #zapSvSalvar[hidden]{display:none}
   .zap-ver-meio{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
   .zap-ver-meio img,.zap-ver-meio video{max-width:100%;max-height:100%;object-fit:contain;background:#000}
+  /* conversa aberta: perfil sem caixa, emendado no fundo */
+  #pZap:has(> #zapMsgs:not([hidden])){background:var(--zap-fundo-conv,transparent);border-radius:18px;overflow:hidden}
+  #pZap > #zapMsgs{background:transparent!important}
+  #pZap .zap-bar,#pZap .zap-msgbar{background:transparent;border:0;border-radius:0;margin:0;padding:10px 10px 6px}
+  #pZap .zap-bar .dm-quem b,#pZap .zap-bar .dm-quem small{text-shadow:0 1px 3px rgba(0,0,0,.55)}
+  #pZap .zap-bar #zapVoltar{background:transparent;border:0;color:#fff}
+  #pZap .zap-bar #zapVoltar span{font-size:30px!important}
+  #pZap .zap-bar .zap-av .zap-on{border-color:transparent}
+  #pZap:has(> #zapMsgs:not([hidden])) .zap-compor,#pZap:has(> #zapMsgs:not([hidden])) #zapCompor{background:transparent}
   /* tela Atualizações (status) igual ao WhatsApp */
   #zapAtt{display:none;flex:1;min-height:0;overflow-y:auto;position:relative;padding-bottom:110px}
   #zapListaBox.modo-att > :not(#zapAtt){display:none!important}
@@ -1305,7 +1314,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 66;
+const APP_VERSAO = 67;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -5493,8 +5502,11 @@ function zapAplicarTema(){
   ['--zb-minha','--zb-minha-borda','--zb-deles','--zb-deles-borda','--zb-txt-minha','--zb-txt-deles','--zb-fundo','--zb-raio','--zb-ponta','--zb-minha-solida','--zb-deles-solida'].forEach(k => alvo.style.removeProperty(k));
   const v = zapVarsTema(t); Object.keys(v).forEach(k => alvo.style.setProperty(k, v[k]));
   const box = $('zapMsgs'); if (box) box.className = box.className.replace(/\s*zbf-\S+/g, '') + (t.forma ? ' zbf-' + t.forma : '');
-  if (box) box.style.background = zapFundoPapel(t) ? zapFundoPapel(t) + (t.papel === 'foto' ? ' center/cover no-repeat' : '') : '';
-  if (box && !zapFundoPapel(t)) box.style.backgroundColor = t.fundo || '';
+  // o fundo vai no painel inteiro da conversa (perfil + mensagens + digitar), tudo emendado
+  const papel = zapFundoPapel(t);
+  const fundo = papel ? papel + (t.papel === 'foto' ? ' center/cover no-repeat' : '') : (t.fundo || '');
+  if (fundo) alvo.style.setProperty('--zap-fundo-conv', fundo); else alvo.style.removeProperty('--zap-fundo-conv');
+  if (box){ box.style.background = ''; box.style.backgroundColor = ''; }
 }
 function zapEditorTema(){
   const ed = $('zapEd'); ed.dataset.modo = 'tema';
