@@ -600,11 +600,11 @@
   .zap-tema-papeis button.on{border-color:var(--verde)}
   .zap-tema-cor[hidden]{display:none!important}
   .zap-busca-linha{display:flex;gap:8px;align-items:center;margin:0 0 8px}
-  .zap-lupa{flex:none;width:44px;height:44px;border-radius:12px;background:var(--corpo2);border:1px solid var(--borda);color:var(--sub);display:grid;place-items:center;cursor:pointer}
+  .zap-lupa{flex:none;width:36px;height:36px;border-radius:50%;background:var(--corpo2);border:1px solid var(--borda);color:var(--sub);display:grid;place-items:center;cursor:pointer}
   .zap-lupa.on{border-color:var(--verde);color:var(--verde)}
   .zap-lupa svg{width:19px;height:19px}
   .zap-busca-linha .zap-busca{flex:1;margin:0}
-  .zap-arq-bt{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--corpo2);border:1px solid var(--borda);color:var(--txt);border-radius:12px;padding:0 10px;min-height:44px;font-size:14px;font-weight:600;cursor:pointer;position:relative}
+  .zap-arq-bt{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--corpo2);border:1px solid var(--borda);color:var(--txt);border-radius:999px;padding:0 14px;height:36px;font-size:13px;font-weight:600;cursor:pointer;position:relative}
   .zap-arq-bt.on{border-color:var(--verde);color:var(--verde)}
   .zap-arq-bt svg{width:16px;height:16px;color:var(--sub)}
   .zap-arq-bt.on svg{color:var(--verde)}
@@ -802,6 +802,10 @@
   .zap-att-card.ocultas .prev{align-items:flex-start;justify-content:flex-start;padding:14px 12px;color:#8696a0}
   .zap-att-card.ocultas .nm{color:#8696a0;text-shadow:none}
   .zap-att-card.ocultas.on{border-color:#25d366}
+  .zap-att-ocultas{margin-top:10px}
+  .zap-att-ocultas[hidden]{display:none}
+  .zap-att-ocultas .contas{margin:0 8px}
+  .zap-att-ocultas .zap-att-sec{font-size:16px;color:var(--sub);font-weight:600}
   .zap-att-vazio{margin:6px 16px;color:var(--sub);font-size:14px;line-height:1.4}
   .zap-att-vazio[hidden]{display:none}
   .zap-att-fabs{position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:14px;z-index:5}
@@ -1037,6 +1041,7 @@
         <h3 class="zap-att-sec">Status</h3>
         <div class="zap-att-cards" id="zapAttCards"></div>
         <div class="zap-att-vazio" id="zapAttVazio" hidden></div>
+        <div class="zap-att-ocultas" id="zapAttOcultas" hidden></div>
         <div class="zap-att-fabs"><button class="zap-att-lapis" id="zapAttLapis" aria-label="Status de texto"></button><button class="zap-att-cam" id="zapAttCam" aria-label="Foto ou vídeo"></button></div>
       </div>
     </div>
@@ -1314,7 +1319,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 67;
+const APP_VERSAO = 68;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4383,9 +4388,27 @@ function zapRenderListaStatus(){
   if (sil.length){
     const o = document.createElement('button'); o.className = 'zap-att-card ocultas' + (ZAP.verOcultas ? ' on' : '');
     o.innerHTML = '<div class="prev">' + icp('eyeOff', 34) + '</div><span class="nm">Ocultas' + (ZAP.verOcultas ? '' : ' (' + sil.length + ')') + '</span>';
-    o.onclick = () => { ZAP.verOcultas = !ZAP.verOcultas; zapRenderListaStatus(); if (ZAP.verOcultas) setTimeout(() => box.scrollTo({ left: box.scrollWidth, behavior: 'smooth' }), 50); };
+    o.onclick = () => { ZAP.verOcultas = !ZAP.verOcultas; zapRenderListaStatus(); if (ZAP.verOcultas) setTimeout(() => $('zapAttOcultas').scrollIntoView({ behavior: 'smooth', block: 'start' }), 60); };
     box.appendChild(o);
-    if (ZAP.verOcultas) sil.forEach(a => card(a));
+  }
+  // ocultas: lista embaixo, igual ao WhatsApp
+  const ocl = $('zapAttOcultas');
+  ocl.hidden = !(sil.length && ZAP.verOcultas);
+  ocl.innerHTML = '';
+  if (!ocl.hidden){
+    ocl.innerHTML = '<h3 class="zap-att-sec">Status ocultos</h3>';
+    const ul = document.createElement('ul'); ul.className = 'contas';
+    sil.sort((x, y) => y.ultimo_ts - x.ultimo_ts).forEach(a => {
+      const li = document.createElement('li');
+      li.innerHTML = '<span class="zap-anel-av visto">' + zapAvatar(a.autor_jid, a.nome, false, false) + '</span><div><b>' + esc(a.nome) + '</b><small>' + zapQuando(a.ultimo_ts) + '</small></div>';
+      li.onclick = () => { if (li.dataset.segurou){ delete li.dataset.segurou; return; } zapAbrirStatus(a.autor_jid); };
+      zapSegurar(li, () => { li.dataset.segurou = '1'; folha(a.nome, '', [
+        { ic: 'bell', txt: 'Mostrar de novo', fn: async () => { try{ await zapPost('/api/status-silenciar/' + zapJ(a.autor_jid), { ligar: false }); zapCarregarStatus(); }catch(e){ aviso(e.message); } } },
+        { ic: 'x', txt: 'Cancelar', fn: () => {} }
+      ]); });
+      ul.appendChild(li);
+    });
+    ocl.appendChild(ul);
   }
   vazio.hidden = !!(outros.length);
   vazio.textContent = ZAP.busca ? 'Ninguém com esse nome.' : 'Nenhum status dos seus contatos nas últimas 24 horas.';
