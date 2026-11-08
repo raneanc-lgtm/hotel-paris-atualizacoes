@@ -271,6 +271,9 @@
   #lista li.priv{border-color:#6b52a8}
   /* ---------- v29: master, contas, voz, tempo ---------- */
   .logo-topo{width:34px;height:34px;border-radius:10px;object-fit:contain;background:#000;flex:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .15s}
+  .logo-wrap{position:relative;flex:none;display:inline-flex;cursor:pointer}
+  .logo-cfg{position:absolute;right:-5px;bottom:-5px;width:17px;height:17px;border-radius:50%;background:var(--corpo2);border:1px solid var(--borda);color:var(--sub);display:grid;place-items:center;pointer-events:none;line-height:0}
+  .logo-cfg svg{width:11px;height:11px}
   .logo-topo.segurando{transform:scale(.88);filter:brightness(1.4)}
   .pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px}
   .pills .alvo{margin:0}
@@ -709,11 +712,11 @@
 <!-- ===== Tela principal ===== -->
 <section id="tRadio" class="tela" hidden>
   <header>
-    <img class="logo-topo" id="logoTopo" alt="" draggable="false">
+    <span class="logo-wrap" id="logoWrap"><img class="logo-topo" id="logoTopo" alt="" draggable="false"><i class="logo-cfg" data-ic="gear" aria-hidden="true"></i></span>
     <div class="led" id="led"></div>
     <div class="titulo"><b>RADINHO</b><small id="lblCanal"></small></div>
-    <button class="icone" id="btnSilencio" aria-label="Rádio no silencioso"></button>
-    <button class="icone" id="btnAjustes" aria-label="Ajustes" data-ic="gear"></button>
+    <button class="icone" id="btnSilencio" aria-label="Rádio no silencioso" style="display:none"></button>
+    <button class="icone" id="btnAjustes" aria-label="Ajustes" data-ic="gear" style="display:none"></button>
   </header>
 
   <div class="abas">
@@ -773,7 +776,7 @@
   <div class="painel" id="pZap" hidden>
     <div id="zapCon" hidden></div>
     <div id="zapListaBox" hidden>
-      <div class="zap-topo"><span id="zapNota"></span><button class="zap-mais" id="zapMenuBtn" aria-label="Opções do Zap"></button></div>
+      <div class="zap-topo"><span id="zapNota"></span></div>
       <button class="alvo btn-contatos" id="zapStatusBtn"></button>
       <div class="zap-st-acoes" id="zapStAcoes" hidden>
         <button class="alvo" id="zapPostTexto"></button>
@@ -850,6 +853,10 @@
       <span>Vibrar ao receber</span>
       <label class="sw"><input type="checkbox" id="swVibra"><b></b></label>
     </div>
+    <div class="opcao">
+      <span>Rádio no silencioso<small>As chamadas não tocam, só vibram — ficam no histórico pra ouvir depois</small></span>
+      <label class="sw"><input type="checkbox" id="swSilencio"><b></b></label>
+    </div>
     <h4>CHAT</h4>
     <div class="opcao" style="border-bottom:0;padding-bottom:4px"><span>Notificação do chat<small>Como avisar quando chega mensagem</small></span></div>
     <select class="sel" id="selChat">
@@ -891,6 +898,14 @@
       </div>
     </div>
 
+    <div id="secZap" hidden>
+      <h4>ZAP (WHATSAPP)</h4>
+      <div class="opcao">
+        <span>Esconder meu online<small>Ninguém te vê online pelo Zap. Pela regra do WhatsApp, aí você também deixa de ver o dos outros</small></span>
+        <label class="sw"><input type="checkbox" id="swZapOnline"><b></b></label>
+      </div>
+      <button class="btn sec" id="btnZapSync" data-ic="refresh">Sincronizar contatos do WhatsApp</button>
+    </div>
     <h4>CONVIDAR</h4>
     <button class="btn" id="btnConvite" data-ic="share">Convidar pra este canal</button>
 
@@ -1029,7 +1044,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 54;
+const APP_VERSAO = 55;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1881,14 +1896,16 @@ function opcoesConta(id){
 function prepararMaster(){
   const logo = $('logoTopo');
   logo.src = (document.querySelector('img.logo') || {}).src || '';
-  let t = null;
+  let t = null, longo = false;
   const soltar = () => { clearTimeout(t); logo.classList.remove('segurando'); };
   logo.addEventListener('pointerdown', e => {
     e.preventDefault();
+    longo = false;
     logo.classList.add('segurando');
-    t = setTimeout(() => { soltar(); vibrar(50); if (souAdmin()) abrirMaster(); }, 1200);
+    t = setTimeout(() => { longo = true; soltar(); vibrar(50); if (souAdmin()) abrirMaster(); }, 1200);
   });
-  ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => logo.addEventListener(ev, soltar));
+  logo.addEventListener('pointerup', () => { const tap = !longo; soltar(); if (tap) $('btnAjustes').click(); });
+  ['pointerleave', 'pointercancel'].forEach(ev => logo.addEventListener(ev, soltar));
   logo.addEventListener('contextmenu', e => e.preventDefault());
   $('btnFecharM').onclick = fecharMaster;
   $('fundoM').onclick = e => { if (e.target.id === 'fundoM') fecharMaster(); };
@@ -2130,6 +2147,7 @@ function mudarStatus(k){
   aviso(k === 'ocup' ? 'Status: Ocupado. O rádio fica em silêncio até você voltar pra Disponível.' : 'Status: ' + STATUS[k].nome + '.', 4500);
 }
 function renderSilencio(){
+  const sw = $('swSilencio'); if (sw) sw.checked = !!cfgLocal.silencio;
   const b = $('btnSilencio'); if (!b) return;
   b.innerHTML = ic(cfgLocal.silencio ? 'bellOff' : 'bell');
   b.classList.toggle('on', cfgLocal.silencio);
@@ -3275,6 +3293,16 @@ async function ligarTela(){
 function desligarTela(){ if (wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; } }
 
 /* ---------------- ajustes ---------------- */
+function sincronizarAjustesExtra(){
+  const s = $('swSilencio'); if (s) s.checked = !!cfgLocal.silencio;
+  const z = $('secZap');
+  if (z){
+    const master = !!window.ChatSlimNativo;
+    z.hidden = !master;
+    const o = $('swZapOnline');
+    if (master && o) o.checked = !!(typeof ZAP !== 'undefined' && ZAP.cfg && ZAP.cfg.esconder_online);
+  }
+}
 function prepararAjustes(){
   $('rgVol').value = Math.round(cfgLocal.vol * 100);
   $('lblVol').textContent = Math.round(cfgLocal.vol * 100) + '%';
@@ -3286,7 +3314,10 @@ function prepararAjustes(){
   $('selFundo').value = modoFundo();
   textoPTT();
 
-  $('btnAjustes').onclick = () => { renderInfoVersao(); renderAdmin(); $('fundo').hidden = false; };
+  $('btnAjustes').onclick = () => { renderInfoVersao(); renderAdmin(); sincronizarAjustesExtra(); $('fundo').hidden = false; };
+  if ($('swSilencio')) $('swSilencio').onchange = () => { if (!!$('swSilencio').checked !== !!cfgLocal.silencio) alternarSilencio(); };
+  if ($('swZapOnline')) $('swZapOnline').onchange = () => { zapAlternarEsconder($('swZapOnline').checked); setTimeout(() => { $('swZapOnline').checked = !!(typeof ZAP !== 'undefined' && ZAP.cfg && ZAP.cfg.esconder_online); }, 600); };
+  if ($('btnZapSync')) $('btnZapSync').onclick = () => { $('fundo').hidden = true; if ($('abaZap') && !$('abaZap').hidden) $('abaZap').click(); setTimeout(() => { if (typeof zapAbrirNovo === 'function'){ zapAbrirNovo(); setTimeout(zapSincronizarContatos, 400); } }, 200); };
   $('btnFechar').onclick  = () => { $('fundo').hidden = true; };
   $('fundo').onclick = e => { if (e.target.id === 'fundo') $('fundo').hidden = true; };
 
@@ -3514,7 +3545,7 @@ function zapIniciar(){
   $('zapSincBtn').onclick = zapSincronizarContatos;
   $('zapNovoNum').addEventListener('keydown', e => { if (e.key === 'Enter') zapNovoPorNumero(); });
   $('zapQuem').onclick = () => { if (ZAP.jid) zapAbrirPerfil(ZAP.jid); };
-  $('zapMenuBtn').innerHTML = ic('more'); $('zapMenuBtn').onclick = zapMenu;
+  if ($('zapMenuBtn')){ $('zapMenuBtn').innerHTML = ic('more'); $('zapMenuBtn').onclick = zapMenu; }
   $('zapPostTexto').innerHTML = ic('edit') + '<span>Status de texto</span>'; $('zapPostTexto').onclick = () => zapEditorTexto();
   $('zapPostFoto').innerHTML = ic('camera') + '<span>Foto ou vídeo</span>'; $('zapPostFoto').onclick = () => { $('zapInStatus').value = ''; $('zapInStatus').click(); };
   $('zapInStatus').onchange = e => { const f = e.target.files && e.target.files[0]; if (!f) return; if (/^video\//.test(f.type)) zapPostarVideo(f); else zapEditorImagem(f); };
