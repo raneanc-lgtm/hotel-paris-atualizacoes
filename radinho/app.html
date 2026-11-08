@@ -533,10 +533,24 @@
   .zap-perg-fix{position:fixed!important;z-index:50}
   /* tema do Zap (só mexe nas conversas do Zap) */
   #zapMsgs{-webkit-user-select:none;user-select:none;background-color:var(--zb-fundo,transparent);background-size:cover;background-position:center}
-  #zapMsgs .bolha{background:var(--zb-deles,#1b2220);border-color:var(--zb-deles-borda,#252e2a);color:var(--zb-txt-deles,inherit);border-radius:var(--zb-raio,18px);touch-action:pan-y;transition:transform .15s}
-  #zapMsgs .bolha:not(.cont){border-top-left-radius:var(--zb-ponta,5px)}
-  #zapMsgs .bolha.minha{background:var(--zb-minha,linear-gradient(180deg,#1f6a45,#1a5a3b));border-color:var(--zb-minha-borda,#23744c);color:var(--zb-txt-minha,#eafff2)}
-  #zapMsgs .bolha.minha:not(.cont){border-top-left-radius:var(--zb-raio,18px);border-top-right-radius:var(--zb-ponta,5px)}
+  :is(#zapMsgs,#zapTemaPrev) .bolha{background:var(--zb-deles,#1b2220);border-color:var(--zb-deles-borda,#252e2a);color:var(--zb-txt-deles,inherit);border-radius:var(--zb-raio,18px);touch-action:pan-y;transition:transform .15s}
+  :is(#zapMsgs,#zapTemaPrev) .bolha:not(.cont){border-top-left-radius:var(--zb-ponta,5px)}
+  :is(#zapMsgs,#zapTemaPrev) .bolha.minha{background:var(--zb-minha,linear-gradient(180deg,#1f6a45,#1a5a3b));border-color:var(--zb-minha-borda,#23744c);color:var(--zb-txt-minha,#eafff2)}
+  :is(#zapMsgs,#zapTemaPrev) .bolha.minha:not(.cont){border-top-left-radius:var(--zb-raio,18px);border-top-right-radius:var(--zb-ponta,5px)}
+  /* estilos de balão */
+  :is(#zapMsgs,#zapTemaPrev).zbf-folha .bolha,:is(#zapMsgs,#zapTemaPrev).zbf-folha .bolha:not(.cont){border-radius:18px 4px 18px 4px}
+  :is(#zapMsgs,#zapTemaPrev).zbf-folha .bolha.minha,:is(#zapMsgs,#zapTemaPrev).zbf-folha .bolha.minha:not(.cont){border-radius:4px 18px 4px 18px}
+  :is(#zapMsgs,#zapTemaPrev).zbf-ios .bolha,:is(#zapMsgs,#zapTemaPrev).zbf-ios .bolha:not(.cont){border-radius:20px 20px 20px 4px}
+  :is(#zapMsgs,#zapTemaPrev).zbf-ios .bolha.minha,:is(#zapMsgs,#zapTemaPrev).zbf-ios .bolha.minha:not(.cont){border-radius:20px 20px 4px 20px}
+  :is(#zapMsgs,#zapTemaPrev).zbf-contorno .bolha{background:transparent!important;border:2px solid var(--zb-deles-solida,#3a4a44)}
+  :is(#zapMsgs,#zapTemaPrev).zbf-contorno .bolha.minha{border-color:var(--zb-minha-solida,#25d366)}
+  :is(#zapMsgs,#zapTemaPrev).zbf-sombra .bolha{box-shadow:0 3px 0 rgba(0,0,0,.45),0 8px 16px rgba(0,0,0,.35)}
+  :is(#zapMsgs,#zapTemaPrev).zbf-neon .bolha{box-shadow:0 0 10px var(--zb-deles-solida,#3a4a44)}
+  :is(#zapMsgs,#zapTemaPrev).zbf-neon .bolha.minha{box-shadow:0 0 12px var(--zb-minha-solida,#25d366);border-color:var(--zb-minha-solida,#25d366)}
+  :is(#zapMsgs,#zapTemaPrev).zbf-gibi .bolha,:is(#zapMsgs,#zapTemaPrev).zbf-gibi .bolha:not(.cont){border:2px solid #0b0b0b;box-shadow:3px 3px 0 #0b0b0b;border-radius:14px}
+  :is(#zapMsgs,#zapTemaPrev).zbf-seta .bolha,:is(#zapMsgs,#zapTemaPrev).zbf-seta .bolha:not(.cont){border-radius:14px}
+  :is(#zapMsgs,#zapTemaPrev).zbf-seta .bolha:not(.cont)::before{content:"";position:absolute;top:9px;left:-12px;border:6px solid transparent;border-right-color:var(--zb-deles-solida,#1b2220)}
+  :is(#zapMsgs,#zapTemaPrev).zbf-seta .bolha.minha:not(.cont)::before{left:auto;right:-12px;border-right-color:transparent;border-left-color:var(--zb-minha-solida,#1f6a45)}
   #zapMsgs .bolha.zap-msel{outline:2px solid var(--verde);outline-offset:2px}
   #zapMsgs .bolha.zap-pisca{animation:zapPisca 1.2s}
   @keyframes zapPisca{0%,60%{box-shadow:0 0 0 3px var(--verde)}100%{box-shadow:none}}
@@ -574,9 +588,13 @@
   .zap-tema-cor input[type=color]{width:42px;height:42px;border-radius:50%;border:2px solid var(--borda);padding:0;background:none;cursor:pointer}
   .zap-tema-cor input[type=color]::-webkit-color-swatch-wrapper{padding:0}
   .zap-tema-cor input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
-  .zap-tema-forma{display:flex;gap:8px}
-  .zap-tema-forma button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--borda);background:var(--corpo2);color:var(--txt);cursor:pointer}
+  .zap-tema-forma{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+  .zap-tema-forma button{display:flex;flex-direction:column;align-items:center;gap:6px;font-size:11.5px;padding:9px 2px;border-radius:10px;border:1px solid var(--borda);background:var(--corpo2);color:var(--txt);cursor:pointer}
   .zap-tema-forma button.on{border-color:var(--verde);color:var(--verde)}
+  .zbf-ic{display:block;width:30px;height:20px;background:currentColor;opacity:.85;border-radius:10px 10px 10px 3px}
+  .zbf-ic-redondo{border-radius:10px 3px 10px 10px}.zbf-ic-ios{border-radius:10px 10px 3px 10px}.zbf-ic-bolha{border-radius:10px}.zbf-ic-quadrado{border-radius:3px}
+  .zbf-ic-folha{border-radius:3px 10px 3px 10px}.zbf-ic-seta{border-radius:6px;position:relative}.zbf-ic-seta::after{content:"";position:absolute;right:-7px;top:5px;border:4px solid transparent;border-left-color:currentColor}
+  .zbf-ic-contorno{background:transparent;border:2px solid currentColor}.zbf-ic-sombra{box-shadow:0 3px 0 rgba(0,0,0,.6)}.zbf-ic-neon{box-shadow:0 0 8px currentColor}.zbf-ic-gibi{border:2px solid #000;box-shadow:2px 2px 0 #000;border-radius:7px}
   .zap-tema-papeis{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
   .zap-tema-papeis button{flex:none;width:58px;height:86px;border-radius:10px;border:2px solid var(--borda);background-size:cover;background-position:center;cursor:pointer;color:var(--sub);font-size:11px}
   .zap-tema-papeis button.on{border-color:var(--verde)}
@@ -731,6 +749,62 @@
   .zap-ver-meio{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
   .zap-ver-meio img,.zap-ver-meio video{max-width:100%;max-height:100%;object-fit:contain;background:#000}
   /* editor de status */
+  /* status de texto: tela cheia estilo Instagram */
+  .zap-st{position:absolute;inset:0;overflow:hidden;transition:background .25s;touch-action:none}
+  .zap-st-campo{position:absolute;left:0;right:0;top:64px;bottom:150px;display:flex;align-items:center;justify-content:center;overflow-y:auto;padding:0 58px 0 46px;box-sizing:border-box}
+  .zap-st-caixa{position:relative;width:100%;margin:auto 0}
+  .zap-st-espelho,.zap-st-caixa textarea{font-size:38px;line-height:1.3;white-space:pre-wrap;overflow-wrap:break-word;word-break:break-word;padding:6px 4px;box-sizing:border-box;margin:0;border:0;letter-spacing:0;font-kerning:normal;text-rendering:auto}
+  .zap-st-espelho{pointer-events:none;min-height:1.3em}
+  .zap-st-caixa textarea{position:absolute;inset:0;width:100%;height:100%;background:transparent;resize:none;outline:none;overflow:hidden;color:transparent;-webkit-text-fill-color:transparent}
+  .zap-st-caixa textarea::placeholder{-webkit-text-fill-color:rgba(255,255,255,.6);color:rgba(255,255,255,.6)}
+  .zap-st-espelho[data-ef="caixa"] span{background:var(--st-cor);color:var(--st-contra);box-shadow:0 0 0 .2em var(--st-cor);border-radius:.15em;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .zap-st-espelho[data-ef="contorno"]{text-shadow:-.06em -.06em 0 var(--st-contra),.06em -.06em 0 var(--st-contra),-.06em .06em 0 var(--st-contra),.06em .06em 0 var(--st-contra),0 -.07em 0 var(--st-contra),0 .07em 0 var(--st-contra),-.07em 0 0 var(--st-contra),.07em 0 0 var(--st-contra)}
+  .zap-st-espelho[data-ef="sombra"]{text-shadow:0 .07em .18em rgba(0,0,0,.65)}
+  .zap-st-espelho[data-ef="neon"]{color:#fff!important;text-shadow:0 0 .15em var(--st-cor),0 0 .45em var(--st-cor),0 0 .9em var(--st-cor)}
+  .zap-st-adesivos{position:absolute;inset:0;pointer-events:none}
+  .zap-st-ad{position:absolute;transform:translate(-50%,-50%);line-height:1;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
+  .zap-st-x{position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;width:42px;height:42px;border-radius:50%;border:0;background:rgba(0,0,0,.35);color:#fff;font-size:18px;display:grid;place-items:center;z-index:3}
+  .zap-st-ferr{position:absolute;top:calc(12px + env(safe-area-inset-top));right:10px;display:flex;flex-direction:column;gap:10px;z-index:3}
+  .zap-st-ferr button{width:42px;height:42px;border-radius:50%;border:0;background:rgba(0,0,0,.35);color:#fff;display:grid;place-items:center;padding:0;font-size:19px;position:relative;cursor:pointer}
+  .zap-st-ferr button.on{background:#fff;color:#111}
+  .zap-st-aa{font-size:18px!important}
+  .zap-st-dot i{position:absolute;inset:9px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.3)}
+  .zap-st-dot b{position:relative;font-size:13px;font-weight:900;mix-blend-mode:difference;color:#fff}
+  .zap-st-dot-f i{border-radius:9px}
+  .zap-st-ef{font-weight:900;font-size:18px;line-height:1;padding:1px 5px;border-radius:5px;color:#fff}
+  .zap-st-ef[data-ef="caixa"]{background:#fff;color:#111}
+  .zap-st-ef[data-ef="contorno"]{color:#fff;text-shadow:-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000,1px 1px 0 #000}
+  .zap-st-ef[data-ef="sombra"]{text-shadow:0 2px 3px rgba(0,0,0,.9)}
+  .zap-st-ef[data-ef="neon"]{text-shadow:0 0 4px #25d366,0 0 9px #25d366}
+  .zap-st-ferr button.on .zap-st-ef[data-ef="nenhum"],.zap-st-ferr button.on .zap-st-ef[data-ef="sombra"]{color:#111}
+  .zap-st-tam{position:absolute;left:-58px;top:50%;width:150px;transform:translateY(-50%) rotate(-90deg);z-index:3}
+  .zap-st-tam input{width:100%;accent-color:#fff}
+  .zap-st-lixo{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);width:56px;height:56px;border-radius:50%;border:2px solid #fff;background:rgba(0,0,0,.4);color:#fff;display:grid;place-items:center;z-index:4;transition:transform .15s}
+  .zap-st-lixo[hidden]{display:none!important}
+  .zap-st-lixo.on{transform:translateX(-50%) scale(1.25);background:#e53935}
+  .zap-st-lixo svg.i{width:24px;height:24px}
+  .zap-st-base{position:absolute;left:0;right:0;bottom:0;padding:8px 10px calc(10px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;z-index:3;background:linear-gradient(transparent,rgba(0,0,0,.35))}
+  .zap-st-faixa{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:4px 2px}
+  .zap-st-faixa[hidden]{display:none!important}
+  .zap-st-fontes button{flex:none;border:0;background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:8px 14px;font-size:16px;white-space:nowrap}
+  .zap-st-fontes button.on{background:#fff;color:#111}
+  .zap-st-cores button,.zap-st-cores .zap-ed-mais{width:34px;height:34px;border-radius:50%;border:2.5px solid #fff;flex:none;padding:0;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+  .zap-st-cores button.on{transform:scale(1.18);box-shadow:0 0 0 2px rgba(0,0,0,.4)}
+  .zap-st-efeitos button{flex:none;display:flex;align-items:center;gap:7px;border:0;background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:7px 13px 7px 8px;font-size:13px;white-space:nowrap}
+  .zap-st-efeitos button.on{outline:2px solid #fff}
+  .zap-st-emojis{flex-wrap:wrap;max-height:150px;overflow-y:auto;background:rgba(0,0,0,.45);border-radius:14px;padding:6px;gap:2px}
+  .zap-st-emojis button{width:40px;height:40px;border:0;background:transparent;font-size:26px;padding:0}
+  .zap-st-rodape{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .zap-st-rodape span{color:#fff;font-size:12.5px;opacity:.85;text-shadow:0 1px 3px rgba(0,0,0,.6);padding-left:4px}
+  .zap-st-pub{width:54px;height:54px;border-radius:50%;border:0;background:#25d366;color:#062012;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.35);flex:none}
+  .zap-st-pub svg.i{width:24px;height:24px}
+  .zap-st-pub:disabled{opacity:.5}
+  /* bolinha de cor (abre a paleta) */
+  .zap-pal-linha{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .zap-pal-linha small{margin:0!important}
+  .zap-dot{width:32px;height:32px;border-radius:50%;border:2.5px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.35);padding:0;cursor:pointer;flex:none}
+  .zap-pal-linha .zap-ed-cores{flex-basis:100%}
+  .zap-ed-cores[hidden]{display:none!important}
   #zapEd{position:fixed;inset:0;z-index:63;background:var(--bg);display:flex;flex-direction:column}
   #zapEd[hidden]{display:none}
   .zap-ed-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px}
@@ -1162,7 +1236,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 62;
+const APP_VERSAO = 63;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4295,66 +4369,273 @@ function zapIniciarCom(jid, nomeC){
 
 
 /* ---------- postar status ---------- */
+// v < 100: fontes que o próprio WhatsApp tem (status sai como texto). v >= 100: fontes extras (status sai como imagem, pra todo mundo ver igual)
 const ZAP_FONTES = [
-  { v: 0, n: 'Normal', css: 'system-ui, sans-serif' },
-  { v: 1, n: 'Clássica', css: 'Georgia, "Times New Roman", serif' },
-  { v: 2, n: 'Manuscrita', css: '"Dancing Script", "Brush Script MT", "Segoe Script", cursive' },
-  { v: 6, n: 'Forte', css: '"Arial Black", Impact, system-ui, sans-serif' },
-  { v: 10, n: 'Máquina', css: '"Courier New", Courier, monospace' },
+  { v: 0, n: 'Normal', css: 'Roboto, system-ui, sans-serif', p: 400 },
+  { v: 6, n: 'Negrito', css: 'Roboto, system-ui, sans-serif', p: 900 },
+  { v: 1, n: 'Serifa', css: '"Noto Serif", Georgia, serif', p: 400 },
+  { v: 2, n: 'Norican', css: 'Norican, cursive', p: 400 },
+  { v: 8, n: 'Calistoga', css: 'Calistoga, serif', p: 400 },
+  { v: 9, n: 'Exo', css: '"Exo 2", sans-serif', p: 800 },
+  { v: 10, n: 'Máquina', css: '"Courier Prime", monospace', p: 700 },
+  { v: 100, n: 'Pacifico', css: 'Pacifico, cursive', p: 400 },
+  { v: 101, n: 'Lobster', css: 'Lobster, cursive', p: 400 },
+  { v: 102, n: 'Bebas', css: '"Bebas Neue", sans-serif', p: 400 },
+  { v: 103, n: 'Marcador', css: '"Permanent Marker", cursive', p: 400 },
+  { v: 104, n: 'Caderno', css: 'Caveat, cursive', p: 700 },
+  { v: 105, n: 'Elegante', css: '"Playfair Display", serif', p: 700 },
+  { v: 106, n: 'Gibi', css: 'Bangers, cursive', p: 400 },
+  { v: 107, n: 'Moderna', css: 'Righteous, sans-serif', p: 400 },
+  { v: 108, n: 'Assinatura', css: 'Satisfy, cursive', p: 400 },
+  { v: 109, n: 'Revista', css: '"Abril Fatface", serif', p: 400 },
+  { v: 110, n: 'Game', css: '"Press Start 2P", monospace', p: 400 },
+  { v: 111, n: 'Giz', css: '"Shadows Into Light", cursive', p: 400 },
+  { v: 112, n: 'Letreiro', css: 'Monoton, sans-serif', p: 400 },
+  { v: 113, n: 'Redonda', css: 'Comfortaa, sans-serif', p: 700 },
+  { v: 114, n: 'Dança', css: '"Dancing Script", cursive', p: 700 },
 ];
-const ZAP_CORES = ['#1f6a45', '#128c7e', '#25d366', '#3a33cc', '#5b2a86', '#c2185b', '#e53935', '#f57c00', '#f9a825', '#6d4c41', '#37474f', '#000000', '#ffffff'];
-function zapFonteCss(v){ const f = ZAP_FONTES.find(x => x.v === Number(v)); return f ? f.css : ZAP_FONTES[0].css; }
+const ZAP_FONTES_URL = 'https://fonts.googleapis.com/css2?family=Norican&family=Calistoga&family=Exo+2:wght@800&family=Courier+Prime:wght@700&family=Pacifico&family=Lobster&family=Bebas+Neue&family=Permanent+Marker&family=Caveat:wght@700&family=Playfair+Display:wght@700&family=Bangers&family=Righteous&family=Satisfy&family=Abril+Fatface&family=Press+Start+2P&family=Shadows+Into+Light&family=Monoton&family=Comfortaa:wght@700&family=Dancing+Script:wght@700&display=swap';
+function zapCarregarFontes(){
+  if (document.getElementById('zapFontesLink')) return;
+  const l = document.createElement('link'); l.id = 'zapFontesLink'; l.rel = 'stylesheet'; l.href = ZAP_FONTES_URL; document.head.appendChild(l);
+}
+const ZAP_CORES = ['#ffffff', '#000000', '#1f6a45', '#128c7e', '#25d366', '#0a84ff', '#3a33cc', '#5b2a86', '#c2185b', '#ff2d55', '#e53935', '#f57c00', '#f9a825', '#ffd60a', '#6d4c41', '#37474f'];
+const ZAP_DEGRADES = ['linear-gradient(160deg,#833ab4,#fd1d1d,#fcb045)', 'linear-gradient(160deg,#0f2027,#2c5364)', 'linear-gradient(160deg,#00c6ff,#0072ff)', 'linear-gradient(160deg,#11998e,#38ef7d)', 'linear-gradient(160deg,#ff512f,#dd2476)', 'linear-gradient(160deg,#f7971e,#ffd200)', 'linear-gradient(160deg,#141e30,#243b55)', 'linear-gradient(160deg,#8e2de2,#4a00e0)'];
+function zapFonte(v){ return ZAP_FONTES.find(x => x.v === Number(v)) || (Number(v) === 7 ? { css: 'Comfortaa, sans-serif', p: 700 } : ZAP_FONTES[0]); }
+function zapFonteCss(v){ return zapFonte(v).css; }
+// bolinha de cor: mostra só a cor atual; tocou, abre a paleta
 function zapPaleta(id, atual, rotulo){
-  return '<div class="zap-ed-pal"><small>' + rotulo + '</small><div class="zap-ed-cores" id="' + id + '">' +
-    '<label class="zap-ed-mais" title="Qualquer cor"><input type="color" value="' + atual + '"><span>+</span></label>' +
+  return '<div class="zap-ed-pal zap-pal-linha"><button class="zap-dot" id="' + id + 'Dot" style="background:' + atual + '" aria-label="' + rotulo + '"></button><small>' + rotulo + '</small>' +
+    '<div class="zap-ed-cores" id="' + id + '" hidden>' +
+    '<label class="zap-ed-mais" title="Qualquer cor"><input type="color" value="' + (/^#/.test(atual) ? atual : '#ffffff') + '"><span>+</span></label>' +
     ZAP_CORES.map(c => '<button data-c="' + c + '" style="background:' + c + '"' + (c === atual ? ' class="on"' : '') + '></button>').join('') +
     '</div></div>';
 }
 function zapLigarPaleta(id, aoMudar){
-  const box = $(id);
-  const marcar = c => box.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === c));
-  box.querySelectorAll('button').forEach(b => b.onclick = () => { marcar(b.dataset.c); aoMudar(b.dataset.c); });
-  box.querySelector('input[type=color]').oninput = e => { marcar(null); aoMudar(e.target.value); };
+  const box = $(id), dot = $(id + 'Dot');
+  const marcar = c => { box.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === c)); dot.style.background = c; };
+  dot.onclick = () => { box.hidden = !box.hidden; };
+  box.querySelectorAll('button').forEach(b => b.onclick = () => { marcar(b.dataset.c); aoMudar(b.dataset.c); box.hidden = true; });
+  box.querySelector('input[type=color]').oninput = e => { marcar(e.target.value); aoMudar(e.target.value); };
 }
 function zapFecharEditor(){ $('zapEd').hidden = true; $('zapEd').innerHTML = ''; delete $('zapEd').dataset.modo; ZAP.ed = null; }
+function zapContraste(hex){
+  const n = parseInt(String(hex).slice(1), 16) || 0;
+  const l = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return l > 0.6 ? '#000000' : '#ffffff';
+}
+const ZAP_EFEITOS = [['nenhum', 'Sem efeito'], ['caixa', 'Fundo na letra'], ['contorno', 'Contorno'], ['sombra', 'Sombra'], ['neon', 'Neon']];
+const ZAP_ST_EMOJIS = '😂❤️😍🔥😎🥰😘🙏👏💪😢😭😡🤔😴🥳🤩😇🤣😅😊😉😜🤪🤗🤫🙄😬💯✨⭐🌟💥💫🎉🎂🎁🎈🎶🎵☀️🌙🌈⚡❄️🌸🌹🌻🍀🍕🍔🍺☕🍫⚽🏆🚗✈️🏖️💰💎👑💋👀👍👌✌️🤞🙌💔💕💖💙💚💛🧡💜🖤🤍'.match(/\p{Extended_Pictographic}(️)?/gu);
 
 function zapEditorTexto(){
-  const st = { fundo: '#1f6a45', cor: '#ffffff', fonte: 0 };
-  const ed = $('zapEd');
+  zapCarregarFontes();
+  const st = { fundo: '#1f6a45', cor: '#ffffff', fonte: 0, alinha: 'center', efeito: 'nenhum', tam: 1, adesivos: [] };
+  const ed = $('zapEd'); ed.dataset.modo = 'status';
   ed.innerHTML =
-    '<div class="zap-ed-topo"><button id="zapEdX" aria-label="Fechar">✕</button><b>Status de texto</b><span></span></div>' +
-    '<div class="zap-ed-tela" id="zapEdTela"><textarea id="zapEdTexto" maxlength="700" placeholder="Digite um status"></textarea></div>' +
-    '<div class="zap-ed-ferr">' +
-      zapPaleta('zapEdFundo', st.fundo, 'Fundo') +
-      zapPaleta('zapEdCor', st.cor, 'Letra') +
-      '<div class="zap-ed-pal"><small>Fonte</small><div class="zap-ed-fontes" id="zapEdFontes">' +
-        ZAP_FONTES.map(f => '<button data-f="' + f.v + '" style="font-family:' + f.css.replace(/"/g, '&quot;') + '"' + (f.v === 0 ? ' class="on"' : '') + '>' + f.n + '</button>').join('') +
-      '</div></div>' +
-      '<button class="btn zap-ed-enviar" id="zapEdEnviar">' + ic('send') + '<span>Publicar status</span></button>' +
+    '<div class="zap-st" id="zapEdTela">' +
+      '<div class="zap-st-campo" id="zapStCampo"><div class="zap-st-caixa"><div class="zap-st-espelho" id="zapStEsp"></div><textarea id="zapEdTexto" maxlength="700" placeholder="Digite um status" spellcheck="false"></textarea></div></div>' +
+      '<div class="zap-st-adesivos" id="zapStAdes"></div>' +
+      '<button class="zap-st-x" id="zapEdX" aria-label="Fechar">✕</button>' +
+      '<div class="zap-st-ferr">' +
+        '<button id="zapStFonteBt" class="zap-st-aa" aria-label="Fonte">Aa</button>' +
+        '<button id="zapStCorBt" class="zap-st-dot" aria-label="Cor da letra"><i></i><b>A</b></button>' +
+        '<button id="zapStFundoBt" class="zap-st-dot zap-st-dot-f" aria-label="Cor do fundo"><i></i></button>' +
+        '<button id="zapStAlinBt" aria-label="Alinhar"></button>' +
+        '<button id="zapStEfBt" aria-label="Efeito"><span class="zap-st-ef">A</span></button>' +
+        '<button id="zapStEmojiBt" aria-label="Emoji">😀</button>' +
+      '</div>' +
+      '<div class="zap-st-tam"><input type="range" id="zapStTam" min="0.6" max="1.9" step="0.05" value="1" aria-label="Tamanho"></div>' +
+      '<div class="zap-st-lixo" id="zapStLixo" hidden>' + ic('trash') + '</div>' +
+      '<div class="zap-st-base">' +
+        '<div class="zap-st-faixa" id="zapStFaixa" hidden></div>' +
+        '<div class="zap-st-rodape"><span id="zapStDica"></span><button class="zap-st-pub" id="zapEdEnviar" aria-label="Publicar">' + ic('send') + '</button></div>' +
+      '</div>' +
     '</div>';
   ed.hidden = false;
-  const tela = $('zapEdTela'), tx = $('zapEdTexto');
-  const aplicar = () => { tela.style.background = st.fundo; tx.style.color = st.cor; tx.style.fontFamily = zapFonteCss(st.fonte); };
-  aplicar();
-  zapLigarPaleta('zapEdFundo', c => { st.fundo = c; aplicar(); });
-  zapLigarPaleta('zapEdCor', c => { st.cor = c; aplicar(); });
-  $('zapEdFontes').querySelectorAll('button').forEach(b => b.onclick = () => {
-    st.fonte = +b.dataset.f; $('zapEdFontes').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); aplicar();
-  });
-  const ajustar = () => {
-    const n = tx.value.length; tx.style.fontSize = (n < 40 ? 32 : n < 120 ? 26 : n < 250 ? 21 : 17) + 'px';
-    tx.style.height = 'auto'; tx.style.height = Math.min(tela.clientHeight - 20, tx.scrollHeight) + 'px';
+  const tela = $('zapEdTela'), tx = $('zapEdTexto'), esp = $('zapStEsp'), faixa = $('zapStFaixa'), campo = $('zapStCampo');
+  let aberta = '';
+  const ehNativo = () => zapFonte(st.fonte).v < 100 && st.efeito === 'nenhum' && /^#/.test(st.fundo) && st.alinha === 'center' && !st.adesivos.length && Math.abs(st.tam - 1) < 0.01;
+  const ajustarTam = () => {
+    const n = tx.value.length, base = (n < 40 ? 38 : n < 120 ? 30 : n < 250 ? 24 : 19) * st.tam;
+    tx.style.fontSize = esp.style.fontSize = base + 'px';
+    esp.innerHTML = '<span>' + esc(tx.value || '') + '</span>\u200b';
   };
-  tx.oninput = ajustar; ajustar();
+  const aplicar = () => {
+    const f = zapFonte(st.fonte);
+    tela.style.background = st.fundo;
+    [tx, esp].forEach(el => { el.style.fontFamily = f.css; el.style.fontWeight = f.p; el.style.textAlign = st.alinha; });
+    esp.style.color = st.cor; esp.style.setProperty('--st-cor', st.cor); esp.style.setProperty('--st-contra', zapContraste(st.cor));
+    esp.dataset.ef = st.efeito;
+    tx.style.caretColor = st.efeito === 'caixa' ? zapContraste(st.cor) : st.cor;
+    $('zapStCorBt').querySelector('i').style.background = st.cor;
+    $('zapStFundoBt').querySelector('i').style.background = st.fundo;
+    $('zapStFonteBt').style.fontFamily = f.css; $('zapStFonteBt').style.fontWeight = f.p;
+    $('zapStAlinBt').innerHTML = zapIconeAlinhar(st.alinha);
+    $('zapStEfBt').querySelector('.zap-st-ef').dataset.ef = st.efeito;
+    $('zapStDica').textContent = f.n + (ehNativo() ? '' : ' · sai como imagem');
+    ajustarTam(); desenharFaixa();
+  };
+  const desenharFaixa = () => {
+    faixa.hidden = !aberta;
+    ['zapStFonteBt', 'zapStCorBt', 'zapStFundoBt', 'zapStEfBt', 'zapStEmojiBt'].forEach(i => $(i).classList.remove('on'));
+    if (!aberta) return;
+    $({ fonte: 'zapStFonteBt', cor: 'zapStCorBt', fundo: 'zapStFundoBt', efeito: 'zapStEfBt', emoji: 'zapStEmojiBt' }[aberta]).classList.add('on');
+    if (aberta === 'fonte'){
+      faixa.className = 'zap-st-faixa zap-st-fontes';
+      faixa.innerHTML = ZAP_FONTES.map(f => '<button data-f="' + f.v + '"' + (f.v === st.fonte ? ' class="on"' : '') + ' style="font-family:' + f.css.replace(/"/g, '&quot;') + ';font-weight:' + f.p + '">' + f.n + '</button>').join('');
+      faixa.querySelectorAll('button').forEach(b => b.onclick = () => { st.fonte = +b.dataset.f; aplicar(); });
+      const on = faixa.querySelector('.on'); if (on && !faixa.dataset.rolou){ on.scrollIntoView({ inline: 'center', block: 'nearest' }); }
+    } else if (aberta === 'cor' || aberta === 'fundo'){
+      const atual = st[aberta], lista = aberta === 'fundo' ? ZAP_CORES.concat(ZAP_DEGRADES) : ZAP_CORES;
+      faixa.className = 'zap-st-faixa zap-st-cores';
+      faixa.innerHTML = '<label class="zap-ed-mais" title="Qualquer cor"><input type="color" value="' + (/^#/.test(atual) ? atual : '#ffffff') + '"><span>+</span></label>' +
+        lista.map(c => '<button data-c="' + c + '" style="background:' + c + '"' + (c === atual ? ' class="on"' : '') + '></button>').join('');
+      faixa.querySelectorAll('button').forEach(b => b.onclick = () => { st[aberta] = b.dataset.c; aplicar(); });
+      faixa.querySelector('input').oninput = e => { st[aberta] = e.target.value; aplicar(); };
+    } else if (aberta === 'efeito'){
+      faixa.className = 'zap-st-faixa zap-st-efeitos';
+      faixa.innerHTML = ZAP_EFEITOS.map(e => '<button data-e="' + e[0] + '"' + (e[0] === st.efeito ? ' class="on"' : '') + '><span class="zap-st-ef" data-ef="' + e[0] + '">A</span>' + e[1] + '</button>').join('');
+      faixa.querySelectorAll('button').forEach(b => b.onclick = () => { st.efeito = b.dataset.e; aplicar(); });
+    } else if (aberta === 'emoji'){
+      faixa.className = 'zap-st-faixa zap-st-emojis';
+      faixa.innerHTML = ZAP_ST_EMOJIS.map(e => '<button>' + e + '</button>').join('');
+      faixa.querySelectorAll('button').forEach(b => b.onclick = () => { novoAdesivo(b.textContent); });
+    }
+  };
+  const alternar = q => { aberta = aberta === q ? '' : q; desenharFaixa(); };
+  $('zapStFonteBt').onclick = () => alternar('fonte');
+  $('zapStCorBt').onclick = () => alternar('cor');
+  $('zapStFundoBt').onclick = () => alternar('fundo');
+  $('zapStEfBt').onclick = () => alternar('efeito');
+  $('zapStEmojiBt').onclick = () => { tx.blur(); alternar('emoji'); };
+  $('zapStAlinBt').onclick = () => { st.alinha = { center: 'left', left: 'right', right: 'center' }[st.alinha]; aplicar(); };
+  $('zapStTam').oninput = e => { st.tam = Number(e.target.value); aplicar(); };
+  tx.oninput = () => aplicar();
+  // toque no fundo vazio: abre o teclado
+  tela.addEventListener('click', e => { if (e.target === tela || e.target === campo || e.target === $('zapStAdes')) tx.focus(); });
+
+  // adesivos (emoji): arrasta, pinça pra aumentar, solta na lixeira pra apagar
+  const ades = $('zapStAdes'), lixo = $('zapStLixo');
+  const novoAdesivo = emoji => {
+    const a = { emoji, x: 0.5 + (Math.random() - 0.5) * 0.2, y: 0.35 + (Math.random() - 0.5) * 0.2, t: 64 };
+    st.adesivos.push(a); montarAdesivo(a); aplicar();
+  };
+  const montarAdesivo = a => {
+    const el = document.createElement('div'); el.className = 'zap-st-ad'; el.textContent = a.emoji; a.el = el;
+    const pos = () => { el.style.left = (a.x * 100) + '%'; el.style.top = (a.y * 100) + '%'; el.style.fontSize = a.t + 'px'; };
+    pos(); ades.appendChild(el);
+    const toques = new Map(); let ini = null;
+    el.addEventListener('pointerdown', e => {
+      e.preventDefault(); el.setPointerCapture(e.pointerId); toques.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      ini = { x: a.x, y: a.y, t: a.t, toques: new Map(toques) }; lixo.hidden = false; aberta = ''; desenharFaixa();
+    });
+    el.addEventListener('pointermove', e => {
+      if (!toques.has(e.pointerId) || !ini) return;
+      toques.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const r = tela.getBoundingClientRect();
+      const pts = [...toques.values()], p0 = [...ini.toques.values()];
+      if (pts.length >= 2 && p0.length >= 2){
+        const d = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+        a.t = Math.max(24, Math.min(260, ini.t * d(pts[0], pts[1]) / Math.max(10, d(p0[0], p0[1]))));
+      } else {
+        const p = pts[0], q = ini.toques.get(e.pointerId) || p;
+        a.x = Math.max(0, Math.min(1, ini.x + (p.x - q.x) / r.width)); a.y = Math.max(0, Math.min(1, ini.y + (p.y - q.y) / r.height));
+        const lr = lixo.getBoundingClientRect(); lixo.classList.toggle('on', p.x > lr.left - 10 && p.x < lr.right + 10 && p.y > lr.top - 10 && p.y < lr.bottom + 10);
+      }
+      pos();
+    });
+    const soltar = e => {
+      toques.delete(e.pointerId);
+      if (toques.size) { ini = { x: a.x, y: a.y, t: a.t, toques: new Map(toques) }; return; }
+      if (lixo.classList.contains('on')){ el.remove(); st.adesivos = st.adesivos.filter(x => x !== a); aplicar(); }
+      lixo.hidden = true; lixo.classList.remove('on'); ini = null;
+    };
+    el.addEventListener('pointerup', soltar); el.addEventListener('pointercancel', soltar);
+  };
+
+  aplicar();
   setTimeout(() => tx.focus(), 150);
   $('zapEdX').onclick = zapFecharEditor;
   $('zapEdEnviar').onclick = async () => {
     const texto = tx.value.trim();
-    if (!texto){ aviso('Escreva alguma coisa.'); return; }
+    if (!texto && !st.adesivos.length){ aviso('Escreva alguma coisa.'); return; }
     const b = $('zapEdEnviar'); b.disabled = true;
-    try{ const r = await zapPost('/api/status/texto', { texto, fundo: st.fundo, cor: st.cor, fonte: st.fonte }); zapFecharEditor(); aviso('Status publicado (' + r.destinatarios + ' contatos).', 4000); zapCarregarStatus(); }
-    catch(e){ aviso('Não publicou: ' + e.message, 6000); b.disabled = false; }
+    if (ehNativo()){
+      try{ const r = await zapPost('/api/status/texto', { texto, fundo: st.fundo, cor: st.cor, fonte: st.fonte }); zapFecharEditor(); aviso('Status publicado (' + r.destinatarios + ' contatos).', 4000); zapCarregarStatus(); }
+      catch(e){ aviso('Não publicou: ' + e.message, 6000); b.disabled = false; }
+      return;
+    }
+    try{
+      tx.blur(); aberta = ''; desenharFaixa();
+      const blob = await zapRenderStatus(tela, esp, st);
+      blob.name = 'status.jpg';
+      await zapEnviarStatusArquivo(blob, '');
+    } catch(e){ aviso('Não montou a imagem: ' + e.message, 6000); b.disabled = false; }
   };
+}
+function zapIconeAlinhar(a){
+  const l = { left: [[3, 18], [3, 12], [3, 16]], center: [[3, 18], [6, 12], [4, 16]], right: [[3, 18], [9, 12], [5, 16]] }[a];
+  return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">' +
+    [6, 12, 18].map((y, i) => '<line x1="' + l[i][0] + '" y1="' + y + '" x2="' + (l[i][0] + l[i][1]) + '" y2="' + y + '"/>').join('') + '</svg>';
+}
+function zapRRect(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+// desenha o status exatamente como está na tela (pega as linhas direto do texto exibido)
+async function zapRenderStatus(tela, esp, st){
+  const f = zapFonte(st.fonte), tr = tela.getBoundingClientRect();
+  const W = 1080, k = W / tr.width, H = Math.round(tr.height * k);
+  const tamPx = parseFloat(esp.style.fontSize) || 30;
+  try{ await document.fonts.load(f.p + ' ' + tamPx + 'px ' + f.css, esp.textContent || 'A'); await document.fonts.ready; }catch(e){}
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  // fundo (cor ou degradê)
+  if (/^#/.test(st.fundo)){ g.fillStyle = st.fundo; g.fillRect(0, 0, W, H); }
+  else {
+    const m = st.fundo.match(/(-?\d+)deg,(.+)\)$/), cores = m ? m[2].split(',') : ['#000', '#000'];
+    const ang = (m ? +m[1] : 180) * Math.PI / 180, dx = Math.sin(ang), dy = -Math.cos(ang), L = Math.abs(W * dx) + Math.abs(H * dy);
+    const gr = g.createLinearGradient(W / 2 - dx * L / 2, H / 2 - dy * L / 2, W / 2 + dx * L / 2, H / 2 + dy * L / 2);
+    cores.forEach((cc, i) => gr.addColorStop(i / Math.max(1, cores.length - 1), cc.trim()));
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+  }
+  // linhas do texto, como o navegador quebrou
+  const no = esp.querySelector('span') && esp.querySelector('span').firstChild, linhas = [];
+  if (no && no.nodeValue){
+    const txt = no.nodeValue, rg = document.createRange();
+    let atual = null;
+    for (let i = 0; i < txt.length; i++){
+      rg.setStart(no, i); rg.setEnd(no, i + 1);
+      const rs = rg.getClientRects(); if (!rs.length) { if (txt[i] === '\n') atual = null; continue; }
+      const r = rs[rs.length - 1];
+      if (txt[i] === '\n'){ atual = null; continue; }
+      if (!atual || Math.abs(r.top - atual.top) > r.height * 0.5){ atual = { top: r.top, bottom: r.bottom, left: r.left, right: r.right, t: '' }; linhas.push(atual); }
+      atual.t += txt[i]; atual.right = Math.max(atual.right, r.right); atual.left = Math.min(atual.left, r.left); atual.bottom = Math.max(atual.bottom, r.bottom);
+    }
+  }
+  const fs = tamPx * k;
+  g.font = f.p + ' ' + fs + 'px ' + f.css; g.textBaseline = 'middle'; g.textAlign = 'left';
+  const contra = zapContraste(st.cor);
+  linhas.forEach(l => {
+    const t = l.t.replace(/\s+$/, ''); if (!t) return;
+    const x = (l.left - tr.left) * k, ym = ((l.top + l.bottom) / 2 - tr.top) * k, w = g.measureText(t).width;
+    g.save();
+    if (st.efeito === 'caixa'){
+      const pad = fs * 0.25; g.fillStyle = st.cor; zapRRect(g, x - pad, ym - (l.bottom - l.top) * k / 2 - pad * 0.3, w + pad * 2, (l.bottom - l.top) * k + pad * 0.6, fs * 0.25); g.fill();
+      g.fillStyle = contra; g.fillText(t, x, ym);
+    } else if (st.efeito === 'contorno'){
+      g.lineJoin = 'round'; g.lineWidth = fs * 0.14; g.strokeStyle = contra; g.strokeText(t, x, ym); g.fillStyle = st.cor; g.fillText(t, x, ym);
+    } else if (st.efeito === 'sombra'){
+      g.shadowColor = 'rgba(0,0,0,.65)'; g.shadowBlur = fs * 0.18; g.shadowOffsetY = fs * 0.07; g.fillStyle = st.cor; g.fillText(t, x, ym);
+    } else if (st.efeito === 'neon'){
+      g.shadowColor = st.cor; g.fillStyle = '#ffffff';
+      [0.9, 0.45, 0.15].forEach(b => { g.shadowBlur = fs * b; g.fillText(t, x, ym); });
+    } else { g.fillStyle = st.cor; g.fillText(t, x, ym); }
+    g.restore();
+  });
+  // adesivos
+  st.adesivos.forEach(a => {
+    g.save(); g.font = (a.t * k) + 'px "Noto Color Emoji", "Apple Color Emoji", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(a.emoji, a.x * W, a.y * H); g.restore();
+  });
+  return await new Promise((ok, erro) => c.toBlob(b => b ? ok(b) : erro(new Error('falhou')), 'image/jpeg', 0.92));
 }
 
 function zapPostarVideo(file){
@@ -5011,6 +5292,7 @@ const ZAP_PAPEIS = {
   floresta: 'linear-gradient(170deg,#0b2b1d,#16402b,#0a1a12)',
   pontos: 'radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.5px) 0 0/18px 18px,#101614'
 };
+const ZAP_FORMAS = [['redondo','WhatsApp'],['ios','iPhone'],['bolha','Pílula'],['quadrado','Quadrado'],['folha','Folha'],['seta','Seta'],['contorno','Contorno'],['sombra','3D'],['neon','Neon'],['gibi','Gibi']];
 function zapTema(){ try{ return JSON.parse(LS.get('zap_tema') || '{}'); }catch(e){ return {}; } }
 function zapSalvarTema(t){ try{ LS.set('zap_tema', JSON.stringify(t)); }catch(e){} }
 function zapClarear(hex, q){
@@ -5025,7 +5307,8 @@ function zapVarsTema(t){
   if (t.txtMinha) v['--zb-txt-minha'] = t.txtMinha;
   if (t.txtDeles) v['--zb-txt-deles'] = t.txtDeles;
   if (t.fundo) v['--zb-fundo'] = t.fundo;
-  const forma = { redondo: ['18px', '5px'], quadrado: ['6px', '2px'], bolha: ['24px', '24px'] }[t.forma || 'redondo'];
+  v['--zb-minha-solida'] = t.minha || '#1f6a45'; v['--zb-deles-solida'] = t.deles ? zapClarear(t.deles, 0) : '#2a3430';
+  const forma = { quadrado: ['6px', '2px'], bolha: ['24px', '24px'] }[t.forma] || ['18px', '5px'];
   v['--zb-raio'] = forma[0]; v['--zb-ponta'] = forma[1];
   return v;
 }
@@ -5037,9 +5320,10 @@ function zapFundoPapel(t){
 }
 function zapAplicarTema(){
   const t = zapTema(), alvo = $('pZap'); if (!alvo) return;
-  ['--zb-minha','--zb-minha-borda','--zb-deles','--zb-deles-borda','--zb-txt-minha','--zb-txt-deles','--zb-fundo','--zb-raio','--zb-ponta'].forEach(k => alvo.style.removeProperty(k));
+  ['--zb-minha','--zb-minha-borda','--zb-deles','--zb-deles-borda','--zb-txt-minha','--zb-txt-deles','--zb-fundo','--zb-raio','--zb-ponta','--zb-minha-solida','--zb-deles-solida'].forEach(k => alvo.style.removeProperty(k));
   const v = zapVarsTema(t); Object.keys(v).forEach(k => alvo.style.setProperty(k, v[k]));
-  const box = $('zapMsgs'); if (box) box.style.background = zapFundoPapel(t) ? zapFundoPapel(t) + (t.papel === 'foto' ? ' center/cover no-repeat' : '') : '';
+  const box = $('zapMsgs'); if (box) box.className = box.className.replace(/\s*zbf-\S+/g, '') + (t.forma ? ' zbf-' + t.forma : '');
+  if (box) box.style.background = zapFundoPapel(t) ? zapFundoPapel(t) + (t.papel === 'foto' ? ' center/cover no-repeat' : '') : '';
   if (box && !zapFundoPapel(t)) box.style.backgroundColor = t.fundo || '';
 }
 function zapEditorTema(){
@@ -5057,7 +5341,7 @@ function zapEditorTema(){
       '<div class="zap-tema-cor"><span>Balão dos outros</span><input type="color" data-k="deles"></div>' +
       '<div class="zap-tema-cor"><span>Texto dos outros</span><input type="color" data-k="txtDeles"></div>' +
       '<div class="zap-tema-cor"><span>Fundo da conversa</span><input type="color" data-k="fundo"></div>' +
-      '<h5>FORMATO DO BALÃO</h5><div class="zap-tema-forma" id="zapTemaForma"><button data-f="redondo">Arredondado</button><button data-f="quadrado">Quadrado</button><button data-f="bolha">Bolha</button></div>' +
+      '<h5>FORMATO DO BALÃO</h5><div class="zap-tema-forma" id="zapTemaForma">' + ZAP_FORMAS.map(f => '<button data-f="' + f[0] + '"><i class="zbf-ic zbf-ic-' + f[0] + '"></i>' + f[1] + '</button>').join('') + '</div>' +
       '<h5>PAPEL DE PAREDE</h5><div class="zap-tema-papeis" id="zapTemaPapeis"></div>' +
       '<div class="zap-tema-cor" id="zapTemaEscLinha"><span>Escurecer a foto</span><input type="range" min="0" max="0.7" step="0.05" id="zapTemaEsc" style="width:50%"></div>' +
       '<input type="file" id="zapTemaFoto" accept="image/*" hidden>' +
@@ -5066,14 +5350,9 @@ function zapEditorTema(){
   ed.hidden = false;
   const prev = $('zapTemaPrev');
   const atualizar = () => {
-    const v = zapVarsTema(t); ['--zb-minha','--zb-minha-borda','--zb-deles','--zb-deles-borda','--zb-txt-minha','--zb-txt-deles','--zb-raio','--zb-ponta'].forEach(k => prev.style.removeProperty(k));
+    const v = zapVarsTema(t); ['--zb-minha','--zb-minha-borda','--zb-deles','--zb-deles-borda','--zb-txt-minha','--zb-txt-deles','--zb-raio','--zb-ponta','--zb-minha-solida','--zb-deles-solida'].forEach(k => prev.style.removeProperty(k));
     Object.keys(v).forEach(k => prev.style.setProperty(k, v[k]));
-    prev.querySelectorAll('.bolha').forEach(b => {
-      const minha = b.classList.contains('minha');
-      b.style.background = minha ? (v['--zb-minha'] || '') : (v['--zb-deles'] || '');
-      b.style.color = minha ? (t.txtMinha || '') : (t.txtDeles || '');
-      b.style.borderRadius = v['--zb-raio'];
-    });
+    prev.className = 'zap-tema-prev' + (t.forma ? ' zbf-' + t.forma : '');
     const papel = zapFundoPapel(t);
     prev.style.background = papel ? papel + (t.papel === 'foto' ? ' center/cover no-repeat' : '') : (t.fundo || base.fundo);
     ed.querySelectorAll('input[type=color]').forEach(i => { i.value = val(i.dataset.k); });
@@ -5103,7 +5382,7 @@ function zapEditorTema(){
     img.src = url;
   };
   $('zapTemaEsc').oninput = () => { t.escurecer = Number($('zapTemaEsc').value); atualizar(); };
-  $('zapTemaReset').onclick = () => { t = { forma: 'redondo' }; try{ LS.set('zap_papel', ''); }catch(e){} atualizar(); aviso('Voltou ao padrão.', 2000); };
+  $('zapTemaReset').onclick = () => { t = {}; try{ LS.set('zap_papel', ''); }catch(e){} atualizar(); aviso('Voltou ao padrão.', 2000); };
   $('zapEdX').onclick = () => { delete ed.dataset.modo; zapFecharEditor(); };
   atualizar();
 }
