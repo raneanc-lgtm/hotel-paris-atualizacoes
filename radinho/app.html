@@ -1236,7 +1236,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 63;
+const APP_VERSAO = 64;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -2107,7 +2107,9 @@ function prepararMaster(){
     t = setTimeout(() => { longo = true; soltar(); vibrar(50); if (souAdmin()) abrirMaster(); }, 1200);
   });
   logo.style.cursor = 'pointer';
-  logo.addEventListener('pointerup', () => { const tap = !longo; soltar(); if (tap) $('btnAjustes').click(); });
+  logo.addEventListener('pointerup', soltar);
+  // abre no click (não no pointerup): senão o mesmo toque cai no fundo escuro e fecha na hora
+  logo.addEventListener('click', e => { e.stopPropagation(); if (longo){ longo = false; return; } $('btnAjustes').click(); });
   ['pointerleave', 'pointercancel'].forEach(ev => logo.addEventListener(ev, soltar));
   logo.addEventListener('contextmenu', e => e.preventDefault());
   $('btnFecharM').onclick = fecharMaster;
