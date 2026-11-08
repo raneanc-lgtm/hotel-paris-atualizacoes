@@ -524,6 +524,11 @@
   .zap-sel-ac svg{width:20px;height:20px}
   #zapLista li.zap-marc{background:rgba(37,211,102,.16)}
   .zap-sel-bar[hidden],.zap-vistas[hidden]{display:none!important}
+  .zap-vistas-scroll{display:flex;gap:8px;overflow-x:auto;flex:1;-ms-overflow-style:none;scrollbar-width:none}
+  .zap-vistas-scroll::-webkit-scrollbar{display:none}
+  .zap-vistas-scroll .zap-vista{flex:none}
+  .zap-vista-add{flex:none;width:44px;padding:10px 0}
+  .zap-perg-fix{position:fixed!important;z-index:50}
   #zapStatusBtn[hidden]{display:none!important}
   #zapLista li .zap-anel{width:12px;height:12px;border-radius:50%;border:2px solid var(--verde);flex:none}
   #zapLista li .zap-anel.visto{border-color:#55605a}
@@ -800,13 +805,13 @@
         <b id="zapSelN">1</b>
         <div class="zap-sel-acoes">
           <button class="zap-sel-ac" id="zapSelFixar"></button>
+          <button class="zap-sel-ac" id="zapSelMover"></button>
           <button class="zap-sel-ac" id="zapSelArq"></button>
           <button class="zap-sel-ac" id="zapSelDel"></button>
         </div>
       </div>
       <div class="zap-vistas" id="zapVistas">
-        <button class="zap-vista" id="zapVGrupos"><span class="zap-vista-ic"></span><span class="zap-vista-tx">Grupos</span><b class="zap-vista-n" id="nGrupos" hidden></b></button>
-        <button class="zap-vista" id="zapVArq"><span class="zap-vista-ic"></span><span class="zap-vista-tx">Arquivadas</span><b class="zap-vista-n" id="nArq" hidden></b></button>
+        <div class="zap-vistas-scroll" id="zapVistasScroll"></div>
         <button class="zap-vista zap-vista-st" id="zapStatusBtn" aria-label="Status"><span class="zap-vista-ic"></span><b class="zap-vista-n" id="nStatus" hidden></b></button>
       </div>
       <div class="zap-st-acoes" id="zapStAcoes" hidden>
@@ -1075,7 +1080,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 58;
+const APP_VERSAO = 59;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1253,6 +1258,7 @@ const ICONES = {
   check:'<path d="M20 6 9 17l-5-5"/>',
   checks:'<path d="M2 12.5 6.5 17 14 7.5"/><path d="M11 15.5 12 16.5 20 7"/>',
   pin:'<path d="M12 17v5"/><path d="M9 10.8V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5.8a2 2 0 0 0 .6 1.4l1.7 1.7a1 1 0 0 1-.7 1.7H6.4a1 1 0 0 1-.7-1.7l1.7-1.7A2 2 0 0 0 9 10.8z"/>',
+  bloco:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
   zap:'<path d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2z"/><path d="M13.4 6.8 9.2 12.6h3.2l-1.6 4.6 4.4-6.1h-3.2z" fill="currentColor" stroke="none"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   radio:'<rect x="3" y="8" width="18" height="13" rx="3"/><path d="M7 8 17 3"/><circle cx="15.5" cy="14.5" r="2.6"/><path d="M6.5 13h3M6.5 16h3"/>',
@@ -3571,9 +3577,8 @@ function zapIniciar(){
   $('zapVoltar').onclick = zapFecharConversa;
   $('zapBusca').oninput = () => { ZAP.busca = $('zapBusca').value.trim().toLowerCase(); zapRenderLista(); };
   $('zapStatusBtn').onclick = () => zapMudarVista('status');
-  $('zapVGrupos').onclick = () => zapMudarVista('grupos');
-  $('zapVArq').onclick = () => zapMudarVista('arquivadas');
   $('zapSelX').onclick = zapSelFim;
+  $('zapSelMover').onclick = zapSelMover;
   $('zapSelFixar').onclick = () => { const j = [...ZAP.sel], fix = zapFixadas(), todos = j.every(x => fix.has(x)); zapFixarVarios(j, !todos); aviso(todos ? 'Desafixadas.' : 'Fixadas no topo.', 2500); zapSelFim(); };
   $('zapSelArq').onclick = () => { zapArquivarVarios([...ZAP.sel], true); aviso('Movidas pra Arquivadas.', 2500); zapSelFim(); };
   $('zapSelDel').onclick = () => { const j = [...ZAP.sel]; folha('Apagar ' + j.length + ' conversa' + (j.length > 1 ? 's' : ''), 'Apaga aqui e no seu WhatsApp (igual ao WhatsApp Web).', [{ ic: 'trash', txt: 'Apagar', perigo: true, fn: async () => { zapSelFim(); for (const x of j) { try{ await zapPost('/api/conversas/' + zapJ(x) + '/apagar'); }catch(e){} } zapCarregarLista(); aviso('Conversas apagadas.', 3000); } }, { ic: 'x', txt: 'Cancelar', fn: () => {} }]); };
@@ -3634,7 +3639,7 @@ function zapConectarEventos(){
     else if (e.tipo === 'conversas') zapCarregarLista();
     else if (e.tipo === 'status_novo') zapCarregarStatus();
     else if (e.tipo === 'alerta_online'){ if (document.visibilityState === 'visible') aviso('🟢 ' + (e.nome || 'Contato') + ' está online agora', 5000); }
-    else if (e.tipo === 'status_msg'){ zapCarregarLista(); }
+    else if (e.tipo === 'status_msg'){ if (ZAP.jid === e.conversaJid) zapAtualizarVez(e.id, e.status); zapCarregarLista(); }
     else if (e.tipo === 'mensagem_nova'){
       if (!e.deMim && ['digitando', 'gravando'].includes(ZAP.presencas[e.conversaJid])){ ZAP.presencas[e.conversaJid] = 'online'; if (ZAP.jid === e.conversaJid) zapRenderPresenca(); }
       zapCarregarLista();
@@ -3734,8 +3739,11 @@ function zapRenderLista(){
   if (ZAP.vista === 'status') return zapRenderListaStatus();
   $('zapBusca').placeholder = 'Buscar conversa';
   const arq = zapArquivadas(), fix = zapFixadas();
+  let bset = null;
+  if (ZAP.vista.indexOf('bloco:') === 0){ const bl = zapBloco(ZAP.vista.slice(6)); bset = new Set(bl ? bl.jids : []); }
   let l = ZAP.conversas.filter(c => {
     const ea = arq.has(c.jid);
+    if (bset) return bset.has(c.jid) && !ea;
     if (ZAP.vista === 'arquivadas') return ea;
     if (ea) return false;
     if (ZAP.vista === 'grupos') return !!c.eh_grupo;
@@ -3770,6 +3778,7 @@ function zapRenderLista(){
 }
 function zapVaziaTxt(){
   if (ZAP.busca) return 'Nada com esse nome.';
+  if (ZAP.vista.indexOf('bloco:') === 0) return 'Bloco vazio. Segure conversas, toque em Mover e escolha este bloco.';
   if (ZAP.vista === 'grupos') return 'Seus grupos do WhatsApp aparecem aqui.';
   if (ZAP.vista === 'arquivadas') return 'Nenhuma conversa arquivada. Segure uma conversa pra arquivar.';
   return 'As conversas aparecem aqui conforme as mensagens chegam.';
@@ -3792,6 +3801,7 @@ function zapSelRender(){
     $('zapSelN').textContent = ZAP.sel.size + (ZAP.sel.size > 1 ? ' selecionadas' : ' selecionada');
     const fix = zapFixadas(), todosFix = [...ZAP.sel].every(j => fix.has(j));
     $('zapSelFixar').innerHTML = icp('pin', 20) + '<span>' + (todosFix ? 'Desafixar' : 'Fixar') + '</span>';
+    $('zapSelMover').innerHTML = icp('bloco', 20) + '<span>Mover</span>';
     $('zapSelArq').innerHTML = icp('arquivo', 20) + '<span>Arquivar</span>';
     $('zapSelDel').innerHTML = icp('trash', 20) + '<span>Excluir</span>';
   }
@@ -3804,21 +3814,71 @@ function zapMudarVista(v){
   if (ZAP.modoStatus) zapCarregarStatus();
 }
 function zapRenderVistas(){
-  const g = $('zapVGrupos'), a = $('zapVArq'), s = $('zapStatusBtn'); if (!g || !a || !s) return;
+  const sc = $('zapVistasScroll'), s = $('zapStatusBtn'); if (!sc || !s) return;
   const arq = zapArquivadas();
   const somaNL = f => ZAP.conversas.filter(f).reduce((n, c) => n + (c.nao_lidas || 0), 0);
-  g.querySelector('.zap-vista-ic').innerHTML = icp('users', 17);
-  a.querySelector('.zap-vista-ic').innerHTML = icp('arquivo', 17);
+  const chip = (v, label, icone, n) => '<button class="zap-vista' + (ZAP.vista === v ? ' on' : '') + '" data-vista="' + v + '"><span class="zap-vista-ic">' + icp(icone, 17) + '</span><span class="zap-vista-tx">' + esc(label) + '</span>' + (n ? '<b class="zap-vista-n">' + (n > 99 ? '99+' : n) + '</b>' : '') + '</button>';
+  let html = chip('conversas', 'Conversas', 'chat', 0);
+  html += chip('grupos', 'Grupos', 'users', somaNL(c => c.eh_grupo && !arq.has(c.jid)));
+  html += chip('arquivadas', 'Arquivadas', 'arquivo', somaNL(c => arq.has(c.jid)));
+  for (const bl of zapBlocos()) { const set = new Set(bl.jids); html += chip('bloco:' + bl.id, bl.nome, 'bloco', somaNL(c => set.has(c.jid))); }
+  html += '<button class="zap-vista zap-vista-add" data-vista="novo-bloco" aria-label="Novo bloco">' + icp('plus', 17) + '</button>';
+  sc.innerHTML = html;
+  sc.querySelectorAll('[data-vista]').forEach(b => {
+    const v = b.dataset.vista;
+    b.onclick = () => v === 'novo-bloco' ? zapNovoBloco() : zapMudarVista(v);
+    if (v.indexOf('bloco:') === 0) zapSegurar(b, () => zapMenuBloco(v.slice(6)));
+  });
+  const ativo = sc.querySelector('.zap-vista.on'); if (ativo) try{ sc.scrollLeft = Math.max(0, ativo.offsetLeft - 40); }catch(e){}
   s.querySelector('.zap-vista-ic').innerHTML = icp('image', 17);
-  const bdg = (el, n) => { const b = el.querySelector('.zap-vista-n'); if (b){ b.textContent = n > 99 ? '99+' : n; b.hidden = !n; } };
-  bdg(g, somaNL(c => c.eh_grupo && !arq.has(c.jid)));
-  bdg(a, somaNL(c => arq.has(c.jid)));
-  bdg(s, ZAP.statusLista.filter(x => !x.meu && !x.silenciado && zapStatusNovos(x) > 0).length);
-  g.classList.toggle('on', ZAP.vista === 'grupos');
-  a.classList.toggle('on', ZAP.vista === 'arquivadas');
+  const bs = $('nStatus'), nst = ZAP.statusLista.filter(x => !x.meu && !x.silenciado && zapStatusNovos(x) > 0).length;
+  if (bs) { bs.textContent = nst > 99 ? '99+' : nst; bs.hidden = !nst; }
   s.classList.toggle('on', ZAP.vista === 'status');
   const sa = $('zapStAcoes'); if (sa) sa.hidden = ZAP.vista !== 'status';
   const nv = $('zapNovo'); if (nv) nv.hidden = (ZAP.vista === 'status' || ZAP.vista === 'arquivadas');
+}
+function zapAtualizarVez(id, status){
+  const box = $('zapMsgs'); if (!box) return;
+  const bolha = Array.from(box.querySelectorAll('.bolha')).find(b => b.dataset.id === id);
+  if (!bolha) return;
+  const hr = bolha.querySelector('.hr'); if (!hr) return;
+  let v = hr.querySelector('.zap-vez');
+  if (!v) { v = document.createElement('span'); hr.appendChild(v); }
+  v.className = 'zap-vez' + (status >= 4 ? ' lida' : '');
+  v.innerHTML = icp(status >= 3 ? 'checks' : 'check', 15);
+}
+/* ----- blocos de conversas (listas tipo Favoritos do WhatsApp) ----- */
+function zapBlocos(){ try{ return JSON.parse(LS.get('zap_blocos') || '[]'); }catch(e){ return []; } }
+function zapSalvarBlocos(b){ try{ LS.set('zap_blocos', JSON.stringify(b)); }catch(e){} }
+function zapBloco(id){ return zapBlocos().find(b => b.id === id); }
+function zapBlocoAdd(id, jids){ const b = zapBlocos(), x = b.find(y => y.id === id); if (x){ const st = new Set(x.jids); jids.forEach(j => st.add(j)); x.jids = [...st]; zapSalvarBlocos(b); } }
+function zapBlocoRemover(id, jids){ const b = zapBlocos(), x = b.find(y => y.id === id); if (x){ const st = new Set(jids); x.jids = x.jids.filter(j => !st.has(j)); zapSalvarBlocos(b); } }
+function zapNovoBloco(jids){
+  zapPerguntar('Nome do novo bloco (ex.: Empresas, Família)', nome => {
+    nome = (nome || '').trim(); if (!nome) return;
+    const blocos = zapBlocos(), id = 'b' + Date.now().toString(36);
+    blocos.push({ id, nome, jids: jids ? [...jids] : [] });
+    zapSalvarBlocos(blocos);
+    if (ZAP.sel){ ZAP.sel = null; zapSelRender(); }
+    zapMudarVista('bloco:' + id);
+    aviso(jids && jids.length ? jids.length + ' conversa(s) em "' + nome + '".' : 'Bloco "' + nome + '" criado. Segure conversas e toque em Mover pra colocar aqui.', 5000);
+  });
+}
+function zapMenuBloco(id){
+  const bl = zapBloco(id); if (!bl) return;
+  folha(bl.nome, (bl.jids.length || 0) + ' conversa(s) neste bloco', [
+    { ic: 'edit', txt: 'Renomear bloco', fn: () => zapPerguntar('Novo nome do bloco', nome => { nome = (nome || '').trim(); if (!nome) return; const b = zapBlocos(), x = b.find(y => y.id === id); if (x){ x.nome = nome; zapSalvarBlocos(b); zapRenderVistas(); } }) },
+    { ic: 'trash', txt: 'Excluir bloco', perigo: true, fn: () => { const b = zapBlocos().filter(y => y.id !== id); zapSalvarBlocos(b); if (ZAP.vista === 'bloco:' + id) zapMudarVista('conversas'); else zapRenderVistas(); aviso('Bloco excluído. As conversas continuam na lista.', 3500); } },
+    { ic: 'x', txt: 'Cancelar', fn: () => {} }
+  ]);
+}
+function zapSelMover(){
+  const j = [...ZAP.sel], acoes = [];
+  if (ZAP.vista.indexOf('bloco:') === 0){ const id = ZAP.vista.slice(6); acoes.push({ ic: 'x', txt: 'Tirar deste bloco', fn: () => { zapBlocoRemover(id, j); zapSelFim(); aviso('Tiradas do bloco.', 2500); } }); }
+  zapBlocos().forEach(bl => acoes.push({ ic: 'bloco', txt: bl.nome, fn: () => { zapBlocoAdd(bl.id, j); zapSelFim(); aviso('Movidas pra "' + bl.nome + '".', 2500); } }));
+  acoes.push({ ic: 'plus', txt: 'Criar novo bloco...', fn: () => zapNovoBloco(j) });
+  acoes.push({ ic: 'x', txt: 'Cancelar', fn: () => {} });
+  folha('Mover pra bloco', 'Essas conversas vão aparecer no bloco escolhido (continuam na lista também).', acoes);
 }
 
 
@@ -4179,9 +4239,10 @@ async function zapEnviarStatusArquivo(blob, legenda, depois){
 /* editor de imagem: girar, cortar, desenhar, texto, desfazer */
 // caixinha de digitar (o prompt() do navegador não aparece em todo Android)
 function zapPerguntar(titulo, ok){
-  const d = document.createElement('div'); d.className = 'zap-perg';
+  const alvo = $('zapEd') && !$('zapEd').hidden ? $('zapEd') : document.body;
+  const d = document.createElement('div'); d.className = 'zap-perg' + (alvo === document.body ? ' zap-perg-fix' : '');
   d.innerHTML = '<div><b>' + esc(titulo) + '</b><input maxlength="80"><span><button class="btn sec">Cancelar</button><button class="btn">OK</button></span></div>';
-  $('zapEd').appendChild(d);
+  alvo.appendChild(d);
   const inp = d.querySelector('input'), [bc, bo] = d.querySelectorAll('button');
   const fim = v => { d.remove(); if (v) ok(v); };
   bc.onclick = () => fim(null); bo.onclick = () => fim(inp.value.trim());
@@ -4609,7 +4670,8 @@ function zapBolha(m, cont){
   const nm = ZAP.grupo && !m.de_mim && !cont ? '<div class="nm" style="color:' + corDe(m.remetente_jid) + '">' + esc(m.remetente_nome || String(m.remetente_jid || '').split('@')[0]) + '</div>' : '';
   const apagada = (m.unica ? '<span class="zap-um zap-um-p" title="Visualização única">1</span>' : '') +
     (m.apagada_pelo_remetente ? '<span class="zap-q" title="Apagada">?</span>' : '');
-  el.innerHTML = nm + corpo + '<div class="hr">' + apagada + hora(m.timestamp) + '</div>';
+  const vez = m.de_mim ? '<span class="zap-vez' + (m.status >= 4 ? ' lida' : '') + '">' + icp(m.status >= 3 ? 'checks' : 'check', 15) + '</span>' : '';
+  el.innerHTML = nm + corpo + '<div class="hr">' + apagada + hora(m.timestamp) + vez + '</div>';
   if (m.apagada_pelo_remetente){
     el.querySelector('.zap-q').onclick = e => { e.stopPropagation(); aviso('Essa mensagem foi apagada' + (m.apagada_em ? ' às ' + hora(m.apagada_em) : '') + ', mas continua guardada aqui.', 4500); };
   }
