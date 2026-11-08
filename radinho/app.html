@@ -630,6 +630,20 @@
   .zap-sv-texto{width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:30px;box-sizing:border-box;font-size:26px;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere}
   .zap-sv-legenda{padding:12px 16px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:15px;white-space:pre-wrap;position:relative;z-index:3}
   .zap-sv-legenda:empty{display:none}
+  .zap-sv-resp{position:relative;z-index:4;padding:0 10px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
+  .zap-sv-resp[hidden]{display:none!important}
+  .zap-sv-reac{display:flex;justify-content:space-between;gap:4px}
+  .zap-sv-reac button{flex:1;border:0;background:transparent;font-size:27px;padding:2px 0;cursor:pointer;transition:transform .12s}
+  .zap-sv-reac button:active{transform:scale(1.35)}
+  .zap-sv-linha{display:flex;gap:8px;align-items:center}
+  .zap-sv-linha input{flex:1;min-width:0;height:44px;border-radius:22px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.45);color:#fff;padding:0 16px;font-size:15px;outline:none}
+  .zap-sv-linha input::placeholder{color:rgba(255,255,255,.7)}
+  .zap-sv-linha button{width:44px;height:44px;border-radius:50%;border:0;background:#25d366;color:#062012;display:grid;place-items:center;flex:none}
+  .zap-sv-linha button svg.i{width:20px;height:20px}
+  .zap-sv-voa{position:absolute;left:0;right:0;bottom:120px;height:0;z-index:5;pointer-events:none}
+  .zap-sv-voa span{position:absolute;bottom:0;font-size:44px;animation:zapVoa 1.4s ease-out forwards}
+  @keyframes zapVoa{0%{transform:translateY(0) scale(.6);opacity:0}15%{opacity:1;transform:translateY(-30px) scale(1.2)}100%{transform:translateY(-320px) scale(1);opacity:0}}
+  #zapSv.com-resp .zap-sv-legenda{padding-bottom:8px}
   .zap-sv-tras,.zap-sv-frente{position:absolute;top:70px;bottom:70px;z-index:2}
   .zap-sv-tras{left:0;width:33%}
   .zap-sv-frente{right:0;width:67%}
@@ -1229,6 +1243,11 @@
   <div class="zap-sv-topo"><b id="zapSvNome"></b><small id="zapSvHora"></small><button id="zapSvSalvar" aria-label="Salvar na galeria"></button><button id="zapSvFechar" aria-label="Fechar">✕</button></div>
   <div class="zap-sv-conteudo" id="zapSvConteudo"></div>
   <div class="zap-sv-legenda" id="zapSvLegenda"></div>
+  <div class="zap-sv-resp" id="zapSvResp" hidden>
+    <div class="zap-sv-reac" id="zapSvReac"></div>
+    <div class="zap-sv-linha"><input id="zapSvIn" maxlength="1000" placeholder="Responder" autocomplete="off"><button id="zapSvEnviar" aria-label="Enviar"></button></div>
+  </div>
+  <div class="zap-sv-voa" id="zapSvVoa"></div>
   <div class="zap-sv-tras" id="zapSvTras"></div><div class="zap-sv-frente" id="zapSvFrente"></div>
 </div>
 
@@ -1236,7 +1255,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 64;
+const APP_VERSAO = 65;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3777,6 +3796,14 @@ function zapIniciar(){
   $('zapSvFechar').onclick = zapFecharStatus;
   $('zapSvTras').onclick = () => zapStatusPasso(-1);
   $('zapSvFrente').onclick = () => zapStatusPasso(1);
+  $('zapSvEnviar').innerHTML = ic('send');
+  $('zapSvReac').innerHTML = ['😂', '😮', '😍', '😢', '👏', '🔥', '🎉', '💯'].map(e => '<button>' + e + '</button>').join('');
+  $('zapSvReac').querySelectorAll('button').forEach(b => b.onclick = () => zapResponderStatus(b.textContent, true));
+  $('zapSvIn').onfocus = zapPausarStatus;
+  $('zapSvIn').onblur = () => setTimeout(() => { if (document.activeElement !== $('zapSvIn')) zapRetomarStatus(); }, 150);
+  $('zapSvIn').onkeydown = e => { if (e.key === 'Enter'){ e.preventDefault(); zapResponderStatus($('zapSvIn').value, false); } };
+  $('zapSvEnviar').onpointerdown = e => e.preventDefault();
+  $('zapSvEnviar').onclick = () => zapResponderStatus($('zapSvIn').value, false);
   try{ ZAP.statusVistos = JSON.parse(LS.get('chatslim_status_vistos') || '{}') || {}; }catch(e){ ZAP.statusVistos = {}; }
 
   $('zapIn').addEventListener('input', () => { const t = $('zapIn'); t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight) + 'px'; zapIconeEnviar(); });
@@ -4282,6 +4309,36 @@ function zapStatusPasso(d){
   }
   zapMostrarStatus();
 }
+function zapAnimarBarra(sv, barra){
+  const t0 = performance.now(), resto = sv.ms * (1 - sv.f0);
+  sv.barra = barra; sv.pausado = false;
+  const passo = (t) => { const f = Math.min(1, sv.f0 + (t - t0) / sv.ms); sv.f = f; barra.style.width = (f * 100) + '%'; if (f < 1) sv.raf = requestAnimationFrame(passo); };
+  sv.raf = requestAnimationFrame(passo); sv.to = setTimeout(() => zapStatusPasso(1), resto);
+}
+function zapPausarStatus(){
+  const sv = ZAP.sv; if (!sv || sv.pausado) return;
+  sv.pausado = true; clearTimeout(sv.to); cancelAnimationFrame(sv.raf); sv.f0 = sv.f || 0;
+  const v = $('zapSvConteudo').querySelector('video'); if (v) try{ v.pause(); }catch(e){}
+}
+function zapRetomarStatus(){
+  const sv = ZAP.sv; if (!sv || !sv.pausado || !sv.ms || !sv.barra) return;
+  const v = $('zapSvConteudo').querySelector('video'); if (v) try{ v.play(); }catch(e){}
+  zapAnimarBarra(sv, sv.barra);
+}
+async function zapResponderStatus(texto, reacao){
+  const sv = ZAP.sv; if (!sv) return;
+  texto = String(texto || '').trim(); if (!texto) return;
+  const x = sv.ordem[sv.ia].itens[sv.ii];
+  if (reacao){
+    const voa = $('zapSvVoa'), sp = document.createElement('span');
+    sp.textContent = texto; sp.style.left = (20 + Math.random() * 60) + '%'; voa.appendChild(sp); setTimeout(() => sp.remove(), 1500);
+  }
+  try{
+    await zapPost('/api/status/' + encodeURIComponent(x.id) + '/responder', { texto });
+    if (!reacao){ $('zapSvIn').value = ''; $('zapSvIn').blur(); }
+    aviso(reacao ? 'Reação enviada pra ' + sv.ordem[sv.ia].nome + '.' : 'Resposta enviada.', 2200);
+  } catch(e){ aviso('Não enviou: ' + e.message, 5000); }
+}
 function zapMostrarStatus(){
   const sv = ZAP.sv, a = sv.ordem[sv.ia], x = a.itens[sv.ii];
   ZAP.statusVistos[x.id] = Date.now();
@@ -4293,7 +4350,9 @@ function zapMostrarStatus(){
   $('zapSvSalvar').hidden = !url;
   $('zapSvLegenda').textContent = '';
   let dur = 6000;
-  const animar = (ms) => { const t0 = performance.now(); const passo = (t) => { const f = Math.min(1, (t - t0) / ms); barra.style.width = (f * 100) + '%'; if (f < 1) sv.raf = requestAnimationFrame(passo); }; sv.raf = requestAnimationFrame(passo); sv.to = setTimeout(() => zapStatusPasso(1), ms); };
+  const resp = !a.meu && a.autor_jid !== 'eu';
+  $('zapSvResp').hidden = !resp; $('zapSv').classList.toggle('com-resp', resp); $('zapSvIn').value = '';
+  const animar = (ms) => { sv.ms = ms; sv.f0 = 0; zapAnimarBarra(sv, barra); };
   if (x.tipo === 'video' && url){
     box.innerHTML = '<video playsinline autoplay src="' + url + '" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="></video>';
     $('zapSvLegenda').textContent = x.texto || '';
