@@ -1032,7 +1032,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 50;
+const APP_VERSAO = 51;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3608,11 +3608,20 @@ function zapMostrarConexao(estado, qr){
   $('zapListaBox').hidden = true;
   const box = $('zapCon'); box.hidden = false;
   if (estado !== 'parear'){
+    const cel = !!(ZAP.cfg && ZAP.cfg.modo_celular);
+    const chave = estado + (cel ? ':cel' : ':pc');
+    if (box.dataset.est === chave) return; // não redesenha a cada 3s (botões continuam clicáveis)
+    box.dataset.est = chave;
     box.innerHTML = '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Zap</b></div><div class="info">' +
-      (estado === 'iniciando' ? 'Ligando o Zap...' : 'Conectando ao WhatsApp...') + '</div></div>';
+      (estado === 'iniciando' ? 'Ligando o Zap...' : 'Conectando ao WhatsApp...') + '</div>' +
+      (estado === 'iniciando' ? '' : '<div class="zap-modo"><span>Modo: <b>' + (cel ? 'celular' : 'computador') + '</b></span>' +
+        '<button class="btn" id="zapModoCel">' + (cel ? 'Trocar pra modo computador' : 'Trocar pra modo celular') + '</button>' +
+        '<button class="btn" id="zapVerReg" style="color:var(--sub)">Ver registro do Zap</button></div>') + '</div>';
+    if ($('zapModoCel')){ $('zapModoCel').onclick = () => zapTrocarModo(!cel); $('zapVerReg').onclick = zapVerRegistro; }
     ZAP.telaPareamento = false;
     return;
   }
+  box.dataset.est = 'parear';
   if (ZAP.telaPareamento){ const im = $('zapQr'); if (im && qr) im.src = qr; return; }
   ZAP.telaPareamento = true;
   const num = LS.get('chatslim_numero') || '';
