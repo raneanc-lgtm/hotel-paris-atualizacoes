@@ -529,6 +529,20 @@
   .zap-vistas-scroll .zap-vista{flex:none}
   .zap-vista-add{flex:none;width:44px;padding:10px 0}
   .zap-perg-fix{position:fixed!important;z-index:50}
+  .zap-busca-linha{display:flex;gap:8px;align-items:center;margin:0 0 8px}
+  .zap-lupa{flex:none;width:44px;height:44px;border-radius:12px;background:var(--corpo2);border:1px solid var(--borda);color:var(--sub);display:grid;place-items:center;cursor:pointer}
+  .zap-lupa.on{border-color:var(--verde);color:var(--verde)}
+  .zap-lupa svg{width:19px;height:19px}
+  .zap-busca-linha .zap-busca{flex:1;margin:0}
+  .zap-arq-bt{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--corpo2);border:1px solid var(--borda);color:var(--txt);border-radius:12px;padding:0 10px;min-height:44px;font-size:14px;font-weight:600;cursor:pointer;position:relative}
+  .zap-arq-bt.on{border-color:var(--verde);color:var(--verde)}
+  .zap-arq-bt svg{width:16px;height:16px;color:var(--sub)}
+  .zap-arq-bt.on svg{color:var(--verde)}
+  .zap-arq-bt .zap-vista-n{position:absolute;top:-6px;right:-6px}
+  .zap-arq-bt[hidden]{display:none!important}
+  .zap-vista-st.tem-novo{border-color:var(--verde)}
+  .zap-vista-st.tem-novo .zap-vista-ic{color:var(--verde)}
+  .zap-vista-st .zap-vista-n{background:var(--verde);color:#062012}
   #zapStatusBtn[hidden]{display:none!important}
   #zapLista li .zap-anel{width:12px;height:12px;border-radius:50%;border:2px solid var(--verde);flex:none}
   #zapLista li .zap-anel.visto{border-color:#55605a}
@@ -819,7 +833,11 @@
         <button class="alvo" id="zapPostFoto"></button>
         <input type="file" id="zapInStatus" accept="image/*,video/*" hidden>
       </div>
-      <input class="zap-busca" id="zapBusca" type="search" placeholder="Buscar conversa">
+      <div class="zap-busca-linha">
+        <button class="zap-lupa" id="zapLupa" aria-label="Buscar"></button>
+        <input class="zap-busca" id="zapBusca" type="search" placeholder="Buscar conversa" hidden>
+        <button class="zap-arq-bt" id="zapArqBt" aria-label="Arquivadas"></button>
+      </div>
       <ul class="contas" id="zapLista"></ul>
       <button id="zapNovo" aria-label="Nova conversa">+</button>
     </div>
@@ -1080,7 +1098,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 59;
+const APP_VERSAO = 60;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1259,6 +1277,7 @@ const ICONES = {
   checks:'<path d="M2 12.5 6.5 17 14 7.5"/><path d="M11 15.5 12 16.5 20 7"/>',
   pin:'<path d="M12 17v5"/><path d="M9 10.8V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5.8a2 2 0 0 0 .6 1.4l1.7 1.7a1 1 0 0 1-.7 1.7H6.4a1 1 0 0 1-.7-1.7l1.7-1.7A2 2 0 0 0 9 10.8z"/>',
   bloco:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  historias:'<circle cx="12" cy="12" r="9" stroke-dasharray="3.1 3.1"/><circle cx="12" cy="12" r="3.4" fill="currentColor" stroke="none"/>',
   zap:'<path d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2z"/><path d="M13.4 6.8 9.2 12.6h3.2l-1.6 4.6 4.4-6.1h-3.2z" fill="currentColor" stroke="none"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   radio:'<rect x="3" y="8" width="18" height="13" rx="3"/><path d="M7 8 17 3"/><circle cx="15.5" cy="14.5" r="2.6"/><path d="M6.5 13h3M6.5 16h3"/>',
@@ -3577,6 +3596,8 @@ function zapIniciar(){
   $('zapVoltar').onclick = zapFecharConversa;
   $('zapBusca').oninput = () => { ZAP.busca = $('zapBusca').value.trim().toLowerCase(); zapRenderLista(); };
   $('zapStatusBtn').onclick = () => zapMudarVista('status');
+  $('zapLupa').onclick = () => zapBuscaAbrir($('zapBusca').hidden);
+  $('zapArqBt').onclick = () => zapMudarVista('arquivadas');
   $('zapSelX').onclick = zapSelFim;
   $('zapSelMover').onclick = zapSelMover;
   $('zapSelFixar').onclick = () => { const j = [...ZAP.sel], fix = zapFixadas(), todos = j.every(x => fix.has(x)); zapFixarVarios(j, !todos); aviso(todos ? 'Desafixadas.' : 'Fixadas no topo.', 2500); zapSelFim(); };
@@ -3736,6 +3757,7 @@ function zapQuando(ts){
 function zapRenderLista(){
   const ul = $('zapLista'); if (!ul) return;
   zapRenderVistas();
+  const lupa = $('zapLupa'); if (lupa && !lupa.innerHTML) lupa.innerHTML = ic('search');
   if (ZAP.vista === 'status') return zapRenderListaStatus();
   $('zapBusca').placeholder = 'Buscar conversa';
   const arq = zapArquivadas(), fix = zapFixadas();
@@ -3806,6 +3828,11 @@ function zapSelRender(){
     $('zapSelDel').innerHTML = icp('trash', 20) + '<span>Excluir</span>';
   }
 }
+function zapBuscaAbrir(abrir){
+  const inp = $('zapBusca'), arqb = $('zapArqBt'), lupa = $('zapLupa');
+  if (abrir){ inp.hidden = false; if (arqb) arqb.hidden = true; lupa.classList.add('on'); lupa.innerHTML = ic('x'); setTimeout(() => inp.focus(), 30); }
+  else { inp.value = ''; ZAP.busca = ''; inp.hidden = true; if (arqb) arqb.hidden = false; lupa.classList.remove('on'); lupa.innerHTML = ic('search'); zapRenderLista(); }
+}
 function zapMudarVista(v){
   ZAP.vista = (ZAP.vista === v) ? 'conversas' : v;
   ZAP.modoStatus = (ZAP.vista === 'status');
@@ -3820,7 +3847,6 @@ function zapRenderVistas(){
   const chip = (v, label, icone, n) => '<button class="zap-vista' + (ZAP.vista === v ? ' on' : '') + '" data-vista="' + v + '"><span class="zap-vista-ic">' + icp(icone, 17) + '</span><span class="zap-vista-tx">' + esc(label) + '</span>' + (n ? '<b class="zap-vista-n">' + (n > 99 ? '99+' : n) + '</b>' : '') + '</button>';
   let html = chip('conversas', 'Conversas', 'chat', 0);
   html += chip('grupos', 'Grupos', 'users', somaNL(c => c.eh_grupo && !arq.has(c.jid)));
-  html += chip('arquivadas', 'Arquivadas', 'arquivo', somaNL(c => arq.has(c.jid)));
   for (const bl of zapBlocos()) { const set = new Set(bl.jids); html += chip('bloco:' + bl.id, bl.nome, 'bloco', somaNL(c => set.has(c.jid))); }
   html += '<button class="zap-vista zap-vista-add" data-vista="novo-bloco" aria-label="Novo bloco">' + icp('plus', 17) + '</button>';
   sc.innerHTML = html;
@@ -3830,10 +3856,13 @@ function zapRenderVistas(){
     if (v.indexOf('bloco:') === 0) zapSegurar(b, () => zapMenuBloco(v.slice(6)));
   });
   const ativo = sc.querySelector('.zap-vista.on'); if (ativo) try{ sc.scrollLeft = Math.max(0, ativo.offsetLeft - 40); }catch(e){}
-  s.querySelector('.zap-vista-ic').innerHTML = icp('image', 17);
+  const ab = $('zapArqBt'); const narq = somaNL(c => arq.has(c.jid));
+  if (ab) { ab.innerHTML = icp('arquivo', 16) + '<span>Arquivadas</span>' + (narq ? '<b class="zap-vista-n">' + (narq > 99 ? '99+' : narq) + '</b>' : ''); ab.classList.toggle('on', ZAP.vista === 'arquivadas'); }
+  s.querySelector('.zap-vista-ic').innerHTML = icp('historias', 19);
   const bs = $('nStatus'), nst = ZAP.statusLista.filter(x => !x.meu && !x.silenciado && zapStatusNovos(x) > 0).length;
   if (bs) { bs.textContent = nst > 99 ? '99+' : nst; bs.hidden = !nst; }
   s.classList.toggle('on', ZAP.vista === 'status');
+  s.classList.toggle('tem-novo', nst > 0);
   const sa = $('zapStAcoes'); if (sa) sa.hidden = ZAP.vista !== 'status';
   const nv = $('zapNovo'); if (nv) nv.hidden = (ZAP.vista === 'status' || ZAP.vista === 'arquivadas');
 }
