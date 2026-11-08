@@ -771,6 +771,31 @@
   #pZap .zap-bar #zapVoltar span{font-size:30px!important}
   #pZap .zap-bar .zap-av .zap-on{border-color:transparent}
   #pZap:has(> #zapMsgs:not([hidden])) .zap-compor,#pZap:has(> #zapMsgs:not([hidden])) #zapCompor{background:transparent}
+  /* lista de conversas sem blocos, igual WhatsApp */
+  #zapLista li{background:transparent;border:0;border-radius:0;margin:0;padding:10px 4px}
+  #zapLista li .zap-av{width:50px;height:50px;font-size:17px}
+  #zapLista li b{font-size:16px}
+  #zapLista li.zap-marc{background:rgba(37,211,102,.16);border-radius:12px}
+  #zapLista li.zap-sec{padding:12px 4px 2px}
+  /* balão vidro e sem balão */
+  :is(#zapMsgs,#zapTemaPrev).zbf-transparente .bolha{background:color-mix(in srgb,var(--zb-deles-solida,#2a3430) 38%,transparent)!important;border-color:rgba(255,255,255,.14)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  :is(#zapMsgs,#zapTemaPrev).zbf-transparente .bolha.minha{background:color-mix(in srgb,var(--zb-minha-solida,#1f6a45) 42%,transparent)!important}
+  :is(#zapMsgs,#zapTemaPrev).zbf-sem .bolha{background:transparent!important;border-color:transparent!important;box-shadow:none!important;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  :is(#zapMsgs,#zapTemaPrev).zbf-sem .bolha .hr{text-shadow:0 1px 2px rgba(0,0,0,.8)}
+  .zbf-ic-transparente{opacity:.4;border-radius:10px 3px 10px 10px;box-shadow:inset 0 0 0 1.5px currentColor}
+  .zbf-ic-sem{background:transparent;height:auto;width:auto;font-style:normal;font-weight:800;font-size:13px;opacity:1}.zbf-ic-sem::before{content:"Aa"}
+  /* cores da caixa de digitar e do enviar */
+  #pZap #zapCompor .campo{background:var(--zb-campo,var(--corpo))}
+  #pZap #zapIn{color:var(--zb-campo-txt,var(--txt))}
+  #pZap #zapIn::placeholder{color:color-mix(in srgb,var(--zb-campo-txt,#8a9590) 60%,transparent)}
+  #pZap #zapCompor .campo .ib{color:color-mix(in srgb,var(--zb-campo-txt,#8a9590) 70%,transparent)}
+  #pZap #zapEnviar{background:var(--zb-enviar,var(--verde));color:var(--zb-enviar-ic,#062012)}
+  .zap-tema-compor{display:flex;align-items:center;gap:8px;margin-top:auto;padding-top:8px}
+  .zap-tema-compor span{flex:1;height:38px;border-radius:19px;background:var(--zb-campo,var(--corpo));color:var(--zb-campo-txt,var(--sub));display:flex;align-items:center;padding:0 14px;font-size:14px;border:1px solid var(--borda)}
+  .zap-tema-compor i{width:40px;height:40px;border-radius:50%;background:var(--zb-enviar,var(--verde));color:var(--zb-enviar-ic,#062012);display:grid;place-items:center}
+  .zap-tema-compor i svg{width:19px;height:19px}
+  /* prévia fixa no topo enquanto rola as opções */
+  .zap-tema-prev{position:sticky;top:0;z-index:3;box-shadow:0 8px 18px rgba(0,0,0,.55);min-height:190px}
   /* tela Atualizações (status) igual ao WhatsApp */
   #zapAtt{display:none;flex:1;min-height:0;overflow-y:auto;position:relative;padding-bottom:110px}
   #zapListaBox.modo-att > :not(#zapAtt){display:none!important}
@@ -1319,7 +1344,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 68;
+const APP_VERSAO = 69;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -5494,7 +5519,8 @@ const ZAP_PAPEIS = {
   floresta: 'linear-gradient(170deg,#0b2b1d,#16402b,#0a1a12)',
   pontos: 'radial-gradient(rgba(255,255,255,.07) 1px,transparent 1.5px) 0 0/18px 18px,#101614'
 };
-const ZAP_FORMAS = [['redondo','WhatsApp'],['ios','iPhone'],['bolha','Pílula'],['quadrado','Quadrado'],['folha','Folha'],['seta','Seta'],['contorno','Contorno'],['sombra','3D'],['neon','Neon'],['gibi','Gibi']];
+const ZAP_VARS_TEMA = ['--zb-minha','--zb-minha-borda','--zb-deles','--zb-deles-borda','--zb-txt-minha','--zb-txt-deles','--zb-fundo','--zb-raio','--zb-ponta','--zb-minha-solida','--zb-deles-solida','--zb-campo','--zb-campo-txt','--zb-enviar','--zb-enviar-ic'];
+const ZAP_FORMAS = [['redondo','WhatsApp'],['ios','iPhone'],['bolha','Pílula'],['quadrado','Quadrado'],['folha','Folha'],['seta','Seta'],['contorno','Contorno'],['sombra','3D'],['neon','Neon'],['gibi','Gibi'],['transparente','Vidro'],['sem','Sem balão']];
 function zapTema(){ try{ return JSON.parse(LS.get('zap_tema') || '{}'); }catch(e){ return {}; } }
 function zapSalvarTema(t){ try{ LS.set('zap_tema', JSON.stringify(t)); }catch(e){} }
 function zapClarear(hex, q){
@@ -5509,6 +5535,10 @@ function zapVarsTema(t){
   if (t.txtMinha) v['--zb-txt-minha'] = t.txtMinha;
   if (t.txtDeles) v['--zb-txt-deles'] = t.txtDeles;
   if (t.fundo) v['--zb-fundo'] = t.fundo;
+  if (t.campo) v['--zb-campo'] = t.campo;
+  if (t.txtCampo) v['--zb-campo-txt'] = t.txtCampo;
+  if (t.enviar) v['--zb-enviar'] = t.enviar;
+  if (t.icEnviar) v['--zb-enviar-ic'] = t.icEnviar;
   v['--zb-minha-solida'] = t.minha || '#1f6a45'; v['--zb-deles-solida'] = t.deles ? zapClarear(t.deles, 0) : '#2a3430';
   const forma = { quadrado: ['6px', '2px'], bolha: ['24px', '24px'] }[t.forma] || ['18px', '5px'];
   v['--zb-raio'] = forma[0]; v['--zb-ponta'] = forma[1];
@@ -5522,7 +5552,7 @@ function zapFundoPapel(t){
 }
 function zapAplicarTema(){
   const t = zapTema(), alvo = $('pZap'); if (!alvo) return;
-  ['--zb-minha','--zb-minha-borda','--zb-deles','--zb-deles-borda','--zb-txt-minha','--zb-txt-deles','--zb-fundo','--zb-raio','--zb-ponta','--zb-minha-solida','--zb-deles-solida'].forEach(k => alvo.style.removeProperty(k));
+  ZAP_VARS_TEMA.forEach(k => alvo.style.removeProperty(k));
   const v = zapVarsTema(t); Object.keys(v).forEach(k => alvo.style.setProperty(k, v[k]));
   const box = $('zapMsgs'); if (box) box.className = box.className.replace(/\s*zbf-\S+/g, '') + (t.forma ? ' zbf-' + t.forma : '');
   // o fundo vai no painel inteiro da conversa (perfil + mensagens + digitar), tudo emendado
@@ -5535,10 +5565,11 @@ function zapEditorTema(){
   const ed = $('zapEd'); ed.dataset.modo = 'tema';
   let t = Object.assign({ forma: 'redondo' }, zapTema());
   const base = ZAP_TEMAS.verde;
-  const val = k => t[k] || base[k];
+  const base2 = { campo: '#1b2220', txtCampo: '#e9edef', enviar: '#3ddc84', icEnviar: '#062012' };
+  const val = k => t[k] || base[k] || base2[k] || '#000000';
   ed.innerHTML = '<div class="zap-ed-topo"><button id="zapEdX" aria-label="Fechar">✕</button><b>Aparência do Zap</b><span></span></div>' +
     '<div class="zap-tema">' +
-      '<div class="zap-tema-prev" id="zapTemaPrev"><div class="bolha" style="align-self:flex-start"><div class="tx">Oi! Tudo certo? 😄</div><div class="hr">10:41</div></div><div class="bolha minha" style="align-self:flex-end"><div class="tx">Tudo ótimo, e aí?</div><div class="hr">10:42</div></div></div>' +
+      '<div class="zap-tema-prev" id="zapTemaPrev"><div class="bolha" style="align-self:flex-start"><div class="tx">Oi! Tudo certo? 😄</div><div class="hr">10:41</div></div><div class="bolha minha" style="align-self:flex-end"><div class="tx">Tudo ótimo, e aí?</div><div class="hr">10:42</div></div><div class="zap-tema-compor"><span>Mensagem</span><i>' + ic('send') + '</i></div></div>' +
       '<h5>TEMAS PRONTOS</h5><div class="zap-tema-pre" id="zapTemaPre"></div>' +
       '<h5>CORES (toque na bolinha)</h5>' +
       '<div class="zap-tema-cor"><span>Meu balão</span><input type="color" data-k="minha"></div>' +
@@ -5546,6 +5577,10 @@ function zapEditorTema(){
       '<div class="zap-tema-cor"><span>Balão dos outros</span><input type="color" data-k="deles"></div>' +
       '<div class="zap-tema-cor"><span>Texto dos outros</span><input type="color" data-k="txtDeles"></div>' +
       '<div class="zap-tema-cor"><span>Fundo da conversa</span><input type="color" data-k="fundo"></div>' +
+      '<div class="zap-tema-cor"><span>Caixa de digitar</span><input type="color" data-k="campo"></div>' +
+      '<div class="zap-tema-cor"><span>Texto da caixa de digitar</span><input type="color" data-k="txtCampo"></div>' +
+      '<div class="zap-tema-cor"><span>Botão de enviar</span><input type="color" data-k="enviar"></div>' +
+      '<div class="zap-tema-cor"><span>Ícone do botão de enviar</span><input type="color" data-k="icEnviar"></div>' +
       '<h5>FORMATO DO BALÃO</h5><div class="zap-tema-forma" id="zapTemaForma">' + ZAP_FORMAS.map(f => '<button data-f="' + f[0] + '"><i class="zbf-ic zbf-ic-' + f[0] + '"></i>' + f[1] + '</button>').join('') + '</div>' +
       '<h5>PAPEL DE PAREDE</h5><div class="zap-tema-papeis" id="zapTemaPapeis"></div>' +
       '<div class="zap-tema-cor" id="zapTemaEscLinha"><span>Escurecer a foto</span><input type="range" min="0" max="0.7" step="0.05" id="zapTemaEsc" style="width:50%"></div>' +
@@ -5555,7 +5590,7 @@ function zapEditorTema(){
   ed.hidden = false;
   const prev = $('zapTemaPrev');
   const atualizar = () => {
-    const v = zapVarsTema(t); ['--zb-minha','--zb-minha-borda','--zb-deles','--zb-deles-borda','--zb-txt-minha','--zb-txt-deles','--zb-raio','--zb-ponta','--zb-minha-solida','--zb-deles-solida'].forEach(k => prev.style.removeProperty(k));
+    const v = zapVarsTema(t); ZAP_VARS_TEMA.forEach(k => prev.style.removeProperty(k));
     Object.keys(v).forEach(k => prev.style.setProperty(k, v[k]));
     prev.className = 'zap-tema-prev' + (t.forma ? ' zbf-' + t.forma : '');
     const papel = zapFundoPapel(t);
