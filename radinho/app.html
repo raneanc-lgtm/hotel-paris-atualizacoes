@@ -888,7 +888,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 40;
+const APP_VERSAO = 41;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1329,7 +1329,7 @@ function mudarAba(a){
   $('pRadio').hidden = a !== 'radio';
   $('pChat').hidden  = a !== 'chat';
   if ($('abaZap')){ $('abaZap').classList.toggle('ativa', a === 'zap'); $('pZap').hidden = a !== 'zap'; }
-  if (a === 'zap'){ zapAtualizarStatus(); if (ZAP.jid) zapCarregarMensagens(); else zapCarregarLista(); }
+  if (a === 'zap'){ zapPost('/api/atualizar').catch(() => {}); zapAtualizarStatus(); if (ZAP.jid) zapCarregarMensagens(); else zapCarregarLista(); }
   else if (ZAP.gravando) zapPararAudio(true);
   if (a === 'chat'){ naoLidas = 0; if (dmCom) marcarDmLida(dmCom.id); atualizarBadge(); rolarFim(true); }
   else $('bdRadio').hidden = true;
