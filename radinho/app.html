@@ -252,7 +252,8 @@
   .bolha .midia button{width:38px;height:38px;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.3)}
   .bolha.minha .midia button{background:#eafff2;color:#1a5a3b}
   .onda{flex:1;display:flex;align-items:center;gap:2px;height:28px}
-  .onda i{flex:1;max-width:4px;border-radius:2px;background:currentColor;opacity:.45}
+  .onda i{flex:1;max-width:4px;border-radius:2px;background:currentColor;opacity:.45;transition:opacity .12s}
+  .onda i.ok{opacity:1}
   .bolha .midia small{position:absolute;left:62px;bottom:5px;font-size:10.5px;color:inherit;opacity:.6}
   .bolha.foto-b{padding:4px}
   .bolha.foto-b .nm{padding:3px 7px 1px}
@@ -673,6 +674,16 @@
   .zap-video button,.zap-baixar button{white-space:nowrap}
   .zap-ed-tela textarea{height:auto;max-height:100%;display:block;padding:20px}
   .zap-ed-mais.on{box-shadow:0 0 0 2px var(--verde)}
+  .zap-unica{display:flex;align-items:center;gap:10px;padding-right:44px}
+  .zap-unica span:last-child{display:flex;flex-direction:column;gap:2px}
+  .zap-unica small{font-size:12px;opacity:.7}
+  .zap-um{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;border:2px dashed currentColor;font-size:12px;font-weight:900;flex:none}
+  .zap-um-p{width:15px;height:15px;font-size:9px;border-width:1.5px}
+  .zap-envia-linha{display:flex;gap:8px;align-items:center}
+  .zap-envia-linha .zap-busca{flex:1;margin:0}
+  .zap-um-bt{width:42px;height:42px;border-radius:50%;border:2px dashed var(--sub);background:transparent;color:var(--sub);font-weight:900;font-size:15px;flex:none;display:grid;place-items:center;padding:0}
+  .zap-um-bt.on{border-style:solid;border-color:var(--verde);background:var(--verde);color:#062012}
+  #zapGravBar .zap-um-bt{width:30px;height:30px;font-size:12px}
 </style>
 </head>
 <body>
@@ -786,7 +797,7 @@
     <div class="compor" id="zapCompor" hidden>
       <div class="campo">
         <button class="ib" id="zapCancelarGrav" aria-label="Descartar áudio" data-ic="trash" hidden></button>
-        <div id="zapGravBar" hidden><i></i><span id="zapGravTempo">0:00</span><span style="flex:1"></span></div>
+        <div id="zapGravBar" hidden><i></i><span id="zapGravTempo">0:00</span><span style="flex:1"></span><button class="zap-um-bt" id="zapAudioUnica" aria-label="Áudio de visualização única">1</button></div>
         <textarea id="zapIn" rows="1" maxlength="4000" placeholder="Mensagem"></textarea>
         <button class="ib" id="zapAnexoBtn" aria-label="Enviar arquivo" data-ic="upload"></button>
         <button class="ib" id="zapFotoBtn" aria-label="Foto ou vídeo da galeria" data-ic="image"></button>
@@ -1018,7 +1029,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 42;
+const APP_VERSAO = 43;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -2676,6 +2687,19 @@ function addChat(key, m){
 }
 const CORES_NOME = ['#3ddc84','#5ec8ff','#ffb547','#ff7aa8','#b48cff','#4fe0d0','#ff8a5b','#d6e35a'];
 function corDe(id){ let h = 0; for (const ch of String(id || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return CORES_NOME[h % CORES_NOME.length]; }
+// pinta as barrinhas do áudio conforme toca (fração de 0 a 1)
+function ondaProgresso(el, frac){
+  if (!el) return;
+  const is = el.querySelectorAll('i'), n = Math.round(Math.max(0, Math.min(1, frac)) * is.length);
+  is.forEach((x, i) => x.classList.toggle('ok', i < n));
+}
+// animação por tempo estimado (áudios do chat do rádio, que tocam por outro caminho)
+function ondaAnimar(el, segundos, ativo){
+  if (!el) return;
+  const t0 = performance.now(), dur = Math.max(1, segundos || 5) * 1000;
+  const passo = t => { if (!ativo()){ ondaProgresso(el, 0); return; } ondaProgresso(el, (t - t0) / dur); if (t - t0 < dur) requestAnimationFrame(passo); };
+  requestAnimationFrame(passo);
+}
 function ondaHtml(seed){ let h = 7, out = '<span class="onda">'; for (const ch of String(seed)) h = (h * 33 + ch.charCodeAt(0)) >>> 0;
   for (let i = 0; i < 26; i++){ h = (h * 1103515245 + 12345) >>> 0; out += '<i style="height:' + (5 + (h % 22)) + 'px"></i>'; } return out + '</span>'; }
 async function enviarChat(){
@@ -2755,6 +2779,8 @@ async function ouvirAudioChat(key, m, bt){
   if (tocando || gravando || gravChat){ aviso('Espere o rádio terminar.'); return; }
   destravarAudio();
   tocando = { chat: true }; bt.innerHTML = ic('stop');
+  const meuToque = tocando;
+  ondaAnimar(bt.closest('.midia') && bt.closest('.midia').querySelector('.onda'), m.dur, () => tocando === meuToque);
   try{
     const b64 = await buscarAudio(key);
     if (b64){ await acordarAudio(); await tocarAudio(b64, m.mime); }
@@ -2824,7 +2850,7 @@ function tirarFoto(){
   g.drawImage(v, 0, 0);
   vibrar(25);
   const praZap = ZAP.camera; ZAP.camera = false;
-  c.toBlob(b => { fecharCamera(); if (!b) return; if (praZap) zapEnviarArquivo(b, 'imagem', 'foto.jpg'); else enviarFoto(b); }, 'image/jpeg', 0.9);
+  c.toBlob(b => { fecharCamera(); if (!b) return; if (praZap){ b.name = 'foto.jpg'; zapPreviaEnvio(b); } else enviarFoto(b); }, 'image/jpeg', 0.9);
 }
 async function enviarFoto(file){
   if (souMudo){ aviso('Você está silenciado.'); return; }
@@ -3514,7 +3540,7 @@ function zapIniciar(){
   $('zapFotoBtn').onclick = () => { $('zapInFoto').value = ''; $('zapInFoto').click(); };
   $('zapCamBtn').onclick = () => { ZAP.camera = true; abrirCamera(); };
   $('zapAnexoBtn').onclick = () => { $('zapInDoc').value = ''; $('zapInDoc').click(); };
-  $('zapInFoto').onchange = e => { const f = e.target.files && e.target.files[0]; if (f) zapEnviarArquivo(f, null, f.name); };
+  $('zapInFoto').onchange = e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; if (f) zapPreviaEnvio(f); };
   $('zapInDoc').onchange = e => { const f = e.target.files && e.target.files[0]; if (f) zapEnviarArquivo(f, 'documento', f.name); };
   zapIconeEnviar();
   zapConectarEventos();
@@ -4214,6 +4240,28 @@ function zapRenderPresenca(){
   $('zapSt').classList.toggle('zap-on-txt', !ZAP.grupo && ['online', 'digitando', 'gravando'].includes(ZAP.presencas[ZAP.jid]));
 }
 
+/* ---------- botão voltar do Android: fecha o que estiver aberto; se nada, o app fecha ---------- */
+window.radinhoVoltar = function(){
+  try{
+    if (ZAP.iniciado){
+      if (!$('zapVer').hidden){ zapFecharVer(); return true; }
+      if (!$('zapEd').hidden){ zapFecharEditor(); return true; }
+      if (!$('zapSv').hidden){ zapFecharStatus(); return true; }
+      if (!$('zapPerfil').hidden){ zapFecharPerfil(); return true; }
+      if (!$('zapNovoFundo').hidden){ $('zapNovoFundo').hidden = true; return true; }
+    }
+    const aberto = Array.from(document.querySelectorAll('.fundo')).find(f => !f.hidden);
+    if (aberto){ aberto.hidden = true; return true; }
+    if (!$('verFoto').hidden){ $('verFoto').hidden = true; return true; }
+    if (ZAP.iniciado && aba === 'zap'){
+      if (ZAP.jid){ zapFecharConversa(); return true; }
+      if (ZAP.modoStatus){ $('zapStatusBtn').click(); return true; }
+    }
+    if (typeof dmCom !== 'undefined' && dmCom && aba === 'chat' && $('dmVoltar')){ $('dmVoltar').click(); return true; }
+  }catch(e){}
+  return false;
+};
+
 /* ---------- avisar o motor do que está aberto (online, notificação e lidas) ---------- */
 function zapFoco(){
   if (!ZAP.iniciado) return;
@@ -4415,13 +4463,17 @@ function zapBolha(m, cont){
   } else if (m.tipo === 'audio'){
     corpo = url ? '<div class="midia"><button aria-label="Ouvir">' + ic('play') + '</button>' + ondaHtml(m.id) + '<small class="zap-dur">' + durTxt + '</small></div>'
                 : '<div class="tx zap-sem">' + ic('mic') + ' Áudio' + (m.pode_baixar ? ' • toque pra baixar' : ' (não disponível)') + '</div>';
+  } else if (m.tipo === 'unica'){
+    corpo = '<div class="tx zap-unica"><span class="zap-um">1</span><span><b>Visualização única</b><small>' +
+      (m.de_mim ? 'enviada pelo seu celular' : 'o WhatsApp só libera esse tipo de mensagem no celular') + '</small></span></div>';
   } else if (m.tipo === 'documento'){
     corpo = '<div class="tx zap-doc">📄 ' + esc(m.nome_arquivo || m.texto || 'Documento') + '</div>';
   } else {
     corpo = '<div class="tx">' + esc(m.texto) + '</div>';
   }
   const nm = ZAP.grupo && !m.de_mim && !cont ? '<div class="nm" style="color:' + corDe(m.remetente_jid) + '">' + esc(m.remetente_nome || String(m.remetente_jid || '').split('@')[0]) + '</div>' : '';
-  const apagada = m.apagada_pelo_remetente ? '<span class="zap-q" title="Apagada">?</span>' : '';
+  const apagada = (m.unica ? '<span class="zap-um zap-um-p" title="Visualização única">1</span>' : '') +
+    (m.apagada_pelo_remetente ? '<span class="zap-q" title="Apagada">?</span>' : '');
   el.innerHTML = nm + corpo + '<div class="hr">' + apagada + hora(m.timestamp) + '</div>';
   if (m.apagada_pelo_remetente){
     el.querySelector('.zap-q').onclick = e => { e.stopPropagation(); aviso('Essa mensagem foi apagada' + (m.apagada_em ? ' às ' + hora(m.apagada_em) : '') + ', mas continua guardada aqui.', 4500); };
@@ -4445,6 +4497,7 @@ function zapBolha(m, cont){
   return el;
 }
 function zapPararTocar(){
+  if (ZAP.audioBt){ const o = ZAP.audioBt.closest('.midia') && ZAP.audioBt.closest('.midia').querySelector('.onda'); ondaProgresso(o, 0); }
   if (ZAP.audio){ try{ ZAP.audio.pause(); }catch(e){} if (ZAP.audioBt) ZAP.audioBt.innerHTML = ic('play'); ZAP.audio = null; ZAP.audioBt = null; }
 }
 function zapTocar(url, bt, dur){
@@ -4452,8 +4505,11 @@ function zapTocar(url, bt, dur){
   zapPararTocar();
   const a = new Audio(url);
   ZAP.audio = a; ZAP.audioBt = bt; bt.innerHTML = ic('stop');
+  const onda = bt.closest('.midia') && bt.closest('.midia').querySelector('.onda');
+  const anima = () => { if (ZAP.audio !== a) return; if (a.duration) ondaProgresso(onda, a.currentTime / a.duration); requestAnimationFrame(anima); };
+  a.onplay = () => requestAnimationFrame(anima);
   a.ontimeupdate = () => { if (dur) dur.textContent = Math.floor(a.currentTime / 60) + ':' + String(Math.floor(a.currentTime % 60)).padStart(2, '0'); };
-  a.onended = a.onerror = () => { if (ZAP.audio === a) zapPararTocar(); };
+  a.onended = a.onerror = () => { if (ZAP.audio === a){ zapPararTocar(); ondaProgresso(onda, 0); } };
   a.play().catch(() => { aviso('Não consegui tocar esse áudio.'); zapPararTocar(); });
 }
 
@@ -4469,11 +4525,31 @@ async function zapEnviarTexto(){
   try{ await zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/mensagens', { texto }); zapCarregarMensagens(); }
   catch(e){ t.value = texto; zapIconeEnviar(); aviso('Não enviou: ' + e.message, 5000); }
 }
-async function zapEnviarArquivo(blob, tipo, nomeArq){
+// antes de mandar foto/vídeo: mostra a prévia, legenda e a opção de visualização única
+function zapPreviaEnvio(file){
+  if (!ZAP.jid){ aviso('Abra uma conversa primeiro.'); return; }
+  const video = /^video\//.test(file.type), url = URL.createObjectURL(file);
+  let unica = false;
+  const ed = $('zapEd');
+  ed.innerHTML = '<div class="zap-ed-topo"><button id="zapEdX" aria-label="Fechar">✕</button><b>' + esc(ZAP.nome) + '</b><span></span></div>' +
+    '<div class="zap-ed-tela zap-ed-preta">' + (video ? '<video src="' + url + '" controls playsinline poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="></video>' : '<img src="' + url + '" alt="" style="max-width:100%;max-height:100%;object-fit:contain">') + '</div>' +
+    '<div class="zap-ed-ferr"><div class="zap-envia-linha"><input class="zap-busca" id="zapEdLeg" maxlength="1000" placeholder="Legenda (opcional)">' +
+    '<button class="zap-um-bt" id="zapEdUnica" aria-label="Visualização única">1</button></div>' +
+    '<button class="btn zap-ed-enviar" id="zapEdEnviar">' + ic('send') + '<span>Enviar</span></button></div>';
+  ed.hidden = false;
+  const fechar = () => { URL.revokeObjectURL(url); zapFecharEditor(); };
+  $('zapEdX').onclick = fechar;
+  $('zapEdUnica').onclick = () => { unica = !unica; $('zapEdUnica').classList.toggle('on', unica); $('zapEdLeg').disabled = unica; if (unica) $('zapEdLeg').value = ''; aviso(unica ? 'Visualização única ligada: a pessoa só vai poder abrir uma vez.' : 'Visualização única desligada.', 3000); };
+  $('zapEdEnviar').onclick = () => { const leg = $('zapEdLeg').value; fechar(); zapEnviarArquivo(file, video ? 'video' : 'imagem', file.name || (video ? 'video.mp4' : 'foto.jpg'), { legenda: leg, unica }); };
+}
+async function zapEnviarArquivo(blob, tipo, nomeArq, op){
+  op = op || {};
   if (!ZAP.jid){ aviso('Abra uma conversa primeiro.'); return; }
   const fd = new FormData();
   fd.append('arquivo', blob, nomeArq || 'arquivo');
   if (tipo) fd.append('tipo', tipo);
+  if (op.legenda) fd.append('legenda', op.legenda);
+  if (op.unica) fd.append('unica', '1');
   aviso('Enviando...', 8000);
   try{ await zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/midia', fd); aviso('Enviado.'); zapCarregarMensagens(); }
   catch(e){ aviso('Não enviou: ' + e.message, 5000); }
@@ -4488,12 +4564,14 @@ async function zapComecarAudio(){
   pararTocar(); zapPararTocar();
   try{ ZAP.rec = new MediaRecorder(st, mime ? { mimeType: mime } : {}); }catch(e){ ZAP.rec = new MediaRecorder(st); }
   ZAP.partes = []; ZAP.cancelou = false;
+  ZAP.audioUnica = false; $('zapAudioUnica').classList.remove('on');
+  $('zapAudioUnica').onclick = e => { e.preventDefault(); ZAP.audioUnica = !ZAP.audioUnica; $('zapAudioUnica').classList.toggle('on', ZAP.audioUnica); };
   ZAP.rec.ondataavailable = e => { if (e.data && e.data.size) ZAP.partes.push(e.data); };
   ZAP.rec.onstop = () => {
     soltarMic();
     if (ZAP.cancelou || !ZAP.partes.length) return;
     const tipoBlob = (ZAP.rec && ZAP.rec.mimeType) || mime || 'audio/webm';
-    zapEnviarArquivo(new Blob(ZAP.partes, { type: tipoBlob }), 'audio', 'audio.' + (tipoBlob.includes('ogg') ? 'ogg' : tipoBlob.includes('mp4') ? 'm4a' : 'webm'));
+    zapEnviarArquivo(new Blob(ZAP.partes, { type: tipoBlob }), 'audio', 'audio.' + (tipoBlob.includes('ogg') ? 'ogg' : tipoBlob.includes('mp4') ? 'm4a' : 'webm'), { unica: ZAP.audioUnica });
   };
   ZAP.rec.start();
   ZAP.gravando = true; ZAP.t0 = Date.now(); vibrar(30);
