@@ -528,6 +528,8 @@
   .zap-vistas-scroll::-webkit-scrollbar{display:none}
   .zap-vistas-scroll .zap-vista{flex:none}
   .zap-vista-add{flex:none;width:44px;padding:10px 0}
+  .zap-vista-min{width:46px;padding:10px 0;justify-content:center}
+  .zap-vista.arrastando{opacity:.92;box-shadow:0 6px 18px rgba(0,0,0,.55);transition:none}
   .zap-perg-fix{position:fixed!important;z-index:50}
   .zap-busca-linha{display:flex;gap:8px;align-items:center;margin:0 0 8px}
   .zap-lupa{flex:none;width:44px;height:44px;border-radius:12px;background:var(--corpo2);border:1px solid var(--borda);color:var(--sub);display:grid;place-items:center;cursor:pointer}
@@ -1098,7 +1100,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 60;
+const APP_VERSAO = 61;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3761,13 +3763,15 @@ function zapRenderLista(){
   if (ZAP.vista === 'status') return zapRenderListaStatus();
   $('zapBusca').placeholder = 'Buscar conversa';
   const arq = zapArquivadas(), fix = zapFixadas();
-  let bset = null;
+  let bset = null, emb = null;
   if (ZAP.vista.indexOf('bloco:') === 0){ const bl = zapBloco(ZAP.vista.slice(6)); bset = new Set(bl ? bl.jids : []); }
+  else emb = zapEmBlocos();
   let l = ZAP.conversas.filter(c => {
     const ea = arq.has(c.jid);
     if (bset) return bset.has(c.jid) && !ea;
     if (ZAP.vista === 'arquivadas') return ea;
     if (ea) return false;
+    if (emb && emb.has(c.jid)) return false;
     if (ZAP.vista === 'grupos') return !!c.eh_grupo;
     return !c.eh_grupo;
   });
@@ -3842,18 +3846,19 @@ function zapMudarVista(v){
 }
 function zapRenderVistas(){
   const sc = $('zapVistasScroll'), s = $('zapStatusBtn'); if (!sc || !s) return;
-  const arq = zapArquivadas();
+  const arq = zapArquivadas(), emb = zapEmBlocos();
   const somaNL = f => ZAP.conversas.filter(f).reduce((n, c) => n + (c.nao_lidas || 0), 0);
-  const chip = (v, label, icone, n) => '<button class="zap-vista' + (ZAP.vista === v ? ' on' : '') + '" data-vista="' + v + '"><span class="zap-vista-ic">' + icp(icone, 17) + '</span><span class="zap-vista-tx">' + esc(label) + '</span>' + (n ? '<b class="zap-vista-n">' + (n > 99 ? '99+' : n) + '</b>' : '') + '</button>';
-  let html = chip('conversas', 'Conversas', 'chat', 0);
-  html += chip('grupos', 'Grupos', 'users', somaNL(c => c.eh_grupo && !arq.has(c.jid)));
-  for (const bl of zapBlocos()) { const set = new Set(bl.jids); html += chip('bloco:' + bl.id, bl.nome, 'bloco', somaNL(c => set.has(c.jid))); }
-  html += '<button class="zap-vista zap-vista-add" data-vista="novo-bloco" aria-label="Novo bloco">' + icp('plus', 17) + '</button>';
+  const chip = (v, label, icone, n, min) => '<button class="zap-vista' + (min ? ' zap-vista-min' : '') + (ZAP.vista === v ? ' on' : '') + '" data-vista="' + v + '"' + (min ? ' aria-label="' + esc(label) + '"' : '') + '><span class="zap-vista-ic">' + icp(icone, 18) + '</span>' + (min ? '' : '<span class="zap-vista-tx">' + esc(label) + '</span>') + (n ? '<b class="zap-vista-n">' + (n > 99 ? '99+' : n) + '</b>' : '') + '</button>';
+  let html = chip('conversas', 'Conversas', 'chat', 0, true);
+  html += chip('grupos', 'Grupos', 'users', somaNL(c => c.eh_grupo && !arq.has(c.jid) && !emb.has(c.jid)), true);
+  for (const bl of zapBlocos()) { const set = new Set(bl.jids); html += chip('bloco:' + bl.id, bl.nome, 'bloco', somaNL(c => set.has(c.jid)), false); }
+  html += '<button class="zap-vista zap-vista-add" data-vista="novo-bloco" aria-label="Novo bloco">' + icp('plus', 18) + '</button>';
   sc.innerHTML = html;
   sc.querySelectorAll('[data-vista]').forEach(b => {
     const v = b.dataset.vista;
-    b.onclick = () => v === 'novo-bloco' ? zapNovoBloco() : zapMudarVista(v);
-    if (v.indexOf('bloco:') === 0) zapSegurar(b, () => zapMenuBloco(v.slice(6)));
+    if (v === 'novo-bloco'){ b.onclick = () => zapNovoBloco(); return; }
+    if (v.indexOf('bloco:') === 0){ zapArrastarBloco(b, v.slice(6), v); return; }
+    b.onclick = () => zapMudarVista(v);
   });
   const ativo = sc.querySelector('.zap-vista.on'); if (ativo) try{ sc.scrollLeft = Math.max(0, ativo.offsetLeft - 40); }catch(e){}
   const ab = $('zapArqBt'); const narq = somaNL(c => arq.has(c.jid));
@@ -3880,6 +3885,39 @@ function zapAtualizarVez(id, status){
 function zapBlocos(){ try{ return JSON.parse(LS.get('zap_blocos') || '[]'); }catch(e){ return []; } }
 function zapSalvarBlocos(b){ try{ LS.set('zap_blocos', JSON.stringify(b)); }catch(e){} }
 function zapBloco(id){ return zapBlocos().find(b => b.id === id); }
+function zapEmBlocos(){ const st = new Set(); zapBlocos().forEach(b => (b.jids || []).forEach(j => st.add(j))); return st; }
+function zapReordenarBloco(id, idAlvo){
+  const b = zapBlocos(), i = b.findIndex(x => x.id === id), j = b.findIndex(x => x.id === idAlvo);
+  if (i < 0 || j < 0 || i === j) { zapRenderVistas(); return; }
+  const [item] = b.splice(i, 1); b.splice(j, 0, item);
+  zapSalvarBlocos(b); zapRenderVistas();
+}
+// toque = abre; segurar parado = menu (renomear/excluir); segurar e arrastar = reordena
+function zapArrastarBloco(btn, id, v){
+  let timer = null, armado = false, x0 = 0, moveu = false;
+  const limpar = () => { clearTimeout(timer); armado = false; btn.style.transform = ''; btn.style.zIndex = ''; btn.classList.remove('arrastando'); };
+  btn.addEventListener('pointerdown', e => {
+    x0 = e.clientX; moveu = false;
+    timer = setTimeout(() => { armado = true; btn.classList.add('arrastando'); btn.style.zIndex = '3'; vibrar(20); try{ btn.setPointerCapture(e.pointerId); }catch(_){} }, 320);
+  });
+  btn.addEventListener('pointermove', e => {
+    if (!armado){ if (Math.abs(e.clientX - x0) > 8) clearTimeout(timer); return; }
+    moveu = true; try{ e.preventDefault(); }catch(_){}
+    btn.style.transform = 'translateX(' + (e.clientX - x0) + 'px) scale(1.05)';
+  });
+  btn.addEventListener('pointerup', e => {
+    const wasArm = armado, wasMove = moveu; limpar();
+    if (wasArm && wasMove){
+      btn.style.pointerEvents = 'none';
+      const alvo = document.elementFromPoint(e.clientX, e.clientY);
+      btn.style.pointerEvents = '';
+      const chipAlvo = alvo && alvo.closest && alvo.closest('[data-vista^="bloco:"]');
+      if (chipAlvo && chipAlvo !== btn) zapReordenarBloco(id, chipAlvo.dataset.vista.slice(6)); else zapRenderVistas();
+    } else if (wasArm) zapMenuBloco(id);
+    else zapMudarVista(v);
+  });
+  btn.addEventListener('pointercancel', limpar);
+}
 function zapBlocoAdd(id, jids){ const b = zapBlocos(), x = b.find(y => y.id === id); if (x){ const st = new Set(x.jids); jids.forEach(j => st.add(j)); x.jids = [...st]; zapSalvarBlocos(b); } }
 function zapBlocoRemover(id, jids){ const b = zapBlocos(), x = b.find(y => y.id === id); if (x){ const st = new Set(jids); x.jids = x.jids.filter(j => !st.has(j)); zapSalvarBlocos(b); } }
 function zapNovoBloco(jids){
