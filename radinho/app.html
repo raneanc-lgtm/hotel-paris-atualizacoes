@@ -1032,7 +1032,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 49;
+const APP_VERSAO = 50;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3616,30 +3616,21 @@ function zapMostrarConexao(estado, qr){
   if (ZAP.telaPareamento){ const im = $('zapQr'); if (im && qr) im.src = qr; return; }
   ZAP.telaPareamento = true;
   const num = LS.get('chatslim_numero') || '';
-  if (ZAP.cfg && ZAP.cfg.modo_celular){
-    // modo celular: o WhatsApp só aceita QR (código é só pra navegador/computador)
-    box.innerHTML =
-      '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Conectar como celular</b></div>' +
-      '<div class="info">Nesse modo o WhatsApp <b>só aceita QR</b>. Escaneie com o WhatsApp do seu celular principal: ⋮ → <b>Aparelhos conectados</b> → <b>Conectar um aparelho</b>. O QR precisa estar em <b>outra tela</b> (este Radinho num segundo aparelho).</div>' +
-      '<img id="zapQr" alt="QR" style="width:100%;max-width:300px;display:block;margin:12px auto;background:#fff;border-radius:12px;padding:8px"' + (qr ? ' src="' + qr + '"' : '') + '>' +
-      '<div class="zap-modo"><span>Modo: <b>celular</b></span></div>' +
-      '<button class="btn" id="zapModoVolta" style="background:transparent;border:1px solid var(--sub);color:var(--txt)">Trocar pra modo computador</button>' +
-      '<button class="btn" id="zapVerReg" style="background:transparent;border:1px solid var(--sub);color:var(--sub);margin-top:8px">Ver registro do Zap</button></div>';
-    $('zapModoVolta').onclick = zapVoltarModoComputador;
-    $('zapVerReg').onclick = zapVerRegistro;
-    return;
-  }
+  const cel = !!(ZAP.cfg && ZAP.cfg.modo_celular);
   box.innerHTML =
-    '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Conectar o WhatsApp</b></div>' +
+    '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Conectar o WhatsApp' + (cel ? ' (modo celular)' : '') + '</b></div>' +
     '<div class="info">Digite o seu número com DDD e toque em <b>Gerar código</b>.</div>' +
     '<input id="zapNum" type="tel" inputmode="tel" placeholder="31 99999-9999" value="' + esc(num) + '">' +
     '<button class="btn" id="zapGerar">Gerar código</button>' +
     '<div id="zapCodigo"></div>' +
     '<details class="zap-qr"><summary>Ou escanear QR de outro aparelho</summary><img id="zapQr" alt="QR"' + (qr ? ' src="' + qr + '"' : '') + '></details>' +
-    '<div class="zap-modo"><span>Modo: <b>computador</b></span><button class="btn" id="zapModoCel">Trocar pra modo celular</button></div>' +
+    '<div class="zap-modo"><span>Modo: <b>' + (cel ? 'celular' : 'computador') + '</b>' + (cel ? ' — recebe visualização única' : '') + '</span>' +
+    '<button class="btn" id="zapModoCel">' + (cel ? 'Trocar pra modo computador' : 'Trocar pra modo celular') + '</button>' +
+    (cel ? '<button class="btn" id="zapVerReg" style="color:var(--sub)">Ver registro do Zap</button>' : '') + '</div>' +
     '</div>';
   $('zapGerar').onclick = zapGerarCodigo;
-  $('zapModoCel').onclick = () => zapTrocarModo(true);
+  $('zapModoCel').onclick = () => zapTrocarModo(!cel);
+  if ($('zapVerReg')) $('zapVerReg').onclick = zapVerRegistro;
 }
 async function zapVoltarModoComputador(){
   try{ await zapPost('/api/modo-aparelho', { celular: false }); ZAP.cfg.modo_celular = false; ZAP.telaPareamento = false; aviso('Modo computador. Gere o código e conecte.', 6000); setTimeout(zapAtualizarStatus, 2500); }
@@ -4339,7 +4330,7 @@ function zapTrocarModo(celular){
   };
   if (!conectado) return aplicar(); // ainda não conectou: troca direto, sem perguntar
   folha(celular ? 'Conectar como celular' : 'Conectar como computador',
-    celular ? 'O Zap passa a se conectar como um celular adicional (igual o GB), e aí o WhatsApp manda as fotos, vídeos e áudios de visualização única. Atenção: nesse modo só conecta por QR, escaneado pelo seu celular principal — então o Radinho tem que estar em OUTRO aparelho. Vai desconectar agora.'
+    celular ? 'O Zap passa a se conectar como um celular adicional (igual o GB), e aí o WhatsApp manda as fotos, vídeos e áudios de visualização única. Vai desconectar agora e você conecta de novo pelo código. É experimental: se der erro, troque de volta pra computador.'
             : 'Volta a conectar como computador (igual o WhatsApp Web). Visualização única volta a chegar só como aviso. Vai desconectar e você conecta de novo.',
     [ { ic: 'lock', txt: celular ? 'Desconectar e conectar como celular' : 'Desconectar e conectar como computador', fn: aplicar },
       { ic: 'x', txt: 'Cancelar', fn: () => {} } ]);
