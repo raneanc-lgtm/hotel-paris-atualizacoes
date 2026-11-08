@@ -1032,7 +1032,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 51;
+const APP_VERSAO = 52;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3598,6 +3598,8 @@ async function zapAtualizarStatus(){
     if (novo){ zapCarregarLista(); zapCarregarVigiados(); }
   } else {
     ZAP.conectado = false;
+    if (d.modo){ ZAP.cfg = ZAP.cfg || {}; ZAP.cfg.modo_celular = d.modo === 'celular'; }
+    ZAP.motivo = d.motivo || null;
     zapMostrarConexao(d.status === 'aguardando_qr' ? 'parear' : 'conectando', d.qrImagem);
     if (d.status !== 'aguardando_qr') ZAP.tStatus = setTimeout(zapAtualizarStatus, 3000);
   }
@@ -3609,11 +3611,13 @@ function zapMostrarConexao(estado, qr){
   const box = $('zapCon'); box.hidden = false;
   if (estado !== 'parear'){
     const cel = !!(ZAP.cfg && ZAP.cfg.modo_celular);
-    const chave = estado + (cel ? ':cel' : ':pc');
+    const mot = ZAP.motivo;
+    const chave = estado + (cel ? ':cel' : ':pc') + (mot ? ':' + mot.codigo + mot.em : '');
     if (box.dataset.est === chave) return; // não redesenha a cada 3s (botões continuam clicáveis)
     box.dataset.est = chave;
     box.innerHTML = '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Zap</b></div><div class="info">' +
       (estado === 'iniciando' ? 'Ligando o Zap...' : 'Conectando ao WhatsApp...') + '</div>' +
+      (estado !== 'iniciando' && mot ? '<div class="zap-erro" style="margin-top:10px">' + esc(zapExplicarMotivo(mot)) + '</div>' : '') +
       (estado === 'iniciando' ? '' : '<div class="zap-modo"><span>Modo: <b>' + (cel ? 'celular' : 'computador') + '</b></span>' +
         '<button class="btn" id="zapModoCel">' + (cel ? 'Trocar pra modo computador' : 'Trocar pra modo celular') + '</button>' +
         '<button class="btn" id="zapVerReg" style="color:var(--sub)">Ver registro do Zap</button></div>') + '</div>';
@@ -4310,6 +4314,24 @@ function zapMenu(){
     { ic: 'refresh', txt: 'Ver registro do Zap', fn: zapVerRegistro },
     { ic: 'lock', txt: ZAP.cfg.modo_celular ? 'Conectado como celular · voltar pra computador' : 'Conectar como celular (abrir visualização única)', fn: () => zapTrocarModo(!ZAP.cfg.modo_celular) },
   ]);
+}
+// traduz a recusa do WhatsApp pra algo que dá pra entender
+function zapExplicarMotivo(m){
+  const c = Number(m.codigo) || 0, hora = new Date(m.em).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const txt = {
+    401: 'o WhatsApp encerrou a sessão (vai pedir código de novo)',
+    403: 'o WhatsApp recusou esta conta',
+    405: 'o WhatsApp bloqueou novas conexões por um tempo (muitas tentativas). Espere 1 a 2 horas e tente de novo',
+    408: 'sem resposta do WhatsApp (internet fraca?)',
+    428: 'a conexão caiu',
+    429: 'o WhatsApp bloqueou novas conexões por um tempo (muitas tentativas). Espere 1 a 2 horas e tente de novo',
+    440: 'o WhatsApp foi aberto em outro lugar com esta sessão',
+    500: 'a sessão salva estragou (vai pedir código de novo)',
+    503: 'o WhatsApp está fora do ar agora',
+    515: 'reinício normal depois de conectar',
+    516: 'reinício normal depois de conectar'
+  }[c] || (m.texto || 'erro desconhecido');
+  return 'Última resposta (' + hora + '): ' + txt + (c ? ' [' + c + ']' : '');
 }
 // mostra o fim do motor.log (pra descobrir por que algo falhou)
 async function zapVerRegistro(){
