@@ -1029,7 +1029,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 43;
+const APP_VERSAO = 44;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4276,7 +4276,23 @@ function zapMenu(){
   folha('Zap', '', [
     { ic: 'refresh', txt: 'Sincronizar contatos do WhatsApp', fn: () => { zapAbrirNovo(); setTimeout(zapSincronizarContatos, 300); } },
     { ic: esc_ ? 'eye' : 'eyeOff', txt: esc_ ? 'Mostrar meu online' : 'Esconder meu online', fn: () => zapAlternarEsconder(!esc_) },
+    { ic: 'lock', txt: ZAP.cfg.modo_celular ? 'Conectado como celular · voltar pra computador' : 'Conectar como celular (abrir visualização única)', fn: () => zapTrocarModo(!ZAP.cfg.modo_celular) },
   ]);
+}
+function zapTrocarModo(celular){
+  const aplicar = async () => {
+    try{
+      await zapPost('/api/modo-aparelho', { celular });
+      ZAP.cfg.modo_celular = celular;
+      aviso('Desconectado. Conecte de novo no WhatsApp do celular: Aparelhos conectados → Conectar um aparelho.', 8000);
+      setTimeout(zapAtualizarStatus, 2500);
+    }catch(e){ aviso('Não deu: ' + e.message, 5000); }
+  };
+  folha(celular ? 'Conectar como celular' : 'Conectar como computador',
+    celular ? 'O Zap passa a se conectar como um celular adicional (igual o GB fazia), e aí o WhatsApp manda as fotos, vídeos e áudios de visualização única — dá pra abrir quantas vezes quiser. Vai desconectar agora e você conecta de novo (QR ou código). É um modo experimental do WhatsApp: se der problema, é só voltar pra computador.'
+            : 'Volta a conectar como computador (igual o WhatsApp Web). Visualização única volta a chegar só como aviso. Vai desconectar e você conecta de novo.',
+    [ { ic: 'lock', txt: celular ? 'Desconectar e conectar como celular' : 'Desconectar e conectar como computador', fn: aplicar },
+      { ic: 'x', txt: 'Cancelar', fn: () => {} } ]);
 }
 function zapAlternarEsconder(ligar){
   const aplicar = async () => {
@@ -4465,7 +4481,7 @@ function zapBolha(m, cont){
                 : '<div class="tx zap-sem">' + ic('mic') + ' Áudio' + (m.pode_baixar ? ' • toque pra baixar' : ' (não disponível)') + '</div>';
   } else if (m.tipo === 'unica'){
     corpo = '<div class="tx zap-unica"><span class="zap-um">1</span><span><b>Visualização única</b><small>' +
-      (m.de_mim ? 'enviada pelo seu celular' : 'o WhatsApp só libera esse tipo de mensagem no celular') + '</small></span></div>';
+      (m.de_mim ? 'enviada pelo seu celular' : (ZAP.cfg && ZAP.cfg.modo_celular ? 'chegou antes de conectar como celular' : 'pra abrir: menu ⋮ → Conectar como celular')) + '</small></span></div>';
   } else if (m.tipo === 'documento'){
     corpo = '<div class="tx zap-doc">📄 ' + esc(m.nome_arquivo || m.texto || 'Documento') + '</div>';
   } else {
