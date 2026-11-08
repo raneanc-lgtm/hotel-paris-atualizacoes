@@ -1346,7 +1346,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 72;
+const APP_VERSAO = 73;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4608,13 +4608,6 @@ async function zapPuxarContatos(){
     aviso(r.total + ' contatos no Zap (' + r.agenda + ' com nome da sua agenda).', 6000);
   }catch(e){ aviso('Não puxou: ' + e.message, 6000); }
   b.disabled = false; b.innerHTML = ic('users') + '<span>Puxar todos os contatos que já tive</span>';
-  if (r && !r.historicoCompleto){
-    const ok = await janela({ titulo: 'Quer puxar MAIS ainda?', texto: 'O máximo vem quando o celular manda o histórico completo (anos de conversas e todos os nomes). O WhatsApp só manda isso na hora de conectar.\n\nO Zap sai e você conecta de novo com o código. Suas conversas aqui continuam. Depois de conectar, deixe o Zap aberto uns minutos enquanto chega tudo.', ok: 'Reconectar agora', cancelar: 'Agora não' });
-    if (ok){
-      try{ await zapPost('/api/reconectar-completo', {}); $('zapNovoFundo').hidden = true; aviso('Desconectado. Conecte de novo com o código.', 6000); setTimeout(zapAtualizarStatus, 2500); }
-      catch(e){ aviso('Não reconectou: ' + e.message, 6000); }
-    }
-  }
 }
 async function zapNovoPorNumero(){
   const num = $('zapNovoNum').value.trim();
