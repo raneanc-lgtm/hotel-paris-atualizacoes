@@ -1029,7 +1029,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 47;
+const APP_VERSAO = 48;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3619,8 +3619,10 @@ function zapMostrarConexao(estado, qr){
       '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Conectar como celular</b></div>' +
       '<div class="info">Nesse modo o WhatsApp <b>só aceita QR</b>. Escaneie com o WhatsApp do seu celular principal: ⋮ → <b>Aparelhos conectados</b> → <b>Conectar um aparelho</b>. O QR precisa estar em <b>outra tela</b> (este Radinho num segundo aparelho).</div>' +
       '<img id="zapQr" alt="QR" style="width:100%;max-width:300px;display:block;margin:12px auto;background:#fff;border-radius:12px;padding:8px"' + (qr ? ' src="' + qr + '"' : '') + '>' +
-      '<button class="btn" id="zapModoVolta" style="background:transparent;border:1px solid var(--sub);color:var(--txt)">Voltar pro modo computador</button></div>';
+      '<button class="btn" id="zapModoVolta" style="background:transparent;border:1px solid var(--sub);color:var(--txt)">Voltar pro modo computador</button>' +
+      '<button class="btn" id="zapVerReg" style="background:transparent;border:1px solid var(--sub);color:var(--sub);margin-top:8px">Ver registro do Zap</button></div>';
     $('zapModoVolta').onclick = zapVoltarModoComputador;
+    $('zapVerReg').onclick = zapVerRegistro;
     return;
   }
   box.innerHTML =
@@ -4299,17 +4301,34 @@ function zapMenu(){
   folha('Zap', '', [
     { ic: 'refresh', txt: 'Sincronizar contatos do WhatsApp', fn: () => { zapAbrirNovo(); setTimeout(zapSincronizarContatos, 300); } },
     { ic: esc_ ? 'eye' : 'eyeOff', txt: esc_ ? 'Mostrar meu online' : 'Esconder meu online', fn: () => zapAlternarEsconder(!esc_) },
+    { ic: 'refresh', txt: 'Ver registro do Zap', fn: zapVerRegistro },
     { ic: 'lock', txt: ZAP.cfg.modo_celular ? 'Conectado como celular · voltar pra computador' : 'Conectar como celular (abrir visualização única)', fn: () => zapTrocarModo(!ZAP.cfg.modo_celular) },
   ]);
 }
+// mostra o fim do motor.log (pra descobrir por que algo falhou)
+async function zapVerRegistro(){
+  let txt;
+  try{ const r = await fetch(zapUrl('/api/log'), { cache: 'no-store' }); txt = r.ok ? await r.text() : 'Erro ' + r.status + ' (motor antigo)'; }
+  catch(e){ txt = 'Não leu: ' + e.message; }
+  txt = txt.split('\n').slice(-80).join('\n');
+  const ed = $('zapEd');
+  ed.innerHTML = '<div class="zap-ed-topo"><button id="zapEdX" aria-label="Fechar">✕</button><b>Registro do Zap</b><span></span></div>' +
+    '<pre id="zapLogTxt" style="flex:1;margin:0 10px 10px;overflow:auto;white-space:pre-wrap;word-break:break-all;font-size:10.5px;line-height:1.35;background:#000;color:#9f9;padding:10px;border-radius:10px"></pre>';
+  $('zapLogTxt').textContent = txt;
+  ed.hidden = false;
+  $('zapEdX').onclick = zapFecharEditor;
+  const pre = $('zapLogTxt'); pre.scrollTop = pre.scrollHeight;
+}
 function zapTrocarModo(celular){
   const aplicar = async () => {
+    aviso('Desconectando...', 4000);
+    zapMostrarConexao('conectando');
     try{
       await zapPost('/api/modo-aparelho', { celular });
       ZAP.cfg.modo_celular = celular; ZAP.telaPareamento = false;
-      aviso('Desconectado. Conecte de novo no WhatsApp do celular: Aparelhos conectados → Conectar um aparelho.', 8000);
-      setTimeout(zapAtualizarStatus, 2500);
-    }catch(e){ aviso('Não deu: ' + e.message, 5000); }
+      aviso(celular ? 'Desconectado. Já já aparece o QR pra escanear.' : 'Desconectado. Já já aparece pra gerar o código.', 6000);
+    }catch(e){ aviso('Não deu: ' + e.message, 6000); }
+    setTimeout(zapAtualizarStatus, 3000);
   };
   folha(celular ? 'Conectar como celular' : 'Conectar como computador',
     celular ? 'O Zap passa a se conectar como um celular adicional (igual o GB), e aí o WhatsApp manda as fotos, vídeos e áudios de visualização única. Atenção: nesse modo só conecta por QR, escaneado pelo seu celular principal — então o Radinho tem que estar em OUTRO aparelho. Vai desconectar agora.'
