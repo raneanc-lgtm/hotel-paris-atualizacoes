@@ -511,6 +511,19 @@
   .zap-vista-st{flex:none;width:48px;padding:10px 0}
   .zap-vista-n{position:absolute;top:-6px;right:-6px;background:var(--verm);color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box}
   .badge[hidden],.zap-vista-n[hidden]{display:none!important}
+  .zap-vez{display:inline-flex;vertical-align:-3px;margin-right:2px;color:var(--sub)}
+  .zap-vez svg{width:16px;height:16px}
+  .zap-vez.lida{color:#34b7f1}
+  #zapLista li.zap-nl b{font-weight:800}
+  #zapLista li.zap-nl small{color:var(--txt);font-weight:600}
+  .zap-sel-bar{display:flex;align-items:center;gap:10px;margin:2px 0 8px;min-height:44px}
+  .zap-sel-bar #zapSelX{background:transparent;border:0;color:var(--txt);font-size:20px;width:34px;height:34px;cursor:pointer;flex:none}
+  .zap-sel-bar #zapSelN{font-size:16px;font-weight:800}
+  .zap-sel-acoes{margin-left:auto;display:flex;gap:4px}
+  .zap-sel-ac{display:inline-flex;flex-direction:column;align-items:center;gap:2px;background:transparent;border:0;color:var(--txt);font-size:10px;padding:4px 7px;cursor:pointer}
+  .zap-sel-ac svg{width:20px;height:20px}
+  #zapLista li.zap-marc{background:rgba(37,211,102,.16)}
+  .zap-sel-bar[hidden],.zap-vistas[hidden]{display:none!important}
   #zapStatusBtn[hidden]{display:none!important}
   #zapLista li .zap-anel{width:12px;height:12px;border-radius:50%;border:2px solid var(--verde);flex:none}
   #zapLista li .zap-anel.visto{border-color:#55605a}
@@ -782,6 +795,15 @@
   <div class="painel" id="pZap" hidden>
     <div id="zapCon" hidden></div>
     <div id="zapListaBox" hidden>
+      <div class="zap-sel-bar" id="zapSelBar" hidden>
+        <button id="zapSelX" aria-label="Cancelar">✕</button>
+        <b id="zapSelN">1</b>
+        <div class="zap-sel-acoes">
+          <button class="zap-sel-ac" id="zapSelFixar"></button>
+          <button class="zap-sel-ac" id="zapSelArq"></button>
+          <button class="zap-sel-ac" id="zapSelDel"></button>
+        </div>
+      </div>
       <div class="zap-vistas" id="zapVistas">
         <button class="zap-vista" id="zapVGrupos"><span class="zap-vista-ic"></span><span class="zap-vista-tx">Grupos</span><b class="zap-vista-n" id="nGrupos" hidden></b></button>
         <button class="zap-vista" id="zapVArq"><span class="zap-vista-ic"></span><span class="zap-vista-tx">Arquivadas</span><b class="zap-vista-n" id="nArq" hidden></b></button>
@@ -1053,7 +1075,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 56;
+const APP_VERSAO = 57;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1153,7 +1175,7 @@ let aba = 'radio', naoLidas = 0, chatCarregado = false, ultimoChat = null;
 let adminUid = null, versaoRemota = 0, attPronta = 0;
 let souMudo = false, saindo = false, infoCanal = null;
 let mudos = {}, banidos = {}, onlineAtual = {};
-let ZAP = { vistos: {}, silenciadas: {}, cfg: {}, ver: null, ed: null, focoTO: null, fotos: {}, vigiados: {}, modoStatus: false, vista: 'conversas', statusLista: [], statusVistos: {}, sv: null, iniciado: false, base: '', conectado: false, conversas: [], presencas: {}, jid: null, nome: '', grupo: false, assinatura: '', busca: '', es: null, tStatus: null, telaPareamento: false, camera: false, gravando: false, rec: null, partes: [], cancelou: false, t0: 0, timer: null, limite: null, audio: null, audioBt: null };
+let ZAP = { vistos: {}, silenciadas: {}, cfg: {}, ver: null, ed: null, focoTO: null, fotos: {}, vigiados: {}, modoStatus: false, vista: 'conversas', sel: null, statusLista: [], statusVistos: {}, sv: null, iniciado: false, base: '', conectado: false, conversas: [], presencas: {}, jid: null, nome: '', grupo: false, assinatura: '', busca: '', es: null, tStatus: null, telaPareamento: false, camera: false, gravando: false, rec: null, partes: [], cancelou: false, t0: 0, timer: null, limite: null, audio: null, audioBt: null };
 const falandoAgora = {};
 const cfgLocal = {
   vol:     parseFloat(LS.get('radinho_vol') || '1'),
@@ -1228,6 +1250,9 @@ const ICONES = {
   desfazer:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
   baixar:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>',
   arquivo:'<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V8"/><path d="M10 12h4"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  checks:'<path d="M2 12.5 6.5 17 14 7.5"/><path d="M11 15.5 12 16.5 20 7"/>',
+  pin:'<path d="M12 17v5"/><path d="M9 10.8V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5.8a2 2 0 0 0 .6 1.4l1.7 1.7a1 1 0 0 1-.7 1.7H6.4a1 1 0 0 1-.7-1.7l1.7-1.7A2 2 0 0 0 9 10.8z"/>',
   zap:'<path d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2z"/><path d="M13.4 6.8 9.2 12.6h3.2l-1.6 4.6 4.4-6.1h-3.2z" fill="currentColor" stroke="none"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   radio:'<rect x="3" y="8" width="18" height="13" rx="3"/><path d="M7 8 17 3"/><circle cx="15.5" cy="14.5" r="2.6"/><path d="M6.5 13h3M6.5 16h3"/>',
@@ -3548,6 +3573,10 @@ function zapIniciar(){
   $('zapStatusBtn').onclick = () => zapMudarVista('status');
   $('zapVGrupos').onclick = () => zapMudarVista('grupos');
   $('zapVArq').onclick = () => zapMudarVista('arquivadas');
+  $('zapSelX').onclick = zapSelFim;
+  $('zapSelFixar').onclick = () => { const j = [...ZAP.sel], fix = zapFixadas(), todos = j.every(x => fix.has(x)); zapFixarVarios(j, !todos); aviso(todos ? 'Desafixadas.' : 'Fixadas no topo.', 2500); zapSelFim(); };
+  $('zapSelArq').onclick = () => { zapArquivarVarios([...ZAP.sel], true); aviso('Movidas pra Arquivadas.', 2500); zapSelFim(); };
+  $('zapSelDel').onclick = () => { const j = [...ZAP.sel]; folha('Apagar ' + j.length + ' conversa' + (j.length > 1 ? 's' : ''), 'Apaga aqui e no seu WhatsApp (igual ao WhatsApp Web).', [{ ic: 'trash', txt: 'Apagar', perigo: true, fn: async () => { zapSelFim(); for (const x of j) { try{ await zapPost('/api/conversas/' + zapJ(x) + '/apagar'); }catch(e){} } zapCarregarLista(); aviso('Conversas apagadas.', 3000); } }, { ic: 'x', txt: 'Cancelar', fn: () => {} }]); };
   $('zapMsgs').addEventListener('scroll', () => { const b = $('zapMsgs'); $('zapDescer').hidden = b.scrollHeight - b.scrollTop - b.clientHeight < 300; });
   $('zapDescer').onclick = () => { const b = $('zapMsgs'); b.scrollTo({ top: b.scrollHeight, behavior: 'smooth' }); };
   $('zapNovo').onclick = zapAbrirNovo;
@@ -3702,7 +3731,7 @@ function zapRenderLista(){
   zapRenderVistas();
   if (ZAP.vista === 'status') return zapRenderListaStatus();
   $('zapBusca').placeholder = 'Buscar conversa';
-  const arq = zapArquivadas();
+  const arq = zapArquivadas(), fix = zapFixadas();
   let l = ZAP.conversas.filter(c => {
     const ea = arq.has(c.jid);
     if (ZAP.vista === 'arquivadas') return ea;
@@ -3711,6 +3740,7 @@ function zapRenderLista(){
     return !c.eh_grupo;
   });
   if (ZAP.busca) l = l.filter(c => String(c.nome_exibicao || '').toLowerCase().includes(ZAP.busca));
+  if (ZAP.vista !== 'arquivadas') l = l.slice().sort((a, b) => (fix.has(b.jid) ? 1 : 0) - (fix.has(a.jid) ? 1 : 0));
   ul.innerHTML = '';
   if (!l.length){ ul.innerHTML = '<li class="vz" style="cursor:default">' + zapVaziaTxt() + '</li>'; return; }
   for (const c of l.slice(0, 300)){
@@ -3718,13 +3748,20 @@ function zapRenderLista(){
     const pr = ZAP.presencas[c.jid];
     const on = pr === 'online' || pr === 'digitando' || pr === 'gravando';
     if (c.nao_lidas) li.classList.add('zap-nl');
-    const previa = pr === 'digitando' ? '<i class="zap-dig">digitando...</i>' : pr === 'gravando' ? '<i class="zap-dig">gravando áudio...</i>' : esc(String(c.ultima_mensagem_texto || '').slice(0, 60));
+    if (ZAP.sel && ZAP.sel.has(c.jid)) li.classList.add('zap-marc');
+    let previa;
+    if (pr === 'digitando') previa = '<i class="zap-dig">digitando...</i>';
+    else if (pr === 'gravando') previa = '<i class="zap-dig">gravando áudio...</i>';
+    else {
+      const vez = c.ultima_de_mim ? '<span class="zap-vez' + (c.ultima_status >= 4 ? ' lida' : '') + '">' + icp(c.ultima_status >= 3 ? 'checks' : 'check', 16) + '</span>' : '';
+      previa = vez + esc(String(c.ultima_mensagem_texto || '').slice(0, 60));
+    }
     li.innerHTML = zapAvatar(c.jid, c.nome_exibicao, c.eh_grupo, on) +
-      '<div><b>' + esc(c.nome_exibicao) + (ZAP.vigiados[c.jid] ? ' ' + icp('bell', 12) : '') + '</b><small>' + previa + '</small></div>' +
-      '<span class="zap-hr">' + (c.silenciada ? icp('bellOff', 12) + ' ' : '') + (c.ultima_mensagem_ts ? zapQuando(c.ultima_mensagem_ts) : '') + '</span>' +
+      '<div><b>' + esc(c.nome_exibicao) + '</b><small>' + previa + '</small></div>' +
+      '<span class="zap-hr">' + (fix.has(c.jid) ? icp('pin', 12) + ' ' : '') + (c.silenciada ? icp('bellOff', 12) + ' ' : '') + (c.ultima_mensagem_ts ? zapQuando(c.ultima_mensagem_ts) : '') + '</span>' +
       (c.nao_lidas ? '<span class="nlida">' + c.nao_lidas + '</span>' : '');
-    li.onclick = () => { if (li.dataset.segurou){ delete li.dataset.segurou; return; } zapAbrirConversa(c); };
-    zapSegurar(li, () => zapMenuConversa(c));
+    li.onclick = () => { if (li.dataset.segurou){ delete li.dataset.segurou; return; } if (ZAP.sel) return zapSelToggle(c.jid); zapAbrirConversa(c); };
+    zapSegurar(li, () => { if (ZAP.sel) zapSelToggle(c.jid); else zapSelIniciar(c.jid); });
     ul.appendChild(li);
   }
   zapCarregarFotos(ul);
@@ -3735,20 +3772,27 @@ function zapVaziaTxt(){
   if (ZAP.vista === 'arquivadas') return 'Nenhuma conversa arquivada. Segure uma conversa pra arquivar.';
   return 'As conversas aparecem aqui conforme as mensagens chegam.';
 }
-function zapArquivadas(){ try{ return new Set(JSON.parse(LS.get('zap_arquivadas') || '[]')); }catch(e){ return new Set(); } }
-function zapArquivar(jid, arquivar){
-  const st = zapArquivadas();
-  if (arquivar) st.add(jid); else st.delete(jid);
-  try{ LS.set('zap_arquivadas', JSON.stringify([...st])); }catch(e){}
-  zapRenderLista();
-}
-function zapMenuConversa(c){
-  const ea = zapArquivadas().has(c.jid);
-  folha(c.nome_exibicao || 'Conversa', '', [
-    { ic: ea ? 'chat' : 'arquivo', txt: ea ? 'Desarquivar' : 'Arquivar', fn: () => { zapArquivar(c.jid, !ea); aviso(ea ? 'Conversa desarquivada.' : 'Conversa arquivada — fica em Arquivadas.', 3500); } },
-    { ic: 'trash', txt: 'Apagar conversa', perigo: true, fn: () => zapConfirmarApagar(c.jid, c.nome_exibicao) },
-    { ic: 'x', txt: 'Cancelar', fn: () => {} }
-  ]);
+function zapLsSet(k){ try{ return new Set(JSON.parse(LS.get(k) || '[]')); }catch(e){ return new Set(); } }
+function zapLsSave(k, st){ try{ LS.set(k, JSON.stringify([...st])); }catch(e){} }
+function zapArquivadas(){ return zapLsSet('zap_arquivadas'); }
+function zapFixadas(){ return zapLsSet('zap_fixadas'); }
+function zapArquivarVarios(jids, arquivar){ const st = zapArquivadas(); jids.forEach(j => arquivar ? st.add(j) : st.delete(j)); zapLsSave('zap_arquivadas', st); }
+function zapFixarVarios(jids, fixar){ const st = zapFixadas(); jids.forEach(j => fixar ? st.add(j) : st.delete(j)); zapLsSave('zap_fixadas', st); }
+/* ----- selecionar várias conversas (toque e segure; depois toque pra marcar) ----- */
+function zapSelIniciar(jid){ ZAP.sel = new Set([jid]); vibrar(25); zapSelRender(); zapRenderLista(); }
+function zapSelToggle(jid){ if (!ZAP.sel) return; if (ZAP.sel.has(jid)) ZAP.sel.delete(jid); else ZAP.sel.add(jid); if (!ZAP.sel.size) return zapSelFim(); zapSelRender(); zapRenderLista(); }
+function zapSelFim(){ ZAP.sel = null; zapSelRender(); zapRenderLista(); }
+function zapSelRender(){
+  const bar = $('zapSelBar'), chips = $('zapVistas'); if (!bar) return;
+  const on = !!ZAP.sel;
+  bar.hidden = !on; if (chips) chips.hidden = on;
+  if (on){
+    $('zapSelN').textContent = ZAP.sel.size + (ZAP.sel.size > 1 ? ' selecionadas' : ' selecionada');
+    const fix = zapFixadas(), todosFix = [...ZAP.sel].every(j => fix.has(j));
+    $('zapSelFixar').innerHTML = icp('pin', 20) + '<span>' + (todosFix ? 'Desafixar' : 'Fixar') + '</span>';
+    $('zapSelArq').innerHTML = icp('arquivo', 20) + '<span>Arquivar</span>';
+    $('zapSelDel').innerHTML = icp('trash', 20) + '<span>Excluir</span>';
+  }
 }
 function zapMudarVista(v){
   ZAP.vista = (ZAP.vista === v) ? 'conversas' : v;
@@ -4343,6 +4387,7 @@ window.radinhoVoltar = function(){
     if (aberto){ aberto.hidden = true; return true; }
     if (!$('verFoto').hidden){ $('verFoto').hidden = true; return true; }
     if (ZAP.iniciado && aba === 'zap'){
+      if (ZAP.sel){ zapSelFim(); return true; }
       if (ZAP.jid){ zapFecharConversa(); return true; }
       if (ZAP.vista && ZAP.vista !== 'conversas'){ zapMudarVista('conversas'); return true; }
     }
@@ -4415,7 +4460,6 @@ async function zapAbrirPerfil(jid){
   }
   h += '<div class="zap-pf-bloco zap-pf-acoes">' +
     linha('bellOff', 'Silenciar notificações', 'zapPfSil', !!p.silenciada) +
-    (p.grupo ? '' : linha('bell', 'Avisar quando ficar online', 'zapPfVig', !!p.vigiado)) +
     (p.grupo ? '' : linha('image', 'Silenciar status', 'zapPfStSil', !!p.status_silenciado)) +
     (foto ? linha('baixar', 'Salvar foto de perfil (alta qualidade)', 'zapPfFotoHd') : '') +
   '</div>';
