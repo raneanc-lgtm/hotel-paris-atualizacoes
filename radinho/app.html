@@ -1029,7 +1029,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 44;
+const APP_VERSAO = 45;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3461,7 +3461,7 @@ function zapUrl(c){ return ZAP.base + c; }
 async function zapGet(c){
   const r = await fetch(zapUrl(c), { cache: 'no-store' });
   const d = await r.json().catch(() => null);
-  if (r.status === 404 && !(d && d.erro)) throw new Error('essa função precisa do APK novo do Radinho');
+  if (r.status === 404 && !(d && d.erro)){ zapMotorDesatualizado(); throw new Error('o motor do Zap está se atualizando — tenta de novo em 1 minuto'); }
   if (!r.ok) throw new Error((d && d.erro) || ('Erro ' + r.status));
   return d;
 }
@@ -3471,7 +3471,7 @@ async function zapPost(c, corpo){
   else { op.headers['Content-Type'] = 'application/json'; op.body = JSON.stringify(corpo || {}); }
   const r = await fetch(zapUrl(c), op);
   const d = await r.json().catch(() => null);
-  if (r.status === 404 && !(d && d.erro)) throw new Error('essa função precisa do APK novo do Radinho');
+  if (r.status === 404 && !(d && d.erro)){ zapMotorDesatualizado(); throw new Error('o motor do Zap está se atualizando — tenta de novo em 1 minuto'); }
   if (!r.ok) throw new Error((d && d.erro) || ('Erro ' + r.status));
   return d;
 }
@@ -4270,6 +4270,13 @@ function zapFoco(){
 }
 
 /* ---------- configurações do Zap ---------- */
+// função nova que o motor ainda não tem: força o motor a buscar a atualização (ele reinicia sozinho)
+let zapUltimoForcar = 0;
+function zapMotorDesatualizado(){
+  if (Date.now() - zapUltimoForcar < 60000) return;
+  zapUltimoForcar = Date.now();
+  zapPost('/api/atualizar', { forcar: true }).catch(() => {});
+}
 async function zapCarregarConfig(){ try{ ZAP.cfg = await zapGet('/api/config') || {}; }catch(e){} }
 function zapMenu(){
   const esc_ = !!ZAP.cfg.esconder_online;
