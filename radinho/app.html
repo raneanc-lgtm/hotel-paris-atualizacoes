@@ -762,6 +762,43 @@
   #zapSvSalvar[hidden]{display:none}
   .zap-ver-meio{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
   .zap-ver-meio img,.zap-ver-meio video{max-width:100%;max-height:100%;object-fit:contain;background:#000}
+  /* tela Atualizações (status) igual ao WhatsApp */
+  #zapAtt{display:none;flex:1;min-height:0;overflow-y:auto;position:relative;padding-bottom:110px}
+  #zapListaBox.modo-att > :not(#zapAtt){display:none!important}
+  #zapListaBox.modo-att #zapAtt{display:block}
+  .zap-att-topo{display:flex;align-items:center;gap:6px;padding:14px 8px 6px 16px}
+  .zap-att-topo h2{flex:1;margin:0;font-size:25px;font-weight:500;letter-spacing:.2px;font-family:system-ui,Roboto,sans-serif}
+  .zap-att-topo input{flex:1;min-width:0;height:40px;border-radius:20px;border:1px solid var(--borda);background:var(--corpo);color:var(--txt);padding:0 14px;font-size:15px;outline:none}
+  .zap-att-topo input[hidden]{display:none}
+  .zap-att-bt{width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:var(--txt);display:grid;place-items:center;padding:0;flex:none;cursor:pointer}
+  .zap-att-bt svg{width:24px;height:24px}
+  #zapAttVoltar{margin-left:-10px}
+  .zap-att-sec{margin:14px 16px 12px;font-size:20px;font-weight:700;font-family:system-ui,Roboto,sans-serif}
+  .zap-att-cards{display:flex;gap:9px;overflow-x:auto;padding:0 16px 6px;scrollbar-width:none;scroll-snap-type:x proximity}
+  .zap-att-cards::-webkit-scrollbar{display:none}
+  .zap-att-card{position:relative;flex:none;width:104px;height:180px;border-radius:18px;overflow:hidden;background:#1b2220;border:0;padding:0;cursor:pointer;scroll-snap-align:start;color:#fff;text-align:left;-webkit-user-select:none;user-select:none}
+  .zap-att-card .prev{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center}
+  .zap-att-card .prev-tx{padding:58px 8px 32px}
+  .zap-att-card .prev-tx span{font-size:14px;line-height:1.25;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;word-break:break-word}
+  .zap-att-card .prev svg{width:30px;height:30px;opacity:.85}
+  .zap-att-card::after{content:"";position:absolute;inset:auto 0 0 0;height:60px;background:linear-gradient(transparent,rgba(0,0,0,.6));pointer-events:none}
+  .zap-att-card .nm{position:absolute;left:10px;right:8px;bottom:9px;z-index:2;font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+  .zap-att-card .anel{position:absolute;top:8px;left:8px;z-index:2;width:44px;height:44px;border-radius:50%;padding:2px;border:2.5px solid #25d366;box-sizing:border-box;display:grid;place-items:center;background:transparent}
+  .zap-att-card .anel.visto{border-color:#8696a0}
+  .zap-att-card .anel .zap-av{width:34px;height:34px;font-size:12px}
+  .zap-att-card .mais{position:absolute;top:36px;left:36px;z-index:3;width:22px;height:22px;border-radius:50%;background:#25d366;color:#0b141a;border:2px solid #0b141a;display:grid;place-items:center;font-weight:900;font-size:16px;line-height:1}
+  .zap-att-card.sil .prev{filter:grayscale(.6) brightness(.7)}
+  .zap-att-card.ocultas{background:transparent;border:1.5px solid #2a3236}
+  .zap-att-card.ocultas::after{display:none}
+  .zap-att-card.ocultas .prev{align-items:flex-start;justify-content:flex-start;padding:14px 12px;color:#8696a0}
+  .zap-att-card.ocultas .nm{color:#8696a0;text-shadow:none}
+  .zap-att-card.ocultas.on{border-color:#25d366}
+  .zap-att-vazio{margin:6px 16px;color:var(--sub);font-size:14px;line-height:1.4}
+  .zap-att-vazio[hidden]{display:none}
+  .zap-att-fabs{position:fixed;right:16px;bottom:calc(20px + env(safe-area-inset-bottom));display:flex;flex-direction:column;align-items:center;gap:14px;z-index:5}
+  .zap-att-lapis{width:42px;height:42px;border-radius:12px;border:0;background:#233138;color:#e9edef;display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.35)}
+  .zap-att-cam{width:56px;height:56px;border-radius:16px;border:0;background:#25d366;color:#0b141a;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.4)}
+  .zap-att-lapis svg{width:20px;height:20px}.zap-att-cam svg{width:24px;height:24px}
   /* editor de status */
   /* status de texto: tela cheia estilo Instagram */
   .zap-st{position:absolute;inset:0;overflow:hidden;transition:background .25s;touch-action:none}
@@ -980,6 +1017,19 @@
       </div>
       <ul class="contas" id="zapLista"></ul>
       <button id="zapNovo" aria-label="Nova conversa">+</button>
+      <div id="zapAtt">
+        <div class="zap-att-topo">
+          <button class="zap-att-bt" id="zapAttVoltar" aria-label="Voltar pras conversas"></button>
+          <h2 id="zapAttTit">Atualizações</h2>
+          <input id="zapAttBusca" type="search" placeholder="Buscar" hidden>
+          <button class="zap-att-bt" id="zapAttLupa" aria-label="Buscar"></button>
+          <button class="zap-att-bt" id="zapAttMais" aria-label="Mais opções"></button>
+        </div>
+        <h3 class="zap-att-sec">Status</h3>
+        <div class="zap-att-cards" id="zapAttCards"></div>
+        <div class="zap-att-vazio" id="zapAttVazio" hidden></div>
+        <div class="zap-att-fabs"><button class="zap-att-lapis" id="zapAttLapis" aria-label="Status de texto"></button><button class="zap-att-cam" id="zapAttCam" aria-label="Foto ou vídeo"></button></div>
+      </div>
     </div>
     <div class="dm-bar zap-bar" id="zapBar" hidden>
       <button class="alvo" id="zapVoltar"></button>
@@ -1255,7 +1305,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 65;
+const APP_VERSAO = 66;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3938,6 +3988,7 @@ function zapRenderLista(){
   const ul = $('zapLista'); if (!ul) return;
   zapRenderVistas();
   const lupa = $('zapLupa'); if (lupa && !lupa.innerHTML) lupa.innerHTML = ic('search');
+  $('zapListaBox').classList.toggle('modo-att', ZAP.vista === 'status');
   if (ZAP.vista === 'status') return zapRenderListaStatus();
   $('zapBusca').placeholder = 'Buscar conversa';
   const arq = zapArquivadas(), fix = zapFixadas();
@@ -4017,6 +4068,7 @@ function zapBuscaAbrir(abrir){
 }
 function zapMudarVista(v){
   ZAP.vista = (ZAP.vista === v) ? 'conversas' : v;
+  if (ZAP.vista !== 'status'){ const ab = $('zapAttBusca'); if (ab && !ab.hidden) $('zapAttLupa').click(); }
   ZAP.modoStatus = (ZAP.vista === 'status');
   $('zapBusca').value = ''; ZAP.busca = '';
   zapRenderLista();
@@ -4243,35 +4295,92 @@ async function zapCarregarStatus(){
 }
 function zapStatusNovos(a){ return a.itens.filter(x => !ZAP.statusVistos[x.id]).length; }
 function zapRenderBotaoStatus(){ zapRenderVistas(); }
+function zapCardPrevia(x){
+  if (!x) return '<div class="prev" style="background:#1b2220"></div>';
+  const url = x.midia_path ? zapUrl('/midia/' + encodeURIComponent(x.midia_path)) : null;
+  if ((x.tipo === 'imagem' || x.tipo === 'sticker') && url) return '<div class="prev" style="background-image:url(' + url + ')"></div>';
+  if (x.tipo === 'video' && url) return '<div class="prev" style="background:#000"><video src="' + url + '#t=0.5" preload="metadata" muted playsinline style="width:100%;height:100%;object-fit:cover"></video></div>';
+  if (x.tipo === 'texto') return '<div class="prev prev-tx" style="background:' + (x.cor_fundo || '#1f6a45') + ';color:' + (x.cor_texto || '#fff') + ';font-family:' + zapFonteCss(x.fonte).replace(/"/g, '&quot;') + '"><span>' + esc(x.texto || '') + '</span></div>';
+  if (x.tipo === 'audio') return '<div class="prev" style="background:#233138">' + icp('mic', 30) + '</div>';
+  return '<div class="prev" style="background:#233138">' + icp('play', 30) + '</div>';
+}
+function zapEscolherPostar(){
+  folha('Novo status', '', [
+    { ic: 'edit', txt: 'Status de texto', fn: () => zapEditorTexto() },
+    { ic: 'camera', txt: 'Foto ou vídeo', fn: () => { $('zapInStatus').value = ''; $('zapInStatus').click(); } },
+    { ic: 'x', txt: 'Cancelar', fn: () => {} }
+  ]);
+}
+function zapLigarAtt(){
+  if (ZAP.attLigado) return; ZAP.attLigado = true;
+  $('zapAttVoltar').innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>';
+  $('zapAttVoltar').onclick = () => zapMudarVista('conversas');
+  $('zapAttLupa').innerHTML = ic('search');
+  $('zapAttLupa').onclick = () => {
+    const inp = $('zapAttBusca'), abrir = inp.hidden;
+    inp.hidden = !abrir; $('zapAttTit').hidden = abrir; $('zapAttLupa').innerHTML = ic(abrir ? 'x' : 'search');
+    if (abrir) setTimeout(() => inp.focus(), 30); else { inp.value = ''; ZAP.busca = ''; zapRenderListaStatus(); }
+  };
+  $('zapAttBusca').oninput = e => { ZAP.busca = e.target.value.trim().toLowerCase(); zapRenderListaStatus(); };
+  $('zapAttMais').innerHTML = ic('more');
+  $('zapAttMais').onclick = () => folha('Atualizações', '', [
+    { ic: 'edit', txt: 'Criar status de texto', fn: () => zapEditorTexto() },
+    { ic: 'camera', txt: 'Postar foto ou vídeo', fn: () => { $('zapInStatus').value = ''; $('zapInStatus').click(); } },
+    { ic: 'x', txt: 'Fechar', fn: () => {} }
+  ]);
+  $('zapAttLapis').innerHTML = ic('edit'); $('zapAttLapis').onclick = () => zapEditorTexto();
+  $('zapAttCam').innerHTML = ic('camera'); $('zapAttCam').onclick = () => { $('zapInStatus').value = ''; $('zapInStatus').click(); };
+}
 function zapRenderListaStatus(){
-  const ul = $('zapLista');
-  $('zapBusca').placeholder = 'Buscar contato';
+  zapLigarAtt();
+  const box = $('zapAttCards'), vazio = $('zapAttVazio');
   let l = ZAP.statusLista;
   if (ZAP.busca) l = l.filter(a => String(a.nome || '').toLowerCase().includes(ZAP.busca));
-  ul.innerHTML = '';
-  const meu = l.find(a => a.meu);
+  const meu = ZAP.statusLista.find(a => a.meu);
   const outros = l.filter(a => !a.meu);
-  if (!outros.length && !meu){ ul.innerHTML = '<li class="vz" style="cursor:default">' + (ZAP.busca ? 'Ninguém com esse nome.' : 'Nenhum status nas últimas 24 horas. Os status dos seus contatos aparecem aqui.') + '</li>'; return; }
-  const secao = (t) => { const h = document.createElement('li'); h.className = 'zap-sec'; h.innerHTML = '<span class="sep-cont">' + t + '</span>'; ul.appendChild(h); };
-  const item = (a) => {
-    const li = document.createElement('li');
+  const ativos = outros.filter(a => !a.silenciado), sil = outros.filter(a => a.silenciado);
+  const novos = ativos.filter(a => zapStatusNovos(a) > 0).sort((x, y) => y.ultimo_ts - x.ultimo_ts);
+  const vistos = ativos.filter(a => zapStatusNovos(a) === 0).sort((x, y) => y.ultimo_ts - x.ultimo_ts);
+  box.innerHTML = '';
+  const card = (a, extra) => {
+    const b = document.createElement('button');
     const n = a.meu || a.silenciado ? 0 : zapStatusNovos(a);
-    li.innerHTML = '<span class="zap-anel-av' + (n ? '' : ' visto') + '">' + zapAvatar(a.meu ? 'eu' : a.autor_jid, a.meu ? 'Eu' : a.nome, false, false) + '</span><div><b>' + esc(a.nome) + '</b><small>' + a.itens.length + ' status • ' + zapQuando(a.ultimo_ts) + '</small></div>' + (n ? '<span class="nlida">' + n + '</span>' : '');
-    li.onclick = () => { if (li.dataset.segurou){ delete li.dataset.segurou; return; } zapAbrirStatus(a.autor_jid); };
-    if (!a.meu) zapSegurar(li, () => folha(a.nome, '', [
-      { ic: a.silenciado ? 'bell' : 'bellOff', txt: a.silenciado ? 'Tirar do silenciado' : 'Silenciar status', fn: async () => {
+    const ult = a.itens[a.itens.length - 1];
+    b.className = 'zap-att-card' + (a.silenciado ? ' sil' : '');
+    b.innerHTML = zapCardPrevia(ult) +
+      '<span class="anel' + (n || a.meu ? '' : ' visto') + '">' + zapAvatar(a.meu ? 'eu' : a.autor_jid, a.meu ? 'Eu' : a.nome, false, false) + '</span>' +
+      (extra || '') + '<span class="nm">' + esc(a.nome) + '</span>';
+    b.onclick = () => { if (b.dataset.segurou){ delete b.dataset.segurou; return; } zapAbrirStatus(a.autor_jid); };
+    if (!a.meu) zapSegurar(b, () => { b.dataset.segurou = '1'; folha(a.nome, '', [
+      { ic: a.silenciado ? 'bell' : 'bellOff', txt: a.silenciado ? 'Mostrar de novo' : 'Ocultar status', fn: async () => {
         try{ await zapPost('/api/status-silenciar/' + zapJ(a.autor_jid), { ligar: !a.silenciado }); zapCarregarStatus(); }catch(e){ aviso(e.message); } } },
       { ic: 'x', txt: 'Cancelar', fn: () => {} }
-    ]));
-    ul.appendChild(li);
+    ]); });
+    box.appendChild(b);
+    return b;
   };
-  if (meu){ secao('MEU STATUS'); item(meu); }
-  const ativos = outros.filter(a => !a.silenciado), sil = outros.filter(a => a.silenciado);
-  const novos = ativos.filter(a => zapStatusNovos(a) > 0), vistos = ativos.filter(a => zapStatusNovos(a) === 0);
-  if (novos.length){ secao('RECENTES'); novos.forEach(item); }
-  if (vistos.length){ secao('JÁ VISTOS'); vistos.forEach(item); }
-  if (sil.length){ secao('SILENCIADOS'); sil.forEach(item); }
-  zapCarregarFotos(ul);
+  // Meu status (sempre primeiro, com o "+")
+  if (!ZAP.busca){
+    if (meu && meu.itens.length){
+      const b = card(meu, '<span class="mais">+</span>');
+      b.querySelector('.mais').onclick = e => { e.stopPropagation(); zapEscolherPostar(); };
+    } else {
+      const b = document.createElement('button'); b.className = 'zap-att-card';
+      b.innerHTML = '<div class="prev" style="background:#1b2220"></div><span class="anel visto" style="border-color:transparent">' + zapAvatar('eu', 'Eu', false, false) + '</span><span class="mais">+</span><span class="nm">Adicionar status</span>';
+      b.onclick = zapEscolherPostar; box.appendChild(b);
+    }
+  }
+  novos.forEach(a => card(a)); vistos.forEach(a => card(a));
+  if (sil.length){
+    const o = document.createElement('button'); o.className = 'zap-att-card ocultas' + (ZAP.verOcultas ? ' on' : '');
+    o.innerHTML = '<div class="prev">' + icp('eyeOff', 34) + '</div><span class="nm">Ocultas' + (ZAP.verOcultas ? '' : ' (' + sil.length + ')') + '</span>';
+    o.onclick = () => { ZAP.verOcultas = !ZAP.verOcultas; zapRenderListaStatus(); if (ZAP.verOcultas) setTimeout(() => box.scrollTo({ left: box.scrollWidth, behavior: 'smooth' }), 50); };
+    box.appendChild(o);
+    if (ZAP.verOcultas) sil.forEach(a => card(a));
+  }
+  vazio.hidden = !!(outros.length);
+  vazio.textContent = ZAP.busca ? 'Ninguém com esse nome.' : 'Nenhum status dos seus contatos nas últimas 24 horas.';
+  zapCarregarFotos(box);
 }
 function zapAbrirStatus(autor){
   const cand = ZAP.statusLista.filter(a => a.autor_jid === autor || !a.meu);
