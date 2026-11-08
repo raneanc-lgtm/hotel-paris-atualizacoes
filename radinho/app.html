@@ -1029,7 +1029,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 46;
+const APP_VERSAO = 47;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3613,6 +3613,16 @@ function zapMostrarConexao(estado, qr){
   if (ZAP.telaPareamento){ const im = $('zapQr'); if (im && qr) im.src = qr; return; }
   ZAP.telaPareamento = true;
   const num = LS.get('chatslim_numero') || '';
+  if (ZAP.cfg && ZAP.cfg.modo_celular){
+    // modo celular: o WhatsApp só aceita QR (código é só pra navegador/computador)
+    box.innerHTML =
+      '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Conectar como celular</b></div>' +
+      '<div class="info">Nesse modo o WhatsApp <b>só aceita QR</b>. Escaneie com o WhatsApp do seu celular principal: ⋮ → <b>Aparelhos conectados</b> → <b>Conectar um aparelho</b>. O QR precisa estar em <b>outra tela</b> (este Radinho num segundo aparelho).</div>' +
+      '<img id="zapQr" alt="QR" style="width:100%;max-width:300px;display:block;margin:12px auto;background:#fff;border-radius:12px;padding:8px"' + (qr ? ' src="' + qr + '"' : '') + '>' +
+      '<button class="btn" id="zapModoVolta" style="background:transparent;border:1px solid var(--sub);color:var(--txt)">Voltar pro modo computador</button></div>';
+    $('zapModoVolta').onclick = zapVoltarModoComputador;
+    return;
+  }
   box.innerHTML =
     '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Conectar o WhatsApp</b></div>' +
     '<div class="info">Digite o seu número com DDD e toque em <b>Gerar código</b>.</div>' +
@@ -3620,13 +3630,12 @@ function zapMostrarConexao(estado, qr){
     '<button class="btn" id="zapGerar">Gerar código</button>' +
     '<div id="zapCodigo"></div>' +
     '<details class="zap-qr"><summary>Ou escanear QR de outro aparelho</summary><img id="zapQr" alt="QR"' + (qr ? ' src="' + qr + '"' : '') + '></details>' +
-    (ZAP.cfg && ZAP.cfg.modo_celular ? '<div class="info" style="margin-top:14px">Modo celular ligado (pra abrir visualização única). Se não conectar, volte pro modo normal:</div><button class="btn" id="zapModoVolta" style="background:transparent;border:1px solid var(--sub);color:var(--txt)">Voltar pro modo computador</button>' : '') +
     '</div>';
   $('zapGerar').onclick = zapGerarCodigo;
-  if ($('zapModoVolta')) $('zapModoVolta').onclick = async () => {
-    try{ await zapPost('/api/modo-aparelho', { celular: false }); ZAP.cfg.modo_celular = false; ZAP.telaPareamento = false; aviso('Modo computador. Gere o código de novo e conecte.', 6000); setTimeout(zapAtualizarStatus, 2500); }
-    catch(e){ aviso('Não deu: ' + e.message, 5000); }
-  };
+}
+async function zapVoltarModoComputador(){
+  try{ await zapPost('/api/modo-aparelho', { celular: false }); ZAP.cfg.modo_celular = false; ZAP.telaPareamento = false; aviso('Modo computador. Gere o código e conecte.', 6000); setTimeout(zapAtualizarStatus, 2500); }
+  catch(e){ aviso('Não deu: ' + e.message, 5000); }
 }
 
 async function zapGerarCodigo(){
@@ -4303,7 +4312,7 @@ function zapTrocarModo(celular){
     }catch(e){ aviso('Não deu: ' + e.message, 5000); }
   };
   folha(celular ? 'Conectar como celular' : 'Conectar como computador',
-    celular ? 'O Zap passa a se conectar como um celular adicional (igual o GB fazia), e aí o WhatsApp manda as fotos, vídeos e áudios de visualização única — dá pra abrir quantas vezes quiser. Vai desconectar agora e você conecta de novo (QR ou código). É um modo experimental do WhatsApp: se der problema, é só voltar pra computador.'
+    celular ? 'O Zap passa a se conectar como um celular adicional (igual o GB), e aí o WhatsApp manda as fotos, vídeos e áudios de visualização única. Atenção: nesse modo só conecta por QR, escaneado pelo seu celular principal — então o Radinho tem que estar em OUTRO aparelho. Vai desconectar agora.'
             : 'Volta a conectar como computador (igual o WhatsApp Web). Visualização única volta a chegar só como aviso. Vai desconectar e você conecta de novo.',
     [ { ic: 'lock', txt: celular ? 'Desconectar e conectar como celular' : 'Desconectar e conectar como computador', fn: aplicar },
       { ic: 'x', txt: 'Cancelar', fn: () => {} } ]);
