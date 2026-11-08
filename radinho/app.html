@@ -850,6 +850,18 @@
   .zap-st-espelho[data-ef="contorno"]{text-shadow:-.06em -.06em 0 var(--st-contra),.06em -.06em 0 var(--st-contra),-.06em .06em 0 var(--st-contra),.06em .06em 0 var(--st-contra),0 -.07em 0 var(--st-contra),0 .07em 0 var(--st-contra),-.07em 0 0 var(--st-contra),.07em 0 0 var(--st-contra)}
   .zap-st-espelho[data-ef="sombra"]{text-shadow:0 .07em .18em rgba(0,0,0,.65)}
   .zap-st-espelho[data-ef="neon"]{color:#fff!important;text-shadow:0 0 .15em var(--st-cor),0 0 .45em var(--st-cor),0 0 .9em var(--st-cor)}
+  .zap-st-espelho[data-ef="fita"] span{background:rgba(0,0,0,.62);box-shadow:0 0 0 .2em rgba(0,0,0,.62);-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .zap-st-espelho[data-ef="oco"]{color:transparent!important;-webkit-text-stroke:.045em var(--st-cor)}
+  .zap-st-espelho[data-ef="3d"]{text-shadow:.02em .02em 0 rgba(0,0,0,.55),.04em .04em 0 rgba(0,0,0,.5),.06em .06em 0 rgba(0,0,0,.45),.08em .08em 0 rgba(0,0,0,.4),.1em .1em .06em rgba(0,0,0,.4)}
+  .zap-st-espelho[data-ef="retro"]{text-shadow:.07em .07em 0 var(--st-cor2),.07em .07em 0 var(--st-cor2)}
+  .zap-st-espelho[data-ef="degrade"] span{background:linear-gradient(90deg,var(--st-cor),var(--st-cor2));-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .zap-st-espelho[data-ef="arcoiris"] span{background:linear-gradient(90deg,#ff3b30,#ff9500,#ffcc00,#34c759,#0a84ff,#5e5ce6,#bf5af2);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+  .zap-st-ef[data-ef="fita"]{background:rgba(0,0,0,.7)}
+  .zap-st-ef[data-ef="oco"]{color:transparent;-webkit-text-stroke:1.5px #fff}
+  .zap-st-ef[data-ef="3d"]{text-shadow:1px 1px 0 #000,2px 2px 0 #000,3px 3px 0 #000}
+  .zap-st-ef[data-ef="retro"]{text-shadow:3px 3px 0 #ff2d55}
+  .zap-st-ef[data-ef="degrade"]{background:linear-gradient(90deg,#25d366,#0a84ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .zap-st-ef[data-ef="arcoiris"]{background:linear-gradient(90deg,#ff3b30,#ffcc00,#34c759,#0a84ff,#bf5af2);-webkit-background-clip:text;background-clip:text;color:transparent}
   .zap-st-adesivos{position:absolute;inset:0;pointer-events:none}
   .zap-st-ad{position:absolute;transform:translate(-50%,-50%);line-height:1;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;filter:drop-shadow(0 2px 4px rgba(0,0,0,.3))}
   .zap-st-x{position:absolute;top:calc(12px + env(safe-area-inset-top));left:12px;width:42px;height:42px;border-radius:50%;border:0;background:rgba(0,0,0,.35);color:#fff;font-size:18px;display:grid;place-items:center;z-index:3}
@@ -958,6 +970,8 @@
     <label>Senha do canal (só se o canal tiver senha)</label>
     <input type="text" id="inSenha" maxlength="40" placeholder="Deixe vazio se não tiver" autocomplete="off" autocapitalize="none" style="-webkit-text-security:disc">
     <button class="btn" id="btnEntrar">Entrar no canal</button>
+    <button class="btn sec" id="btnCriarCanal" data-ic="plus" hidden>Criar canal novo</button>
+    <button class="btn sec" id="btnSoZap" data-ic="zap" hidden>Abrir só o Zap (sem canal)</button>
     <p class="dica" id="dicaEntrar">Recebeu um convite? Toque em <b>Colar convite</b> ou cole ele no campo do canal.</p>
   </div>
 </section>
@@ -1201,6 +1215,11 @@
       <button class="btn sec" id="btnZapTema" data-ic="paleta">Aparência do Zap (cores, balões, papel de parede)</button>
       <button class="btn sec" id="btnZapSync" data-ic="refresh">Sincronizar contatos do WhatsApp</button>
       <button class="btn perigo" id="btnZapZerar" data-ic="logout">Desconectar o WhatsApp e gerar código novo</button>
+      <h4>BACKUP E VERSÃO</h4>
+      <button class="btn sec" id="btnBackupAgora" data-ic="baixar">Fazer backup da interface agora</button>
+      <button class="btn sec" id="btnBackupRest" data-ic="refresh">Restaurar um backup</button>
+      <button class="btn sec" id="btnDowngrade" data-ic="desfazer">Voltar pra uma versão anterior</button>
+      <input type="file" id="inBackupArq" accept=".json,application/json" hidden>
     </div>
     <h4>CONVIDAR</h4>
     <button class="btn" id="btnConvite" data-ic="share">Convidar pra este canal</button>
@@ -1346,7 +1365,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 73;
+const APP_VERSAO = 75;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1800,6 +1819,7 @@ function _atualizarVisor(){
 function mudarAba(a){
   aba = a;
   LS.set('radinho_aba', a);
+  if (a !== 'zap' && typeof ZAP !== 'undefined' && ZAP.sv) zapFecharStatus();
   $('abaRadio').classList.toggle('ativa', a === 'radio');
   $('abaChat').classList.toggle('ativa', a === 'chat');
   $('pRadio').hidden = a !== 'radio';
@@ -1876,6 +1896,7 @@ async function removido(){
 
 /* ---------------- canal / presença ---------------- */
 async function conectarCanal(){
+  soZap = false;
   refCanal = db.ref('canais/' + canal);
   $('lblCanal').textContent = 'Canal: ' + nomeCanal() + ' • ' + nome;
   telas('tRadio');
@@ -3217,8 +3238,8 @@ function prepararChat(){
   $('verFoto').onclick = () => { $('verFoto').hidden = true; $('verFotoImg').src = ''; };
   $('inMsg').addEventListener('input', ajustarAltura);
   $('inMsg').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && window.innerWidth > 700){ e.preventDefault(); enviarChat(); } });
-  $('abaRadio').onclick = () => mudarAba('radio');
-  $('abaChat').onclick  = () => mudarAba('chat');
+  $('abaRadio').onclick = () => { if (!exigirCanal()) mudarAba('radio'); };
+  $('abaChat').onclick  = () => { if (!exigirCanal()) mudarAba('chat'); };
   // Aba WhatsApp: só aparece no aparelho que tem o Chat Slim embutido (APK do master)
   zapIniciar();
 }
@@ -3582,6 +3603,7 @@ function renderInfoVersao(){
   $('btnVirarAdmin').hidden = !!adminUid;
 }
 function atualizarDica(){
+  try{ const c = $('btnCriarCanal'); if (c) c.hidden = !podeCriar(); }catch(e){}
   $('dicaEntrar').textContent = podeCriar()
     ? 'Você é o administrador: se o canal não existir, ele é criado (com a senha digitada, se tiver).'
     : 'Recebeu um convite? Toque em Colar convite, ou cole ele no campo do canal.';
@@ -3632,6 +3654,13 @@ function prepararAjustes(){
   $('btnAjustes').onclick = () => { renderInfoVersao(); renderAdmin(); sincronizarAjustesExtra(); $('fundo').hidden = false; };
   if ($('swSilencio')) $('swSilencio').onchange = () => { if (!!$('swSilencio').checked !== !!cfgLocal.silencio) alternarSilencio(); };
   if ($('swZapOnline')) $('swZapOnline').onchange = () => { zapAlternarEsconder($('swZapOnline').checked); setTimeout(() => { $('swZapOnline').checked = !!(typeof ZAP !== 'undefined' && ZAP.cfg && ZAP.cfg.esconder_online); }, 600); };
+  if ($('btnBackupAgora')) $('btnBackupAgora').onclick = () => { $('fundo').hidden = true; fazerBackupInterface(false); };
+  if ($('btnBackupRest')) $('btnBackupRest').onclick = () => { $('fundo').hidden = true; restaurarBackupInterface(); };
+  if ($('btnDowngrade')) $('btnDowngrade').onclick = () => { $('fundo').hidden = true; escolherVersaoAnterior(); };
+  if ($('inBackupArq')) $('inBackupArq').onchange = async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+    try{ aplicarBackupInterface(JSON.parse(await f.text())); }catch(err){ aviso('Esse arquivo não é um backup do Radinho.', 4000); }
+  };
   if ($('btnZapZerar')) $('btnZapZerar').onclick = () => { $('fundo').hidden = true; mudarAba('zap'); zapZerarConexao(); };
   if ($('btnZapTema')) $('btnZapTema').onclick = () => { $('fundo').hidden = true; zapEditorTema(); };
   if ($('btnZapSync')) $('btnZapSync').onclick = () => { $('fundo').hidden = true; if ($('abaZap') && !$('abaZap').hidden) $('abaZap').click(); setTimeout(() => { if (typeof zapAbrirNovo === 'function'){ zapAbrirNovo(); setTimeout(zapSincronizarContatos, 400); } }, 200); };
@@ -3840,6 +3869,7 @@ function zapAbrirPendente(){
 function zapIniciar(){
   if (ZAP.iniciado || !temZap()) return;
   ZAP.iniciado = true;
+  backupAutomatico();
   let porta = 3010;
   try{ if (typeof ChatSlimNativo.porta === 'function') porta = ChatSlimNativo.porta() || 3010; }catch(e){}
   ZAP.base = 'http://127.0.0.1:' + porta;
@@ -4475,10 +4505,14 @@ function zapSalvarStatusAtual(){
   if (!x.midia_path) return;
   zapSalvar(x.midia_path, 'Status_' + String(a.nome).replace(/\s+/g, '_') + '_' + x.id.slice(-6) + '.' + (x.tipo === 'video' ? 'mp4' : 'jpg'));
 }
+// para de verdade vídeo e áudio (elemento só removido da tela continua tocando)
+function zapPararMidiaStatus(){
+  $('zapSvConteudo').querySelectorAll('video,audio').forEach(m => { try{ m.onloadedmetadata = m.onerror = m.onended = null; m.pause(); m.removeAttribute('src'); m.load(); }catch(e){} });
+}
 function zapFecharStatus(){
   if (!ZAP.sv) return;
-  clearTimeout(ZAP.sv.to); cancelAnimationFrame(ZAP.sv.raf);
-  const v = $('zapSvConteudo').querySelector('video'); if (v) try{ v.pause(); }catch(e){}
+  clearTimeout(ZAP.sv.to); cancelAnimationFrame(ZAP.sv.raf); ZAP.sv.fechado = true;
+  zapPararMidiaStatus();
   $('zapSvConteudo').innerHTML = '';
   ZAP.sv = null; $('zapSv').hidden = true;
   LS.set('chatslim_status_vistos', JSON.stringify(ZAP.statusVistos));
@@ -4487,7 +4521,7 @@ function zapFecharStatus(){
 function zapStatusPasso(d){
   const sv = ZAP.sv; if (!sv) return;
   clearTimeout(sv.to); cancelAnimationFrame(sv.raf);
-  const v = $('zapSvConteudo').querySelector('video'); if (v) try{ v.pause(); }catch(e){}
+  zapPararMidiaStatus();
   sv.ii += d;
   if (sv.ii < 0){ if (sv.ia > 0){ sv.ia--; sv.ii = sv.ordem[sv.ia].itens.length - 1; } else sv.ii = 0; }
   else if (sv.ii >= sv.ordem[sv.ia].itens.length){
@@ -4498,8 +4532,8 @@ function zapStatusPasso(d){
 function zapAnimarBarra(sv, barra){
   const t0 = performance.now(), resto = sv.ms * (1 - sv.f0);
   sv.barra = barra; sv.pausado = false;
-  const passo = (t) => { const f = Math.min(1, sv.f0 + (t - t0) / sv.ms); sv.f = f; barra.style.width = (f * 100) + '%'; if (f < 1) sv.raf = requestAnimationFrame(passo); };
-  sv.raf = requestAnimationFrame(passo); sv.to = setTimeout(() => zapStatusPasso(1), resto);
+  const passo = (t) => { if (ZAP.sv !== sv) return; const f = Math.min(1, sv.f0 + (t - t0) / sv.ms); sv.f = f; barra.style.width = (f * 100) + '%'; if (f < 1) sv.raf = requestAnimationFrame(passo); };
+  sv.raf = requestAnimationFrame(passo); sv.to = setTimeout(() => { if (ZAP.sv === sv && !sv.fechado) zapStatusPasso(1); }, resto);
 }
 function zapPausarStatus(){
   const sv = ZAP.sv; if (!sv || sv.pausado) return;
@@ -4538,12 +4572,13 @@ function zapMostrarStatus(){
   let dur = 6000;
   const resp = !a.meu && a.autor_jid !== 'eu';
   $('zapSvResp').hidden = !resp; $('zapSv').classList.toggle('com-resp', resp); $('zapSvIn').value = '';
-  const animar = (ms) => { sv.ms = ms; sv.f0 = 0; zapAnimarBarra(sv, barra); };
+  const minhaVez = sv.ia + ':' + sv.ii;
+  const animar = (ms) => { if (ZAP.sv !== sv || sv.fechado || sv.ia + ':' + sv.ii !== minhaVez) return; sv.ms = ms; sv.f0 = 0; zapAnimarBarra(sv, barra); };
   if (x.tipo === 'video' && url){
     box.innerHTML = '<video playsinline autoplay src="' + url + '" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="></video>';
     $('zapSvLegenda').textContent = x.texto || '';
     const v = box.querySelector('video');
-    v.onloadedmetadata = () => { if (ZAP.sv === sv) animar(Math.max(3000, (v.duration || 10) * 1000)); };
+    v.onloadedmetadata = () => animar(Math.max(3000, (v.duration || 10) * 1000));
     v.onerror = () => animar(4000);
     return;
   }
@@ -4685,7 +4720,16 @@ function zapContraste(hex){
   const l = (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
   return l > 0.6 ? '#000000' : '#ffffff';
 }
-const ZAP_EFEITOS = [['nenhum', 'Sem efeito'], ['caixa', 'Fundo na letra'], ['contorno', 'Contorno'], ['sombra', 'Sombra'], ['neon', 'Neon']];
+const ZAP_EFEITOS = [['nenhum', 'Sem efeito'], ['caixa', 'Fundo na letra'], ['fita', 'Faixa escura'], ['contorno', 'Contorno'], ['oco', 'Vazado'], ['sombra', 'Sombra'], ['3d', '3D'], ['retro', 'Retrô'], ['neon', 'Neon'], ['degrade', 'Degradê'], ['arcoiris', 'Arco-íris']];
+const ZAP_ARCOIRIS = ['#ff3b30', '#ff9500', '#ffcc00', '#34c759', '#0a84ff', '#5e5ce6', '#bf5af2'];
+function zapHexHsl(hex){
+  const n = parseInt(String(hex).slice(1), 16) || 0; let r = (n >> 16) / 255, g = ((n >> 8) & 255) / 255, b = (n & 255) / 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b); let h = 0, sat = 0; const l = (mx + mn) / 2;
+  if (mx !== mn){ const d = mx - mn; sat = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+  return [h, sat * 100, l * 100];
+}
+// segunda cor do degradê: mesma cor girada no círculo (fica sempre combinando)
+function zapCor2(hex){ const [h, sat, l] = zapHexHsl(hex); return 'hsl(' + Math.round((h + 70) % 360) + ',' + Math.max(65, Math.round(sat)) + '%,' + Math.min(70, Math.max(45, Math.round(l))) + '%)'; }
 const ZAP_ST_EMOJIS = '😂❤️😍🔥😎🥰😘🙏👏💪😢😭😡🤔😴🥳🤩😇🤣😅😊😉😜🤪🤗🤫🙄😬💯✨⭐🌟💥💫🎉🎂🎁🎈🎶🎵☀️🌙🌈⚡❄️🌸🌹🌻🍀🍕🍔🍺☕🍫⚽🏆🚗✈️🏖️💰💎👑💋👀👍👌✌️🤞🙌💔💕💖💙💚💛🧡💜🖤🤍'.match(/\p{Extended_Pictographic}(️)?/gu);
 
 function zapEditorTexto(){
@@ -4726,7 +4770,7 @@ function zapEditorTexto(){
     tela.style.background = st.fundo;
     [tx, esp].forEach(el => { el.style.fontFamily = f.css; el.style.fontWeight = f.p; el.style.textAlign = st.alinha; });
     esp.style.color = st.cor; esp.style.setProperty('--st-cor', st.cor); esp.style.setProperty('--st-contra', zapContraste(st.cor));
-    esp.dataset.ef = st.efeito;
+    esp.dataset.ef = st.efeito; esp.style.setProperty('--st-cor2', zapCor2(st.cor));
     tx.style.caretColor = st.efeito === 'caixa' ? zapContraste(st.cor) : st.cor;
     $('zapStCorBt').querySelector('i').style.background = st.cor;
     $('zapStFundoBt').querySelector('i').style.background = st.fundo;
@@ -4843,7 +4887,8 @@ function zapRRect(g, x, y, w, h, r){ g.beginPath(); g.moveTo(x + r, y); g.arcTo(
 // desenha o status exatamente como está na tela (pega as linhas direto do texto exibido)
 async function zapRenderStatus(tela, esp, st){
   const f = zapFonte(st.fonte), tr = tela.getBoundingClientRect();
-  const W = 1080, k = W / tr.width, H = Math.round(tr.height * k);
+  // sempre tela cheia no formato do status (9:16), mesmo com o teclado aberto encolhendo a tela
+  const W = 1080, H = 1920, k = W / tr.width;
   const tamPx = parseFloat(esp.style.fontSize) || 30;
   try{ await document.fonts.load(f.p + ' ' + tamPx + 'px ' + f.css, esp.textContent || 'A'); await document.fonts.ready; }catch(e){}
   const c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -4873,10 +4918,17 @@ async function zapRenderStatus(tela, esp, st){
   }
   const fs = tamPx * k;
   g.font = f.p + ' ' + fs + 'px ' + f.css; g.textBaseline = 'middle'; g.textAlign = 'left';
-  const contra = zapContraste(st.cor);
+  const contra = zapContraste(st.cor), cor2 = zapCor2(st.cor);
+  // bloco de texto centralizado na vertical
+  const topo = linhas.length ? Math.min(...linhas.map(l => l.top)) : 0, base = linhas.length ? Math.max(...linhas.map(l => l.bottom)) : 0;
+  const desloc = (H - (base - topo) * k) / 2 - topo * k;
+  const margem = 70;
   linhas.forEach(l => {
     const t = l.t.replace(/\s+$/, ''); if (!t) return;
-    const x = (l.left - tr.left) * k, ym = ((l.top + l.bottom) / 2 - tr.top) * k, w = g.measureText(t).width;
+    const w = g.measureText(t).width;
+    let x = (l.left - tr.left) * k;
+    if (st.alinha === 'center') x = (W - w) / 2; else if (st.alinha === 'left') x = margem; else if (st.alinha === 'right') x = W - margem - w;
+    const ym = ((l.top + l.bottom) / 2) * k + desloc;
     g.save();
     if (st.efeito === 'caixa'){
       const pad = fs * 0.25; g.fillStyle = st.cor; zapRRect(g, x - pad, ym - (l.bottom - l.top) * k / 2 - pad * 0.3, w + pad * 2, (l.bottom - l.top) * k + pad * 0.6, fs * 0.25); g.fill();
@@ -4888,6 +4940,19 @@ async function zapRenderStatus(tela, esp, st){
     } else if (st.efeito === 'neon'){
       g.shadowColor = st.cor; g.fillStyle = '#ffffff';
       [0.9, 0.45, 0.15].forEach(b => { g.shadowBlur = fs * b; g.fillText(t, x, ym); });
+    } else if (st.efeito === 'fita'){
+      const pad = fs * 0.22; g.fillStyle = 'rgba(0,0,0,.62)'; g.fillRect(x - pad, ym - (l.bottom - l.top) * k / 2 - pad * 0.2, w + pad * 2, (l.bottom - l.top) * k + pad * 0.4);
+      g.fillStyle = st.cor; g.fillText(t, x, ym);
+    } else if (st.efeito === 'oco'){
+      g.lineJoin = 'round'; g.lineWidth = fs * 0.04; g.strokeStyle = st.cor; g.strokeText(t, x, ym);
+    } else if (st.efeito === '3d'){
+      g.fillStyle = 'rgba(0,0,0,.5)'; for (let i = 5; i >= 1; i--) g.fillText(t, x + fs * 0.02 * i, ym + fs * 0.02 * i);
+      g.fillStyle = st.cor; g.fillText(t, x, ym);
+    } else if (st.efeito === 'retro'){
+      g.fillStyle = cor2; g.fillText(t, x + fs * 0.07, ym + fs * 0.07); g.fillStyle = st.cor; g.fillText(t, x, ym);
+    } else if (st.efeito === 'degrade' || st.efeito === 'arcoiris'){
+      const gr = g.createLinearGradient(x, 0, x + w, 0), cs = st.efeito === 'degrade' ? [st.cor, cor2] : ZAP_ARCOIRIS;
+      cs.forEach((cc, i) => gr.addColorStop(i / (cs.length - 1), cc)); g.fillStyle = gr; g.fillText(t, x, ym);
     } else { g.fillStyle = st.cor; g.fillText(t, x, ym); }
     g.restore();
   });
@@ -5115,9 +5180,10 @@ function zapTextoPresenca(jid){
   if (st === 'gravando') return 'gravando áudio...';
   return zapVistoTexto(ZAP.vistos[jid]);
 }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' && ZAP.sv) zapFecharStatus(); });
 function zapRenderPresenca(){
-  const txt = ZAP.grupo ? 'toque pra ver os participantes' : (zapTextoPresenca(ZAP.jid) || 'toque pra ver o perfil');
-  $('zapSt').textContent = txt;
+  const txt = ZAP.grupo ? 'toque pra ver os participantes' : (zapTextoPresenca(ZAP.jid) || '');
+  $('zapSt').textContent = txt; $('zapSt').hidden = !txt;
   $('zapSt').classList.toggle('zap-on-txt', !ZAP.grupo && ['online', 'digitando', 'gravando'].includes(ZAP.presencas[ZAP.jid]));
 }
 
@@ -5749,6 +5815,94 @@ document.addEventListener('visibilitychange', () => {
   if (aba === 'zap' && ZAP.jid) zapCarregarMensagens();
 });
 
+/* ---------------- backup da interface e versão anterior ---------------- */
+const BK_FORA = new Set(['radinho_code', 'radinho_ver', 'radinho_boot', 'radinho_fixo_code', 'radinho_fixo_boot']);
+function dadosInterface(){
+  const d = {};
+  try{ for (let i = 0; i < localStorage.length; i++){ const k = localStorage.key(i); if (!BK_FORA.has(k)) d[k] = localStorage.getItem(k); } }catch(e){}
+  return d;
+}
+async function fazerBackupInterface(auto){
+  if (!temZap()){ if (!auto) aviso('O backup fica guardado no motor do Zap (só no APK master).', 4000); return; }
+  try{
+    const r = await zapPost('/api/interface/backup', { dados: dadosInterface(), versao: APP_VERSAO, auto: !!auto });
+    LS.set('radinho_ult_backup', String(Date.now()));
+    if (!auto){ zapSalvar(r.nome, r.nome); aviso('Backup feito! Guardado no app e uma cópia em Downloads › Zap.', 5000); }
+  }catch(e){ if (!auto) aviso('Não fez o backup: ' + e.message, 5000); }
+}
+function backupAutomatico(){
+  const ult = parseInt(LS.get('radinho_ult_backup')) || 0;
+  if (Date.now() - ult > 20 * 3600 * 1000) setTimeout(() => fazerBackupInterface(true), 20000);
+}
+async function restaurarBackupInterface(){
+  let lista = [];
+  if (temZap()){ try{ lista = await zapGet('/api/interface/backups') || []; }catch(e){} }
+  const quando = ts => { const d = new Date(ts); return d.toLocaleDateString('pt-BR') + ' ' + hora(ts); };
+  const acoes = lista.slice(0, 12).map(b => ({ ic: 'refresh', txt: quando(b.ts) + (b.auto ? ' (automático)' : '') + (b.versao ? ' • v' + b.versao : ''), fn: async () => {
+    try{ aplicarBackupInterface(await zapGet('/api/interface/backups/' + encodeURIComponent(b.nome))); }catch(e){ aviso('Não abriu esse backup: ' + e.message, 5000); }
+  } }));
+  acoes.push({ ic: 'clip', txt: 'Escolher um arquivo de backup', fn: () => $('inBackupArq').click() });
+  acoes.push({ ic: 'x', txt: 'Cancelar', fn: () => {} });
+  folha('Restaurar backup', lista.length ? 'Escolha de quando é o backup. A interface volta do jeito que estava (cores, papel de parede, blocos, fixadas, ajustes).' : 'Nenhum backup guardado no app ainda. Você pode escolher um arquivo.', acoes);
+}
+async function aplicarBackupInterface(j){
+  const dados = j && j.tipo === 'radinho-interface' ? j.dados : null;
+  if (!dados){ aviso('Esse arquivo não é um backup do Radinho.', 4000); return; }
+  if (!(await confirmar('Restaurar backup?', 'A interface volta do jeito que estava nesse backup. O app reinicia.', 'Restaurar'))) return;
+  try{ Object.keys(dados).forEach(k => { if (!BK_FORA.has(k)) localStorage.setItem(k, dados[k]); }); }catch(e){ aviso('Faltou espaço pra restaurar tudo.', 4000); }
+  LS.set('radinho_aviso', 'Backup restaurado.'); location.reload();
+}
+async function escolherVersaoAnterior(){
+  let lista;
+  try{ lista = await (await fetch(ATT_URL + 'versoes/lista.json?t=' + Date.now(), { cache: 'no-store' })).json(); }
+  catch(e){ aviso('Não consegui buscar as versões: ' + (e.message || e), 5000); return; }
+  const acoes = lista.filter(x => x.v !== APP_VERSAO).slice(0, 15).map(x => ({ ic: 'desfazer', txt: 'Versão ' + x.v + ' — ' + x.resumo.slice(0, 70), fn: () => fixarVersao(x.v) }));
+  acoes.push({ ic: 'x', txt: 'Cancelar', fn: () => {} });
+  folha('Voltar pra uma versão anterior', 'A versão escolhida fica fixa, sem se atualizar sozinha. Pra voltar à mais nova, toque na etiqueta "versão fixada" que aparece no canto da tela. Faça um backup antes, por garantia.', acoes);
+}
+async function fixarVersao(v){
+  if (!(await confirmar('Voltar pra versão ' + v + '?', 'O app reinicia nessa versão e ela fica fixa até você voltar pra mais nova.', 'Voltar'))) return;
+  try{
+    const c = await (await fetch(ATT_URL + 'versoes/app-' + v + '.html?t=' + Date.now(), { cache: 'no-store' })).text();
+    if (c.indexOf('RADINHO_APP') < 0 || versaoDoCodigo(c) !== v) throw new Error('arquivo inválido');
+    await fazerBackupInterface(true);
+    if (!LS.set('radinho_fixo_code', c)){ aviso('Sem espaço pra guardar essa versão.', 4000); return; }
+    LS.set('radinho_fixo_boot', '0');
+    location.reload();
+  }catch(e){ aviso('Não voltou: ' + (e.message || e), 5000); }
+}
+
+/* ---------------- Zap sem canal (o canal só vale pro Rádio e pro Chat) ---------------- */
+let soZap = false;
+function abrirSoZap(){
+  if (!temZap()) return;
+  soZap = true;
+  $('lblCanal').textContent = 'Sem canal • só o Zap';
+  telas('tRadio');
+  mudarAba('zap');
+}
+function prepararEntrada(){
+  const z = $('btnSoZap'); if (z){ z.hidden = !temZap(); z.onclick = abrirSoZap; }
+  const c = $('btnCriarCanal');
+  if (c){
+    c.hidden = !podeCriar();
+    c.onclick = async () => {
+      const r = await janela({ titulo: 'Criar canal novo', campos: [{ id: 'c', label: 'Nome do canal', minusculo: true, max: 40 }, { id: 's', label: 'Senha (opcional)', senha: true, minusculo: true }], ok: 'Criar' });
+      if (!r || !r.c){ return; }
+      $('inCanal').value = r.c; $('inSenha').value = r.s || '';
+      if (!$('inNome').value.trim()){ aviso('Escreva seu nome no rádio primeiro.'); $('inNome').focus(); return; }
+      $('btnEntrar').click();
+    };
+  }
+}
+// Rádio e Chat sem canal: manda pra tela de entrar
+function exigirCanal(){
+  if (!soZap) return false;
+  telas('tEntrar'); prepararEntrada();
+  aviso('Entre ou crie um canal pra usar o Rádio e o Chat. O Zap funciona sem canal.', 5000);
+  return true;
+}
+
 (async function iniciar(){
   prepararLayout();
   prepararMaster();
@@ -5770,12 +5924,17 @@ document.addEventListener('visibilitychange', () => {
   try{ await iniciarFirebase(); }
   catch(e){
     aviso('Sem conexão com o servidor: ' + (e.message || e), 7000);
-    checarGitHub(); telas('tEntrar'); return;
+    checarGitHub();
+    if (temZap()){ abrirSoZap(); return; }
+    telas('tEntrar'); prepararEntrada(); return;
   }
-  atualizarDica();
+  atualizarDica(); prepararEntrada();
   checarGitHub(); setInterval(checarGitHub, 600000);
   if (nome && canal && await temAcesso(canal)){ await conectarCanal(); abrirUltimaAba(); if (cfgLocal.tela) ligarTela(); }
-  else { telas('tEntrar'); desligarStandby(); }
+  else {
+    desligarStandby();
+    if (temZap()) abrirSoZap(); else telas('tEntrar');
+  }
 })();
 </script>
 </body>

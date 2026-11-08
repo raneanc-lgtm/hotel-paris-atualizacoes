@@ -1,0 +1,87 @@
+[
+ {
+  "v": 75,
+  "ts": 1794179513671,
+  "resumo": "status em tela cheia, mais efeitos, status para de tocar ao fechar; backup, versão anterior, Zap sem canal"
+ },
+ {
+  "v": 73,
+  "ts": 1794161354000,
+  "resumo": "tira a pergunta de reconectar no modo completo (cancelado)"
+ },
+ {
+  "v": 72,
+  "ts": 1794160083000,
+  "resumo": "desconectar e gerar código novo (tela de conexão e ajustes)"
+ },
+ {
+  "v": 71,
+  "ts": 1794159276000,
+  "resumo": "puxar todos os contatos que já tive, lista sem limite"
+ },
+ {
+  "v": 70,
+  "ts": 1794158420000,
+  "resumo": "recuperar contatos pra agenda do celular (.vcf)"
+ },
+ {
+  "v": 69,
+  "ts": 1794157454000,
+  "resumo": "lista sem blocos, balão vidro e sem balão, cores da caixa de digitar e do enviar, prévia fixa no tema"
+ },
+ {
+  "v": 68,
+  "ts": 1794157343000,
+  "resumo": "status ocultos em lista embaixo; botão Arquivadas compacto"
+ },
+ {
+  "v": 67,
+  "ts": 1794157201000,
+  "resumo": "perfil da conversa sem caixa, emendado no papel de parede"
+ },
+ {
+  "v": 66,
+  "ts": 1794156936000,
+  "resumo": "tela Atualizações igual ao WhatsApp (cards de status, Ocultas, botões flutuantes)"
+ },
+ {
+  "v": 65,
+  "ts": 1794156352000,
+  "resumo": "reagir e responder status dos outros"
+ },
+ {
+  "v": 64,
+  "ts": 1794156235000,
+  "resumo": "toque no palhacinho volta a abrir os ajustes"
+ },
+ {
+  "v": 63,
+  "ts": 1794155963000,
+  "resumo": "status em tela cheia estilo Instagram (22 fontes, bolinhas de cor, efeitos, emojis) e 10 estilos de balão"
+ },
+ {
+  "v": 62,
+  "ts": 1794152823000,
+  "resumo": "reacoes, arrastar pra responder, encaminhar, desarquivar, cores e papel de parede do Zap"
+ },
+ {
+  "v": 61,
+  "ts": 1794141198000,
+  "resumo": "blocos exclusivos, chips so-icone, Conversas fixo, blocos arrastaveis"
+ },
+ {
+  "v": 60,
+  "ts": 1794140533000,
+  "resumo": "Arquivadas na barra de busca, busca vira lupa, status com anel bonito"
+ },
+ {
+  "v": 59,
+  "ts": 1794140153000,
+  "resumo": "blocos de conversas (listas), Conversas pra voltar, vezinho na bolha"
+ },
+ {
+  "v": 58,
+  "ts": 1794139672000,
+  "resumo": "digitando/gravando some quando a pessoa para"
+ }
+]
