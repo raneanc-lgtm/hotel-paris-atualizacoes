@@ -537,6 +537,7 @@
   #zapLista li.zap-nl .zap-hr{color:var(--verde);font-weight:700}
   #zapDescer{position:absolute;right:10px;bottom:84px;width:42px;height:42px;border-radius:50%;border:1px solid var(--borda);background:var(--corpo2);color:var(--txt);font-size:22px;line-height:1;box-shadow:0 4px 14px rgba(0,0,0,.4);z-index:5}
   #zapDescer[hidden]{display:none}
+  #zapNovo[hidden]{display:none}
   #zapNovo{position:absolute;right:12px;bottom:14px;width:56px;height:56px;border-radius:18px;border:0;background:var(--verde);color:#062012;font-size:30px;font-weight:700;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.45);z-index:4}
   #zapListaBox{position:relative}
   #zapLista{padding-bottom:76px}
@@ -554,6 +555,124 @@
   .zap-ib[hidden]{display:none!important}
   .zap-ib.zap-ib-on{background:#1f6a45;color:#eafff2}
   #zapLista li b svg.i{color:var(--verde)}
+
+  /* ===== Zap v42: estilo WhatsApp + acabamento ===== */
+  .zap-topo{display:flex;align-items:center;justify-content:space-between;min-height:30px;margin:0 0 6px;padding:0 2px}
+  .zap-topo #zapNota{font-size:12px;color:var(--sub);letter-spacing:.3px}
+  .zap-mais{width:34px;height:34px;border-radius:10px;border:1px solid var(--borda);background:var(--corpo);color:var(--txt);display:grid;place-items:center;padding:0}
+  .zap-mais svg.i{width:18px;height:18px;display:block}
+  .alvo{line-height:1}
+  .alvo svg.i{display:block;flex:none}
+  .alvo span{display:block}
+  .zap-st-acoes{display:flex;gap:8px;margin:0 0 8px}
+  .zap-st-acoes[hidden]{display:none}
+  .zap-st-acoes .alvo{flex:1;margin:0}
+  #zapLista .zap-sec{background:none!important;border:0!important;padding:8px 2px 2px!important;cursor:default}
+  #zapLista li{min-height:62px;box-sizing:border-box}
+  #zapLista li > div{display:flex;flex-direction:column;justify-content:center;gap:2px}
+  #zapLista li .zap-hr{display:flex;align-items:center;gap:3px;white-space:nowrap}
+  #zapLista li .zap-hr svg.i{width:12px;height:12px}
+  /* cabeçalho da conversa: só voltar + quem (toque abre o perfil) */
+  .zap-bar{gap:6px;padding:6px 8px;min-height:52px;box-sizing:border-box}
+  .zap-quem{flex:1;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer;border-radius:10px;padding:2px 4px}
+  .zap-quem:active{background:rgba(255,255,255,.06)}
+  .zap-quem .dm-quem{display:flex;flex-direction:column;justify-content:center;gap:1px}
+  .zap-quem .dm-quem b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+  .zap-quem .dm-quem small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+  .zap-quem small.zap-on-txt{color:var(--verde)}
+  #zapVoltar{width:36px;height:36px;padding:0;border-radius:50%;display:grid;place-items:center;flex:none}
+  #zapVoltar span{display:block;line-height:1;margin-top:-2px}
+  /* bolhas */
+  .bolha .hr{gap:4px}
+  .zap-q{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;background:#ff6b6b;color:#1a0d0d;font-size:10px;font-weight:900;line-height:1;cursor:pointer;flex:none}
+  .zap-video,.zap-baixar{position:relative;width:240px;max-width:100%;min-height:150px;aspect-ratio:4/3;border-radius:12px;background:#0b0d0c center/cover no-repeat;margin-top:2px;cursor:pointer;overflow:hidden}
+  .zap-baixar{filter:none}
+  .zap-baixar::before,.zap-video:not([style*="background-image"])::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.25)}
+  .zap-video button,.zap-baixar button{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;border:0;border-radius:999px;padding:8px 14px;background:rgba(0,0,0,.65);color:#fff;font-size:13px;font-weight:700}
+  .zap-video button svg.i,.zap-baixar button svg.i{width:16px;height:16px}
+  .zap-vtag{position:absolute;left:8px;bottom:8px;display:flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color:#fff;background:rgba(0,0,0,.55);padding:3px 7px;border-radius:999px}
+  .zap-vtag svg.i{width:12px;height:12px}
+  .bolha .zap-sem{cursor:pointer}
+  .bolha .zap-doc{word-break:break-all}
+  .bolha .zap-dur{position:static!important;margin-left:4px;font-size:11px;opacity:.7}
+  /* perfil */
+  .zap-perfil{flex:1;min-height:0;overflow-y:auto;padding-bottom:20px}
+  .zap-perfil[hidden]{display:none}
+  .zap-pf-topo{display:flex;align-items:center;gap:8px;font-weight:700;margin:2px 0 8px}
+  .zap-pf-voltar{width:36px;height:36px;border-radius:50%;border:1px solid var(--borda);background:var(--corpo);color:var(--txt);font-size:22px;line-height:1;display:grid;place-items:center;padding:0 0 3px}
+  .zap-pf-cab{display:flex;flex-direction:column;align-items:center;text-align:center;padding:10px 0 16px;gap:4px}
+  .zap-pf-foto{width:128px;height:128px;border-radius:50%;background:#333 center/cover no-repeat;display:grid;place-items:center;font-size:44px;font-weight:800;color:#fff;margin-bottom:8px;cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+  .zap-pf-foto svg.i{color:#fff}
+  .zap-pf-nome{font-size:21px}
+  .zap-pf-sub{color:var(--sub);font-size:14px}
+  .zap-pf-pres{color:var(--sub);font-size:13px}
+  .zap-pf-pres.on{color:var(--verde);font-weight:700}
+  .zap-pf-bloco{background:var(--corpo2);border:1px solid var(--borda);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+  .zap-pf-bloco > small{display:block;color:var(--verde);font-size:12px;font-weight:700;letter-spacing:.3px;margin:2px 0 4px}
+  .zap-pf-bloco > div{font-size:15px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere;margin-bottom:6px}
+  .zap-pf-acoes{padding:4px 6px}
+  .zap-pf-linha{display:flex;align-items:center;gap:14px;width:100%;border:0;background:transparent;color:var(--txt);font-size:15px;text-align:left;padding:12px 8px;border-radius:10px}
+  .zap-pf-linha + .zap-pf-linha{border-top:1px solid var(--borda);border-radius:0}
+  .zap-pf-linha svg.i{width:20px;height:20px;color:var(--sub);flex:none}
+  .zap-pf-linha span{flex:1}
+  #zapPfApagar{color:#ff6b6b}
+  #zapPfApagar svg.i{color:#ff6b6b}
+  .zap-chave{width:40px;height:22px;border-radius:999px;background:#3a3f46;position:relative;flex:none;transition:background .2s}
+  .zap-chave::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#cfd6d2;transition:left .2s}
+  .zap-chave.on{background:var(--verde)}
+  .zap-chave.on::after{left:21px;background:#fff}
+  .zap-pf-midias{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:4px}
+  .zap-pf-midias button{position:relative;aspect-ratio:1;border:0;border-radius:8px;background:#0b0d0c center/cover no-repeat;padding:0}
+  .zap-pf-midias button i{position:absolute;right:4px;bottom:3px;color:#fff;font-style:normal;font-size:11px;text-shadow:0 1px 3px #000}
+  .zap-pf-part li{cursor:pointer}
+  /* visualizador */
+  #zapVer{position:fixed;inset:0;z-index:62;background:#000;display:flex;flex-direction:column}
+  #zapVer[hidden]{display:none}
+  .zap-ver-topo{display:flex;align-items:center;gap:10px;padding:10px 12px;color:#fff}
+  .zap-ver-topo b{flex:1;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .zap-ver-topo button,#zapSvSalvar{width:42px;height:42px;border-radius:50%;border:0;background:rgba(255,255,255,.1);color:#fff;font-size:26px;line-height:1;display:grid;place-items:center;padding:0}
+  .zap-ver-topo button svg.i,#zapSvSalvar svg.i{width:22px;height:22px}
+  #zapVerFechar{padding-bottom:4px}
+  #zapSvSalvar[hidden]{display:none}
+  .zap-ver-meio{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+  .zap-ver-meio img,.zap-ver-meio video{max-width:100%;max-height:100%;object-fit:contain;background:#000}
+  /* editor de status */
+  #zapEd{position:fixed;inset:0;z-index:63;background:var(--bg);display:flex;flex-direction:column}
+  #zapEd[hidden]{display:none}
+  .zap-ed-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px}
+  .zap-ed-topo b{font-size:16px}
+  .zap-ed-topo button{width:40px;height:40px;border-radius:50%;border:1px solid var(--borda);background:var(--corpo);color:var(--txt);font-size:18px;display:grid;place-items:center;padding:0}
+  .zap-ed-topo button svg.i{width:20px;height:20px}
+  .zap-ed-topo span{width:40px}
+  .zap-ed-tela{flex:1;min-height:0;margin:0 12px;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;transition:background .2s}
+  .zap-ed-preta{background:#000}
+  .zap-ed-tela textarea{width:100%;height:100%;border:0;background:transparent;resize:none;text-align:center;padding:30px 20px;box-sizing:border-box;outline:none;line-height:1.3;display:flex}
+  .zap-ed-tela textarea::placeholder{color:inherit;opacity:.55}
+  .zap-ed-tela video{max-width:100%;max-height:100%}
+  .zap-ed-tela canvas{touch-action:none;display:block}
+  .zap-ed-ferr{padding:10px 12px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+  .zap-ed-pal small{display:block;font-size:11px;letter-spacing:1px;color:var(--sub);margin:0 0 6px;text-transform:uppercase}
+  .zap-ed-cores{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 4px;scrollbar-width:none}
+  .zap-ed-cores button,.zap-ed-mais{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.18);flex:none;padding:0;position:relative}
+  .zap-ed-cores button.on{border-color:#fff;box-shadow:0 0 0 2px var(--verde)}
+  .zap-ed-mais{display:grid;place-items:center;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);cursor:pointer;overflow:hidden}
+  .zap-ed-mais input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;border:0;padding:0}
+  .zap-ed-mais span{font-weight:900;color:#fff;text-shadow:0 1px 3px #000;pointer-events:none;line-height:1}
+  .zap-ed-fontes,.zap-ed-modos{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}
+  .zap-ed-fontes button{flex:none;border:1px solid var(--borda);background:var(--corpo);color:var(--txt);border-radius:999px;padding:7px 13px;font-size:14px}
+  .zap-ed-fontes button.on,.zap-ed-modos button.on{border-color:var(--verde);color:var(--verde);background:#10261b}
+  .zap-ed-modos button{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;border:1px solid var(--borda);background:var(--corpo);color:var(--txt);border-radius:12px;padding:8px 4px;font-size:12px}
+  .zap-ed-modos button svg.i{width:20px;height:20px}
+  .zap-ed-enviar{display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+  .zap-ed-enviar svg.i{width:18px;height:18px}
+  .zap-perg{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:5;padding:20px}
+  .zap-perg > div{background:var(--corpo);border:1px solid var(--borda);border-radius:16px;padding:16px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:10px}
+  .zap-perg input{padding:12px 14px;border-radius:12px;border:1px solid var(--borda);background:var(--bg);color:var(--txt);font-size:16px}
+  .zap-perg span{display:flex;gap:8px}
+  .zap-perg span .btn{flex:1;margin:0}
+  .zap-video button,.zap-baixar button{white-space:nowrap}
+  .zap-ed-tela textarea{height:auto;max-height:100%;display:block;padding:20px}
+  .zap-ed-mais.on{box-shadow:0 0 0 2px var(--verde)}
 </style>
 </head>
 <body>
@@ -643,19 +762,25 @@
   <div class="painel" id="pZap" hidden>
     <div id="zapCon" hidden></div>
     <div id="zapListaBox" hidden>
-      <div class="nota" id="zapNota"></div>
+      <div class="zap-topo"><span id="zapNota"></span><button class="zap-mais" id="zapMenuBtn" aria-label="Opções do Zap"></button></div>
       <button class="alvo btn-contatos" id="zapStatusBtn"></button>
+      <div class="zap-st-acoes" id="zapStAcoes" hidden>
+        <button class="alvo" id="zapPostTexto"></button>
+        <button class="alvo" id="zapPostFoto"></button>
+        <input type="file" id="zapInStatus" accept="image/*,video/*" hidden>
+      </div>
       <input class="zap-busca" id="zapBusca" type="search" placeholder="Buscar conversa">
       <ul class="contas" id="zapLista"></ul>
       <button id="zapNovo" aria-label="Nova conversa">+</button>
     </div>
     <div class="dm-bar zap-bar" id="zapBar" hidden>
       <button class="alvo" id="zapVoltar"></button>
-      <span id="zapBarAv"></span>
-      <div class="dm-quem"><b id="zapNome"></b><small id="zapSt"></small></div>
-      <button class="ib zap-ib" id="zapVigiarBtn" aria-label="Avisar quando ficar online"></button>
-      <button class="ib zap-ib" id="zapApagarBtn" aria-label="Apagar conversa" data-ic="trash"></button>
+      <div class="zap-quem" id="zapQuem" role="button" aria-label="Ver perfil">
+        <span id="zapBarAv"></span>
+        <div class="dm-quem"><b id="zapNome"></b><small id="zapSt"></small></div>
+      </div>
     </div>
+    <div id="zapPerfil" class="zap-perfil" hidden></div>
     <div id="zapMsgs" class="msgs-dm" hidden></div>
     <button id="zapDescer" aria-label="Ir pro fim" hidden>⌄</button>
     <div class="compor" id="zapCompor" hidden>
@@ -876,9 +1001,14 @@
     <button class="btn sec" id="zapNovoFechar">Fechar</button>
   </div>
 </div>
+<div id="zapVer" hidden>
+  <div class="zap-ver-topo"><button id="zapVerFechar" aria-label="Fechar">‹</button><b id="zapVerTit"></b><button id="zapVerSalvar" aria-label="Salvar na galeria"></button></div>
+  <div class="zap-ver-meio" id="zapVerMeio"></div>
+</div>
+<div id="zapEd" hidden></div>
 <div id="zapSv" hidden>
   <div class="zap-sv-barras" id="zapSvBarras"></div>
-  <div class="zap-sv-topo"><b id="zapSvNome"></b><small id="zapSvHora"></small><button id="zapSvFechar" aria-label="Fechar">✕</button></div>
+  <div class="zap-sv-topo"><b id="zapSvNome"></b><small id="zapSvHora"></small><button id="zapSvSalvar" aria-label="Salvar na galeria"></button><button id="zapSvFechar" aria-label="Fechar">✕</button></div>
   <div class="zap-sv-conteudo" id="zapSvConteudo"></div>
   <div class="zap-sv-legenda" id="zapSvLegenda"></div>
   <div class="zap-sv-tras" id="zapSvTras"></div><div class="zap-sv-frente" id="zapSvFrente"></div>
@@ -888,7 +1018,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 41;
+const APP_VERSAO = 42;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -988,7 +1118,7 @@ let aba = 'radio', naoLidas = 0, chatCarregado = false, ultimoChat = null;
 let adminUid = null, versaoRemota = 0, attPronta = 0;
 let souMudo = false, saindo = false, infoCanal = null;
 let mudos = {}, banidos = {}, onlineAtual = {};
-let ZAP = { fotos: {}, vigiados: {}, modoStatus: false, statusLista: [], statusVistos: {}, sv: null, iniciado: false, base: '', conectado: false, conversas: [], presencas: {}, jid: null, nome: '', grupo: false, assinatura: '', busca: '', es: null, tStatus: null, telaPareamento: false, camera: false, gravando: false, rec: null, partes: [], cancelou: false, t0: 0, timer: null, limite: null, audio: null, audioBt: null };
+let ZAP = { vistos: {}, silenciadas: {}, cfg: {}, ver: null, ed: null, focoTO: null, fotos: {}, vigiados: {}, modoStatus: false, statusLista: [], statusVistos: {}, sv: null, iniciado: false, base: '', conectado: false, conversas: [], presencas: {}, jid: null, nome: '', grupo: false, assinatura: '', busca: '', es: null, tStatus: null, telaPareamento: false, camera: false, gravando: false, rec: null, partes: [], cancelou: false, t0: 0, timer: null, limite: null, audio: null, audioBt: null };
 const falandoAgora = {};
 const cfgLocal = {
   vol:     parseFloat(LS.get('radinho_vol') || '1'),
@@ -1054,6 +1184,14 @@ let mutadosLocal = {};
 try{ mutadosLocal = JSON.parse(LS.get('radinho_mutlocal') || '{}') || {}; }catch(e){}
 const agora = () => Date.now() + offset;
 const ICONES = {
+  eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  eyeOff:'<path d="M3 3l18 18"/><path d="M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6A17.4 17.4 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+  pincel:'<path d="M18.4 2.6a2 2 0 0 1 2.9 2.9L11 15.8l-3.8.9.9-3.8z"/><path d="M7 17c-2 0-3 1.5-3 3.5V21h.5C6.5 21 8 20 8 18"/>',
+  girar:'<path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/>',
+  cortar:'<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',
+  letra:'<path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/>',
+  desfazer:'<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
+  baixar:'<path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/>',
   zap:'<path d="M12 3.2a8.8 8.8 0 0 0-7.6 13.2L3.2 20.8l4.5-1.2A8.8 8.8 0 1 0 12 3.2z"/><path d="M13.4 6.8 9.2 12.6h3.2l-1.6 4.6 4.4-6.1h-3.2z" fill="currentColor" stroke="none"/>',
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   radio:'<rect x="3" y="8" width="18" height="13" rx="3"/><path d="M7 8 17 3"/><circle cx="15.5" cy="14.5" r="2.6"/><path d="M6.5 13h3M6.5 16h3"/>',
@@ -1329,6 +1467,7 @@ function mudarAba(a){
   $('pRadio').hidden = a !== 'radio';
   $('pChat').hidden  = a !== 'chat';
   if ($('abaZap')){ $('abaZap').classList.toggle('ativa', a === 'zap'); $('pZap').hidden = a !== 'zap'; }
+  if (ZAP.iniciado) zapFoco();
   if (a === 'zap'){ zapPost('/api/atualizar').catch(() => {}); zapAtualizarStatus(); if (ZAP.jid) zapCarregarMensagens(); else zapCarregarLista(); }
   else if (ZAP.gravando) zapPararAudio(true);
   if (a === 'chat'){ naoLidas = 0; if (dmCom) marcarDmLida(dmCom.id); atualizarBadge(); rolarFim(true); }
@@ -3312,6 +3451,18 @@ async function zapPost(c, corpo){
 }
 const zapJ = jid => encodeURIComponent(jid);
 
+// tocou na notificação: abre a conversa
+function zapAbrirPendente(){
+  let jid = '';
+  try{ if (typeof ChatSlimNativo.conversaPendente === 'function') jid = ChatSlimNativo.conversaPendente(); }catch(e){}
+  if (!jid) return;
+  if (aba !== 'zap') mudarAba('zap');
+  const abrir = () => {
+    const c = ZAP.conversas.find(x => x.jid === jid);
+    zapAbrirConversa(c || { jid, nome_exibicao: jid.split('@')[0], eh_grupo: jid.endsWith('@g.us') ? 1 : 0 });
+  };
+  if (ZAP.conversas.length) abrir(); else zapCarregarLista().then(abrir);
+}
 function zapIniciar(){
   if (ZAP.iniciado || !temZap()) return;
   ZAP.iniciado = true;
@@ -3326,7 +3477,7 @@ function zapIniciar(){
   $('zapVoltar').setAttribute('aria-label', 'Voltar pras conversas');
   $('zapVoltar').onclick = zapFecharConversa;
   $('zapBusca').oninput = () => { ZAP.busca = $('zapBusca').value.trim().toLowerCase(); zapRenderLista(); };
-  $('zapStatusBtn').onclick = () => { ZAP.modoStatus = !ZAP.modoStatus; $('zapBusca').value = ''; ZAP.busca = ''; zapRenderLista(); if (ZAP.modoStatus) zapCarregarStatus(); };
+  $('zapStatusBtn').onclick = () => { ZAP.modoStatus = !ZAP.modoStatus; $('zapBusca').value = ''; ZAP.busca = ''; $('zapStAcoes').hidden = !ZAP.modoStatus; $('zapNovo').hidden = ZAP.modoStatus; zapRenderLista(); if (ZAP.modoStatus) zapCarregarStatus(); };
   $('zapMsgs').addEventListener('scroll', () => { const b = $('zapMsgs'); $('zapDescer').hidden = b.scrollHeight - b.scrollTop - b.clientHeight < 300; });
   $('zapDescer').onclick = () => { const b = $('zapMsgs'); b.scrollTo({ top: b.scrollHeight, behavior: 'smooth' }); };
   $('zapNovo').onclick = zapAbrirNovo;
@@ -3336,8 +3487,16 @@ function zapIniciar(){
   $('zapSincBtn').innerHTML = ic('refresh') + '<span>Sincronizar contatos do WhatsApp</span>';
   $('zapSincBtn').onclick = zapSincronizarContatos;
   $('zapNovoNum').addEventListener('keydown', e => { if (e.key === 'Enter') zapNovoPorNumero(); });
-  $('zapVigiarBtn').onclick = zapAlternarVigia;
-  $('zapApagarBtn').onclick = () => { if (ZAP.jid) zapConfirmarApagar(ZAP.jid, ZAP.nome); };
+  $('zapQuem').onclick = () => { if (ZAP.jid) zapAbrirPerfil(ZAP.jid); };
+  $('zapMenuBtn').innerHTML = ic('more'); $('zapMenuBtn').onclick = zapMenu;
+  $('zapPostTexto').innerHTML = ic('edit') + '<span>Status de texto</span>'; $('zapPostTexto').onclick = () => zapEditorTexto();
+  $('zapPostFoto').innerHTML = ic('camera') + '<span>Foto ou vídeo</span>'; $('zapPostFoto').onclick = () => { $('zapInStatus').value = ''; $('zapInStatus').click(); };
+  $('zapInStatus').onchange = e => { const f = e.target.files && e.target.files[0]; if (!f) return; if (/^video\//.test(f.type)) zapPostarVideo(f); else zapEditorImagem(f); };
+  $('zapVerFechar').onclick = zapFecharVer;
+  $('zapVerSalvar').innerHTML = ic('baixar'); $('zapVerSalvar').onclick = () => zapSalvarAtual();
+  $('zapSvSalvar').innerHTML = ic('baixar'); $('zapSvSalvar').onclick = zapSalvarStatusAtual;
+  zapCarregarConfig();
+  setInterval(() => { if (document.visibilityState === 'visible' && aba === 'zap') zapFoco(); }, 45000);
   $('zapSvFechar').onclick = zapFecharStatus;
   $('zapSvTras').onclick = () => zapStatusPasso(-1);
   $('zapSvFrente').onclick = () => zapStatusPasso(1);
@@ -3360,6 +3519,7 @@ function zapIniciar(){
   zapIconeEnviar();
   zapConectarEventos();
   zapAtualizarStatus();
+  setTimeout(zapAbrirPendente, 600);
 }
 
 /* ---------- conexão com o motor ---------- */
@@ -3385,6 +3545,7 @@ function zapConectarEventos(){
     else if (e.tipo === 'mensagem_apagada'){ if (ZAP.jid === e.conversaJid) zapCarregarMensagens(); }
     else if (e.tipo === 'presenca'){
       ZAP.presencas[e.jid] = e.status;
+      if (e.visto_em) ZAP.vistos[e.jid] = e.visto_em;
       if (ZAP.jid === e.jid) zapRenderPresenca();
       if (aba === 'zap' && !ZAP.jid) zapRenderLista();
     }
@@ -3484,7 +3645,7 @@ function zapRenderLista(){
     const previa = pr === 'digitando' ? '<i class="zap-dig">digitando...</i>' : pr === 'gravando' ? '<i class="zap-dig">gravando áudio...</i>' : esc(String(c.ultima_mensagem_texto || '').slice(0, 60));
     li.innerHTML = zapAvatar(c.jid, c.nome_exibicao, c.eh_grupo, on) +
       '<div><b>' + esc(c.nome_exibicao) + (ZAP.vigiados[c.jid] ? ' ' + icp('bell', 12) : '') + '</b><small>' + previa + '</small></div>' +
-      '<span class="zap-hr">' + (c.ultima_mensagem_ts ? zapQuando(c.ultima_mensagem_ts) : '') + '</span>' +
+      '<span class="zap-hr">' + (c.silenciada ? icp('bellOff', 12) + ' ' : '') + (c.ultima_mensagem_ts ? zapQuando(c.ultima_mensagem_ts) : '') + '</span>' +
       (c.nao_lidas ? '<span class="nlida">' + c.nao_lidas + '</span>' : '');
     li.onclick = () => { if (li.dataset.segurou){ delete li.dataset.segurou; return; } zapAbrirConversa(c); };
     zapSegurar(li, () => zapConfirmarApagar(c.jid, c.nome_exibicao));
@@ -3567,19 +3728,20 @@ function zapRenderVigia(){
   b.classList.toggle('zap-ib-on', on);
   b.hidden = !ZAP.jid || ZAP.grupo;
 }
-function zapAlternarVigia(){
+function zapAlternarVigia(depois){
   const jid = ZAP.jid, nomeC = ZAP.nome; if (!jid) return;
   const ligar = !ZAP.vigiados[jid];
   const aplicar = async () => {
     try{
       await zapPost('/api/vigiados/' + zapJ(jid), { ligar });
       if (ligar) ZAP.vigiados[jid] = true; else delete ZAP.vigiados[jid];
-      zapRenderVigia(); zapRenderLista();
+      zapRenderLista();
+      if (depois) depois();
       aviso(ligar ? 'Vou te avisar quando ' + nomeC + ' ficar online.' : 'Aviso de online desligado pra ' + nomeC + '.', 4000);
     }catch(e){ aviso('Não deu: ' + e.message, 4000); }
   };
   if (!ligar || Object.keys(ZAP.vigiados).length) return aplicar();
-  folha('Avisar quando ficar online', 'Regra do próprio WhatsApp: ele só mostra quem está online se o SEU online também estiver visível. Enquanto tiver pelo menos uma pessoa com aviso ligado, você aparece online pros seus contatos. Desligando todos os avisos, você volta a ficar escondido.', [
+  folha('Avisar quando ficar online', 'Regra do próprio WhatsApp: ele só mostra quem está online se o SEU online também estiver visível. Enquanto tiver pelo menos uma pessoa com aviso ligado, você aparece online pros seus contatos. Desligando todos os avisos, você volta a ficar escondido quando sair do Zap.', [
     { ic: 'bell', txt: 'Ligar aviso pra ' + nomeC, fn: aplicar },
     { ic: 'x', txt: 'Cancelar', fn: () => {} }
   ]);
@@ -3611,7 +3773,7 @@ function zapStatusNovos(a){ return a.itens.filter(x => !ZAP.statusVistos[x.id]).
 function zapRenderBotaoStatus(){
   const b = $('zapStatusBtn'); if (!b) return;
   if (ZAP.modoStatus){ b.innerHTML = ic('chat') + '<span>Voltar pras conversas</span>'; return; }
-  const novos = ZAP.statusLista.filter(a => zapStatusNovos(a) > 0).length;
+  const novos = ZAP.statusLista.filter(a => !a.meu && !a.silenciado && zapStatusNovos(a) > 0).length;
   b.innerHTML = ic('image') + '<span>Status' + (ZAP.statusLista.length ? ' • ' + ZAP.statusLista.length + ' contato' + (ZAP.statusLista.length > 1 ? 's' : '') : '') + '</span>' +
     (novos ? '<span class="nlida">' + novos + '</span>' : '');
 }
@@ -3621,28 +3783,45 @@ function zapRenderListaStatus(){
   let l = ZAP.statusLista;
   if (ZAP.busca) l = l.filter(a => String(a.nome || '').toLowerCase().includes(ZAP.busca));
   ul.innerHTML = '';
-  if (!l.length){ ul.innerHTML = '<li class="vz" style="cursor:default">' + (ZAP.busca ? 'Ninguém com esse nome.' : 'Nenhum status nas últimas 24 horas. Os status que seus contatos postarem aparecem aqui.') + '</li>'; return; }
-  const novos = l.filter(a => zapStatusNovos(a) > 0), vistos = l.filter(a => zapStatusNovos(a) === 0);
-  const secao = (t) => { const h = document.createElement('li'); h.style.cssText = 'background:none;border:0;padding:6px 2px 2px;cursor:default'; h.innerHTML = '<span class="sep-cont">' + t + '</span>'; ul.appendChild(h); };
+  const meu = l.find(a => a.meu);
+  const outros = l.filter(a => !a.meu);
+  if (!outros.length && !meu){ ul.innerHTML = '<li class="vz" style="cursor:default">' + (ZAP.busca ? 'Ninguém com esse nome.' : 'Nenhum status nas últimas 24 horas. Os status dos seus contatos aparecem aqui.') + '</li>'; return; }
+  const secao = (t) => { const h = document.createElement('li'); h.className = 'zap-sec'; h.innerHTML = '<span class="sep-cont">' + t + '</span>'; ul.appendChild(h); };
   const item = (a) => {
     const li = document.createElement('li');
-    const n = zapStatusNovos(a);
-    li.innerHTML = '<span class="zap-anel-av' + (n ? '' : ' visto') + '">' + zapAvatar(a.autor_jid, a.nome, false, false) + '</span><div><b>' + esc(a.nome) + '</b><small>' + a.itens.length + ' status • ' + zapQuando(a.ultimo_ts) + '</small></div>' + (n ? '<span class="nlida">' + n + '</span>' : '');
-    li.onclick = () => zapAbrirStatus(a.autor_jid);
+    const n = a.meu || a.silenciado ? 0 : zapStatusNovos(a);
+    li.innerHTML = '<span class="zap-anel-av' + (n ? '' : ' visto') + '">' + zapAvatar(a.meu ? 'eu' : a.autor_jid, a.meu ? 'Eu' : a.nome, false, false) + '</span><div><b>' + esc(a.nome) + '</b><small>' + a.itens.length + ' status • ' + zapQuando(a.ultimo_ts) + '</small></div>' + (n ? '<span class="nlida">' + n + '</span>' : '');
+    li.onclick = () => { if (li.dataset.segurou){ delete li.dataset.segurou; return; } zapAbrirStatus(a.autor_jid); };
+    if (!a.meu) zapSegurar(li, () => folha(a.nome, '', [
+      { ic: a.silenciado ? 'bell' : 'bellOff', txt: a.silenciado ? 'Tirar do silenciado' : 'Silenciar status', fn: async () => {
+        try{ await zapPost('/api/status-silenciar/' + zapJ(a.autor_jid), { ligar: !a.silenciado }); zapCarregarStatus(); }catch(e){ aviso(e.message); } } },
+      { ic: 'x', txt: 'Cancelar', fn: () => {} }
+    ]));
     ul.appendChild(li);
   };
-  if (novos.length){ secao('NOVOS'); novos.forEach(item); }
+  if (meu){ secao('MEU STATUS'); item(meu); }
+  const ativos = outros.filter(a => !a.silenciado), sil = outros.filter(a => a.silenciado);
+  const novos = ativos.filter(a => zapStatusNovos(a) > 0), vistos = ativos.filter(a => zapStatusNovos(a) === 0);
+  if (novos.length){ secao('RECENTES'); novos.forEach(item); }
   if (vistos.length){ secao('JÁ VISTOS'); vistos.forEach(item); }
+  if (sil.length){ secao('SILENCIADOS'); sil.forEach(item); }
   zapCarregarFotos(ul);
 }
 function zapAbrirStatus(autor){
-  const ordem = [...ZAP.statusLista.filter(a => zapStatusNovos(a) > 0), ...ZAP.statusLista.filter(a => zapStatusNovos(a) === 0)];
+  const cand = ZAP.statusLista.filter(a => a.autor_jid === autor || !a.meu);
+  const ordem = [...cand.filter(a => !a.silenciado && zapStatusNovos(a) > 0), ...cand.filter(a => !a.silenciado && zapStatusNovos(a) === 0), ...cand.filter(a => a.silenciado)];
   const ia = Math.max(0, ordem.findIndex(a => a.autor_jid === autor));
   const a = ordem[ia];
   const primeiroNovo = a.itens.findIndex(x => !ZAP.statusVistos[x.id]);
   ZAP.sv = { ordem, ia, ii: primeiroNovo >= 0 ? primeiroNovo : 0, to: null, raf: null };
   $('zapSv').hidden = false;
   zapMostrarStatus();
+}
+function zapSalvarStatusAtual(){
+  const sv = ZAP.sv; if (!sv) return;
+  const a = sv.ordem[sv.ia], x = a.itens[sv.ii];
+  if (!x.midia_path) return;
+  zapSalvar(x.midia_path, 'Status_' + String(a.nome).replace(/\s+/g, '_') + '_' + x.id.slice(-6) + '.' + (x.tipo === 'video' ? 'mp4' : 'jpg'));
 }
 function zapFecharStatus(){
   if (!ZAP.sv) return;
@@ -3672,11 +3851,12 @@ function zapMostrarStatus(){
   $('zapSvBarras').innerHTML = a.itens.map((_, i) => '<i><b style="width:' + (i < sv.ii ? 100 : 0) + '%"></b></i>').join('');
   const barra = $('zapSvBarras').children[sv.ii].firstChild;
   const box = $('zapSvConteudo'), url = x.midia_path ? zapUrl('/midia/' + encodeURIComponent(x.midia_path)) : null;
+  $('zapSvSalvar').hidden = !url;
   $('zapSvLegenda').textContent = '';
   let dur = 6000;
   const animar = (ms) => { const t0 = performance.now(); const passo = (t) => { const f = Math.min(1, (t - t0) / ms); barra.style.width = (f * 100) + '%'; if (f < 1) sv.raf = requestAnimationFrame(passo); }; sv.raf = requestAnimationFrame(passo); sv.to = setTimeout(() => zapStatusPasso(1), ms); };
   if (x.tipo === 'video' && url){
-    box.innerHTML = '<video playsinline autoplay src="' + url + '"></video>';
+    box.innerHTML = '<video playsinline autoplay src="' + url + '" poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="></video>';
     $('zapSvLegenda').textContent = x.texto || '';
     const v = box.querySelector('video');
     v.onloadedmetadata = () => { if (ZAP.sv === sv) animar(Math.max(3000, (v.duration || 10) * 1000)); };
@@ -3690,7 +3870,7 @@ function zapMostrarStatus(){
     box.innerHTML = '<audio autoplay src="' + url + '"></audio><div class="zap-sv-texto">🎤 Status de áudio</div>';
     dur = 15000;
   } else if (x.tipo === 'texto'){
-    box.innerHTML = '<div class="zap-sv-texto" style="background:' + (x.cor_fundo || '#1f6a45') + '">' + esc(x.texto) + '</div>';
+    box.innerHTML = '<div class="zap-sv-texto" style="background:' + (x.cor_fundo || '#1f6a45') + ';color:' + (x.cor_texto || '#fff') + ';font-family:' + zapFonteCss(x.fonte) + '">' + esc(x.texto) + '</div>';
   } else {
     box.innerHTML = '<div class="zap-sv-texto">Esse status não pôde ser baixado.</div>';
     $('zapSvLegenda').textContent = x.texto || '';
@@ -3750,36 +3930,430 @@ function zapIniciarCom(jid, nomeC){
   setTimeout(() => $('zapIn').focus(), 200);
 }
 
+
+/* ---------- postar status ---------- */
+const ZAP_FONTES = [
+  { v: 0, n: 'Normal', css: 'system-ui, sans-serif' },
+  { v: 1, n: 'Clássica', css: 'Georgia, "Times New Roman", serif' },
+  { v: 2, n: 'Manuscrita', css: '"Dancing Script", "Brush Script MT", "Segoe Script", cursive' },
+  { v: 6, n: 'Forte', css: '"Arial Black", Impact, system-ui, sans-serif' },
+  { v: 10, n: 'Máquina', css: '"Courier New", Courier, monospace' },
+];
+const ZAP_CORES = ['#1f6a45', '#128c7e', '#25d366', '#3a33cc', '#5b2a86', '#c2185b', '#e53935', '#f57c00', '#f9a825', '#6d4c41', '#37474f', '#000000', '#ffffff'];
+function zapFonteCss(v){ const f = ZAP_FONTES.find(x => x.v === Number(v)); return f ? f.css : ZAP_FONTES[0].css; }
+function zapPaleta(id, atual, rotulo){
+  return '<div class="zap-ed-pal"><small>' + rotulo + '</small><div class="zap-ed-cores" id="' + id + '">' +
+    '<label class="zap-ed-mais" title="Qualquer cor"><input type="color" value="' + atual + '"><span>+</span></label>' +
+    ZAP_CORES.map(c => '<button data-c="' + c + '" style="background:' + c + '"' + (c === atual ? ' class="on"' : '') + '></button>').join('') +
+    '</div></div>';
+}
+function zapLigarPaleta(id, aoMudar){
+  const box = $(id);
+  const marcar = c => box.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === c));
+  box.querySelectorAll('button').forEach(b => b.onclick = () => { marcar(b.dataset.c); aoMudar(b.dataset.c); });
+  box.querySelector('input[type=color]').oninput = e => { marcar(null); aoMudar(e.target.value); };
+}
+function zapFecharEditor(){ $('zapEd').hidden = true; $('zapEd').innerHTML = ''; ZAP.ed = null; }
+
+function zapEditorTexto(){
+  const st = { fundo: '#1f6a45', cor: '#ffffff', fonte: 0 };
+  const ed = $('zapEd');
+  ed.innerHTML =
+    '<div class="zap-ed-topo"><button id="zapEdX" aria-label="Fechar">✕</button><b>Status de texto</b><span></span></div>' +
+    '<div class="zap-ed-tela" id="zapEdTela"><textarea id="zapEdTexto" maxlength="700" placeholder="Digite um status"></textarea></div>' +
+    '<div class="zap-ed-ferr">' +
+      zapPaleta('zapEdFundo', st.fundo, 'Fundo') +
+      zapPaleta('zapEdCor', st.cor, 'Letra') +
+      '<div class="zap-ed-pal"><small>Fonte</small><div class="zap-ed-fontes" id="zapEdFontes">' +
+        ZAP_FONTES.map(f => '<button data-f="' + f.v + '" style="font-family:' + f.css.replace(/"/g, '&quot;') + '"' + (f.v === 0 ? ' class="on"' : '') + '>' + f.n + '</button>').join('') +
+      '</div></div>' +
+      '<button class="btn zap-ed-enviar" id="zapEdEnviar">' + ic('send') + '<span>Publicar status</span></button>' +
+    '</div>';
+  ed.hidden = false;
+  const tela = $('zapEdTela'), tx = $('zapEdTexto');
+  const aplicar = () => { tela.style.background = st.fundo; tx.style.color = st.cor; tx.style.fontFamily = zapFonteCss(st.fonte); };
+  aplicar();
+  zapLigarPaleta('zapEdFundo', c => { st.fundo = c; aplicar(); });
+  zapLigarPaleta('zapEdCor', c => { st.cor = c; aplicar(); });
+  $('zapEdFontes').querySelectorAll('button').forEach(b => b.onclick = () => {
+    st.fonte = +b.dataset.f; $('zapEdFontes').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b)); aplicar();
+  });
+  const ajustar = () => {
+    const n = tx.value.length; tx.style.fontSize = (n < 40 ? 32 : n < 120 ? 26 : n < 250 ? 21 : 17) + 'px';
+    tx.style.height = 'auto'; tx.style.height = Math.min(tela.clientHeight - 20, tx.scrollHeight) + 'px';
+  };
+  tx.oninput = ajustar; ajustar();
+  setTimeout(() => tx.focus(), 150);
+  $('zapEdX').onclick = zapFecharEditor;
+  $('zapEdEnviar').onclick = async () => {
+    const texto = tx.value.trim();
+    if (!texto){ aviso('Escreva alguma coisa.'); return; }
+    const b = $('zapEdEnviar'); b.disabled = true;
+    try{ const r = await zapPost('/api/status/texto', { texto, fundo: st.fundo, cor: st.cor, fonte: st.fonte }); zapFecharEditor(); aviso('Status publicado (' + r.destinatarios + ' contatos).', 4000); zapCarregarStatus(); }
+    catch(e){ aviso('Não publicou: ' + e.message, 6000); b.disabled = false; }
+  };
+}
+
+function zapPostarVideo(file){
+  const url = URL.createObjectURL(file);
+  const ed = $('zapEd');
+  ed.innerHTML = '<div class="zap-ed-topo"><button id="zapEdX" aria-label="Fechar">✕</button><b>Status de vídeo</b><span></span></div>' +
+    '<div class="zap-ed-tela zap-ed-preta"><video src="' + url + '" controls playsinline poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="></video></div>' +
+    '<div class="zap-ed-ferr"><input class="zap-busca" id="zapEdLeg" maxlength="700" placeholder="Legenda (opcional)">' +
+    '<button class="btn zap-ed-enviar" id="zapEdEnviar">' + ic('send') + '<span>Publicar status</span></button></div>';
+  ed.hidden = false;
+  $('zapEdX').onclick = () => { URL.revokeObjectURL(url); zapFecharEditor(); };
+  $('zapEdEnviar').onclick = () => zapEnviarStatusArquivo(file, $('zapEdLeg').value, () => URL.revokeObjectURL(url));
+}
+async function zapEnviarStatusArquivo(blob, legenda, depois){
+  const b = $('zapEdEnviar'); if (b) b.disabled = true;
+  const fd = new FormData();
+  fd.append('arquivo', blob, blob.name || 'status.jpg');
+  fd.append('legenda', legenda || '');
+  aviso('Publicando...', 8000);
+  try{ const r = await zapPost('/api/status/midia', fd); if (depois) depois(); zapFecharEditor(); aviso('Status publicado (' + r.destinatarios + ' contatos).', 4000); zapCarregarStatus(); }
+  catch(e){ aviso('Não publicou: ' + e.message, 6000); if (b) b.disabled = false; }
+}
+
+/* editor de imagem: girar, cortar, desenhar, texto, desfazer */
+// caixinha de digitar (o prompt() do navegador não aparece em todo Android)
+function zapPerguntar(titulo, ok){
+  const d = document.createElement('div'); d.className = 'zap-perg';
+  d.innerHTML = '<div><b>' + esc(titulo) + '</b><input maxlength="80"><span><button class="btn sec">Cancelar</button><button class="btn">OK</button></span></div>';
+  $('zapEd').appendChild(d);
+  const inp = d.querySelector('input'), [bc, bo] = d.querySelectorAll('button');
+  const fim = v => { d.remove(); if (v) ok(v); };
+  bc.onclick = () => fim(null); bo.onclick = () => fim(inp.value.trim());
+  inp.onkeydown = e => { if (e.key === 'Enter') fim(inp.value.trim()); };
+  setTimeout(() => inp.focus(), 50);
+}
+function zapEditorImagem(file){
+  const url = URL.createObjectURL(file);
+  const im = new Image();
+  im.onload = () => zapMontarEditorImagem(im, url);
+  im.onerror = () => aviso('Não consegui abrir essa imagem.');
+  im.src = url;
+}
+function zapMontarEditorImagem(im, url){
+  const E = ZAP.ed = { im, url, rot: 0, crop: { x: 0, y: 0, w: 1, h: 1 }, tracos: [], textos: [], modo: 'desenhar', cor: '#ffffff', hist: [], arrastando: null };
+  const ed = $('zapEd');
+  ed.innerHTML =
+    '<div class="zap-ed-topo"><button id="zapEdX" aria-label="Fechar">✕</button><b>Editar foto</b><button id="zapEdDesf" aria-label="Desfazer">' + ic('desfazer') + '</button></div>' +
+    '<div class="zap-ed-tela zap-ed-preta" id="zapEdArea"><canvas id="zapEdCv"></canvas></div>' +
+    '<div class="zap-ed-ferr">' +
+      '<div class="zap-ed-modos" id="zapEdModos">' +
+        '<button data-m="desenhar" class="on">' + ic('pincel') + '<span>Desenhar</span></button>' +
+        '<button data-m="texto">' + ic('letra') + '<span>Texto</span></button>' +
+        '<button data-m="cortar">' + ic('cortar') + '<span>Cortar</span></button>' +
+        '<button data-m="girar">' + ic('girar') + '<span>Girar</span></button>' +
+      '</div>' +
+      zapPaleta('zapEdCorPincel', '#ffffff', 'Cor') +
+      '<input class="zap-busca" id="zapEdLeg" maxlength="700" placeholder="Legenda (opcional)">' +
+      '<button class="btn zap-ed-enviar" id="zapEdEnviar">' + ic('send') + '<span>Publicar status</span></button>' +
+    '</div>';
+  ed.hidden = false;
+  const cv = $('zapEdCv'), area = $('zapEdArea');
+  const guardar = () => { E.hist.push(JSON.stringify({ rot: E.rot, crop: E.crop, tracos: E.tracos, textos: E.textos })); if (E.hist.length > 40) E.hist.shift(); };
+  // imagem girada (cache)
+  const girada = () => {
+    if (E.cacheRot === E.rot && E.cache) return E.cache;
+    const c = document.createElement('canvas'), q = E.rot % 2 === 1;
+    const MAX = 2000, k = Math.min(1, MAX / Math.max(im.naturalWidth, im.naturalHeight));
+    const w = Math.round(im.naturalWidth * k), h = Math.round(im.naturalHeight * k);
+    c.width = q ? h : w; c.height = q ? w : h;
+    const g = c.getContext('2d');
+    g.translate(c.width / 2, c.height / 2); g.rotate(E.rot * Math.PI / 2); g.drawImage(im, -w / 2, -h / 2, w, h);
+    E.cache = c; E.cacheRot = E.rot; return c;
+  };
+  // desenha o resultado num canvas destino (tela ou final)
+  const pintar = (dest, larg, alt, mostrarCorte) => {
+    const src = girada(), g = dest.getContext('2d');
+    const cr = mostrarCorte ? { x: 0, y: 0, w: 1, h: 1 } : E.crop;
+    const sx = cr.x * src.width, sy = cr.y * src.height, sw = cr.w * src.width, sh = cr.h * src.height;
+    g.clearRect(0, 0, larg, alt);
+    g.drawImage(src, sx, sy, sw, sh, 0, 0, larg, alt);
+    const P = (x, y) => [(x - cr.x) / cr.w * larg, (y - cr.y) / cr.h * alt];
+    const esc_ = larg / (cr.w * src.width);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const t of E.tracos){
+      g.strokeStyle = t.cor; g.lineWidth = t.esp * src.width * esc_; g.beginPath();
+      t.pts.forEach((p, i) => { const [x, y] = P(p[0], p[1]); if (i) g.lineTo(x, y); else g.moveTo(x, y); }); g.stroke();
+    }
+    for (const t of E.textos){
+      const [x, y] = P(t.x, t.y), tam = t.tam * src.width * esc_;
+      g.font = '700 ' + tam + 'px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.lineWidth = Math.max(2, tam / 8); g.strokeStyle = t.cor === '#000000' ? 'rgba(255,255,255,.85)' : 'rgba(0,0,0,.65)';
+      g.strokeText(t.txt, x, y); g.fillStyle = t.cor; g.fillText(t.txt, x, y);
+    }
+    if (mostrarCorte){
+      const [x1, y1] = P(E.crop.x, E.crop.y), [x2, y2] = P(E.crop.x + E.crop.w, E.crop.y + E.crop.h);
+      g.fillStyle = 'rgba(0,0,0,.55)';
+      g.fillRect(0, 0, larg, y1); g.fillRect(0, y2, larg, alt - y2); g.fillRect(0, y1, x1, y2 - y1); g.fillRect(x2, y1, larg - x2, y2 - y1);
+      g.strokeStyle = '#fff'; g.lineWidth = 2; g.setLineDash([8, 6]); g.strokeRect(x1, y1, x2 - x1, y2 - y1); g.setLineDash([]);
+    }
+  };
+  const desenhar = () => {
+    const src = girada(), corte = E.modo === 'cortar';
+    const cr = corte ? { w: 1, h: 1 } : E.crop;
+    const pw = cr.w * src.width, ph = cr.h * src.height;
+    const k = Math.min(area.clientWidth / pw, area.clientHeight / ph);
+    const dpr = window.devicePixelRatio || 1;
+    cv.style.width = Math.round(pw * k) + 'px'; cv.style.height = Math.round(ph * k) + 'px';
+    cv.width = Math.round(pw * k * dpr); cv.height = Math.round(ph * k * dpr);
+    pintar(cv, cv.width, cv.height, corte);
+  };
+  // toque na tela → coordenadas normalizadas na imagem girada
+  const pos = ev => {
+    const r = cv.getBoundingClientRect(), cr = E.modo === 'cortar' ? { x: 0, y: 0, w: 1, h: 1 } : E.crop;
+    return [cr.x + (ev.clientX - r.left) / r.width * cr.w, cr.y + (ev.clientY - r.top) / r.height * cr.h];
+  };
+  cv.onpointerdown = ev => {
+    cv.setPointerCapture(ev.pointerId);
+    const p = pos(ev);
+    if (E.modo === 'desenhar'){ guardar(); E.tracos.push({ cor: E.cor, esp: 0.012, pts: [p] }); E.arrastando = 'traco'; }
+    else if (E.modo === 'cortar'){ guardar(); E.ini = p; E.arrastando = 'corte'; }
+    else if (E.modo === 'texto'){
+      const alvo = E.textos.findIndex(t => Math.abs(t.x - p[0]) < 0.12 && Math.abs(t.y - p[1]) < 0.05);
+      if (alvo >= 0){ guardar(); E.arrastando = { texto: alvo }; return; }
+      zapPerguntar('Texto pra colocar na foto', txt => { guardar(); E.textos.push({ txt, cor: E.cor, x: p[0], y: p[1], tam: 0.07 }); desenhar(); });
+    }
+  };
+  cv.onpointermove = ev => {
+    if (!E.arrastando) return;
+    const p = pos(ev);
+    if (E.arrastando === 'traco'){ E.tracos[E.tracos.length - 1].pts.push(p); desenhar(); }
+    else if (E.arrastando === 'corte'){
+      const x1 = Math.max(0, Math.min(E.ini[0], p[0])), y1 = Math.max(0, Math.min(E.ini[1], p[1]));
+      const x2 = Math.min(1, Math.max(E.ini[0], p[0])), y2 = Math.min(1, Math.max(E.ini[1], p[1]));
+      if (x2 - x1 > 0.05 && y2 - y1 > 0.05){ E.crop = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }; desenhar(); }
+    } else if (E.arrastando.texto !== undefined){ const t = E.textos[E.arrastando.texto]; t.x = p[0]; t.y = p[1]; desenhar(); }
+  };
+  cv.onpointerup = cv.onpointercancel = () => { E.arrastando = null; };
+  const girarPonto = q => [1 - q[1], q[0]];
+  $('zapEdModos').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const m = b.dataset.m;
+    if (m === 'girar'){
+      guardar();
+      E.rot = (E.rot + 1) % 4;
+      E.tracos.forEach(t => t.pts = t.pts.map(girarPonto));
+      E.textos.forEach(t => { const [x, y] = girarPonto([t.x, t.y]); t.x = x; t.y = y; });
+      const c = E.crop; E.crop = { x: 1 - c.y - c.h, y: c.x, w: c.h, h: c.w };
+      desenhar(); return;
+    }
+    E.modo = m;
+    $('zapEdModos').querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    if (m === 'cortar') aviso('Arraste o dedo pra marcar a área que fica. Toque em outra ferramenta pra confirmar.', 4000);
+    if (m === 'texto') aviso('Toque na foto pra escrever. Arraste um texto pra mudar de lugar.', 4000);
+    desenhar();
+  });
+  zapLigarPaleta('zapEdCorPincel', c => { E.cor = c; });
+  $('zapEdDesf').onclick = () => { const h = E.hist.pop(); if (!h) return; const o = JSON.parse(h); if (o.rot !== E.rot) E.cache = null; Object.assign(E, o); desenhar(); };
+  $('zapEdX').onclick = () => { URL.revokeObjectURL(url); zapFecharEditor(); };
+  $('zapEdEnviar').onclick = () => {
+    const src = girada(), w = Math.round(E.crop.w * src.width), h = Math.round(E.crop.h * src.height);
+    const k = Math.min(1, 1600 / Math.max(w, h));
+    const out = document.createElement('canvas'); out.width = Math.round(w * k); out.height = Math.round(h * k);
+    pintar(out, out.width, out.height, false);
+    out.toBlob(b => { if (!b){ aviso('Não consegui gerar a imagem.'); return; } b.name = 'status.jpg'; zapEnviarStatusArquivo(b, $('zapEdLeg').value, () => URL.revokeObjectURL(url)); }, 'image/jpeg', 0.9);
+  };
+  requestAnimationFrame(desenhar);
+  E.aoRedimensionar = () => desenhar();
+  window.addEventListener('resize', E.aoRedimensionar, { once: true });
+}
+
 /* ---------- conversa ---------- */
 function zapAbrirConversa(c){
-  ZAP.modoStatus = false;
+  ZAP.modoStatus = false; $('zapStAcoes').hidden = true; $('zapNovo').hidden = false;
+  zapFecharPerfil();
   ZAP.jid = c.jid; ZAP.nome = c.nome_exibicao; ZAP.grupo = !!c.eh_grupo; ZAP.assinatura = '';
   $('zapListaBox').hidden = true;
   $('zapBar').hidden = false; $('zapMsgs').hidden = false; $('zapCompor').hidden = false;
   $('zapNome').textContent = c.nome_exibicao;
   $('zapBarAv').innerHTML = zapAvatar(c.jid, c.nome_exibicao, c.eh_grupo, false);
   zapCarregarFotos($('zapBarAv'));
-  zapRenderVigia();
   $('zapMsgs').innerHTML = '<div class="vazio">Carregando...</div>';
   zapRenderPresenca();
   zapCarregarMensagens(true);
+  zapFoco();
   zapPost('/api/conversas/' + zapJ(c.jid) + '/lidas').then(zapCarregarLista).catch(() => {});
-  if (!ZAP.grupo) zapGet('/api/presenca/' + zapJ(c.jid)).then(p => { if (p && p.status){ ZAP.presencas[c.jid] = p.status; zapRenderPresenca(); } }).catch(() => {});
+  if (!ZAP.grupo) zapGet('/api/presenca/' + zapJ(c.jid)).then(p => {
+    if (p && p.status) ZAP.presencas[c.jid] = p.status;
+    if (p && p.visto_em) ZAP.vistos[c.jid] = p.visto_em;
+    zapRenderPresenca();
+  }).catch(() => {});
 }
 function zapFecharConversa(){
   if (ZAP.gravando) zapPararAudio(true);
   zapPararTocar();
+  zapFecharPerfil();
   ZAP.jid = null;
   $('zapDescer').hidden = true;
   $('zapBar').hidden = true; $('zapMsgs').hidden = true; $('zapCompor').hidden = true;
   $('zapListaBox').hidden = !ZAP.conectado;
+  zapFoco();
   zapRenderLista();
 }
-function zapRenderPresenca(){
-  const st = ZAP.presencas[ZAP.jid];
-  const txt = ZAP.grupo ? 'grupo' : st === 'online' ? 'online' : st === 'digitando' ? 'digitando...' : st === 'gravando' ? 'gravando áudio...' : '';
-  $('zapSt').textContent = txt;
+function zapVistoTexto(ts){
+  if (!ts) return '';
+  const d = new Date(ts), h = new Date(), hh = hora(ts);
+  if (d.toDateString() === h.toDateString()) return 'visto por último hoje às ' + hh;
+  const ontem = new Date(h); ontem.setDate(h.getDate() - 1);
+  if (d.toDateString() === ontem.toDateString()) return 'visto por último ontem às ' + hh;
+  return 'visto por último em ' + String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + ' às ' + hh;
 }
+function zapTextoPresenca(jid){
+  const st = ZAP.presencas[jid];
+  if (st === 'online') return 'online';
+  if (st === 'digitando') return 'digitando...';
+  if (st === 'gravando') return 'gravando áudio...';
+  return zapVistoTexto(ZAP.vistos[jid]);
+}
+function zapRenderPresenca(){
+  const txt = ZAP.grupo ? 'toque pra ver os participantes' : (zapTextoPresenca(ZAP.jid) || 'toque pra ver o perfil');
+  $('zapSt').textContent = txt;
+  $('zapSt').classList.toggle('zap-on-txt', !ZAP.grupo && ['online', 'digitando', 'gravando'].includes(ZAP.presencas[ZAP.jid]));
+}
+
+/* ---------- avisar o motor do que está aberto (online, notificação e lidas) ---------- */
+function zapFoco(){
+  if (!ZAP.iniciado) return;
+  const visivel = document.visibilityState === 'visible' && aba === 'zap';
+  zapPost('/api/foco', { visivel, jid: visivel ? ZAP.jid : null }).catch(() => {});
+}
+
+/* ---------- configurações do Zap ---------- */
+async function zapCarregarConfig(){ try{ ZAP.cfg = await zapGet('/api/config') || {}; }catch(e){} }
+function zapMenu(){
+  const esc_ = !!ZAP.cfg.esconder_online;
+  folha('Zap', '', [
+    { ic: 'refresh', txt: 'Sincronizar contatos do WhatsApp', fn: () => { zapAbrirNovo(); setTimeout(zapSincronizarContatos, 300); } },
+    { ic: esc_ ? 'eye' : 'eyeOff', txt: esc_ ? 'Mostrar meu online' : 'Esconder meu online', fn: () => zapAlternarEsconder(!esc_) },
+  ]);
+}
+function zapAlternarEsconder(ligar){
+  const aplicar = async () => {
+    try{ ZAP.cfg = await zapPost('/api/config', { esconder_online: ligar }); aviso(ligar ? 'Seu online está escondido. (Regra do WhatsApp: assim você também não vê o online dos outros.)' : 'Você aparece online enquanto estiver usando o Zap.', 6000); }
+    catch(e){ aviso('Não deu: ' + e.message, 4000); }
+  };
+  if (!ligar) return aplicar();
+  folha('Esconder meu online', 'Ninguém vai ver você online pelo Zap. Mas o WhatsApp tem uma regra: quem esconde o próprio online também não vê o online dos outros — nem recebe o aviso de online.', [
+    { ic: 'eyeOff', txt: 'Esconder mesmo assim', fn: aplicar },
+    { ic: 'x', txt: 'Cancelar', fn: () => {} }
+  ]);
+}
+
+/* ---------- perfil (tocar no nome) ---------- */
+async function zapAbrirPerfil(jid){
+  const box = $('zapPerfil');
+  box.hidden = false; $('zapBar').hidden = true; $('zapMsgs').hidden = true; $('zapCompor').hidden = true; $('zapDescer').hidden = true;
+  box.innerHTML = '<div class="vazio" style="margin-top:40px">Carregando perfil...</div>';
+  let p;
+  try{ p = await zapGet('/api/perfil/' + zapJ(jid)); }catch(e){ box.innerHTML = '<div class="vazio">Não carregou: ' + esc(e.message) + '</div>'; return; }
+  if (ZAP.jid !== jid || box.hidden) return;
+  ZAP.perfil = p;
+  if (p.presenca && p.presenca.visto_em) ZAP.vistos[jid] = p.presenca.visto_em;
+  const foto = p.foto ? zapUrl('/midia/' + p.foto) : null;
+  const sub = p.grupo ? 'Grupo • ' + ((p.participantes || []).length) + ' participantes' : (p.numero || 'contato do WhatsApp');
+  const pres = p.grupo ? '' : zapTextoPresenca(jid);
+  const linha = (ico, txt, id, on) => '<button class="zap-pf-linha" id="' + id + '">' + ic(ico) + '<span>' + txt + '</span>' + (on === undefined ? '' : '<i class="zap-chave' + (on ? ' on' : '') + '"></i>') + '</button>';
+  let h = '<div class="zap-pf-topo"><button class="zap-pf-voltar" id="zapPfVoltar" aria-label="Voltar">‹</button><span>' + (p.grupo ? 'Dados do grupo' : 'Dados do contato') + '</span></div>' +
+    '<div class="zap-pf-cab">' +
+      '<div class="zap-pf-foto" id="zapPfFoto" style="background-color:' + corDe(jid) + (foto ? ';background-image:url(' + foto + ')' : '') + '">' + (foto ? '' : (p.grupo ? icp('users', 44) : esc(zapIniciais(p.nome)))) + '</div>' +
+      '<b class="zap-pf-nome">' + esc(p.grupo ? (p.assunto || p.nome) : p.nome) + '</b>' +
+      '<small class="zap-pf-sub">' + esc(sub) + '</small>' +
+      (pres ? '<small class="zap-pf-pres' + (pres === 'online' ? ' on' : '') + '">' + esc(pres) + '</small>' : '') +
+    '</div>';
+  if (!p.grupo && (p.recado || (p.nomes && p.nomes.perfil && p.nomes.perfil !== p.nome))){
+    h += '<div class="zap-pf-bloco">' +
+      (p.recado ? '<small>Recado</small><div>' + esc(p.recado) + '</div>' : '') +
+      (p.nomes && p.nomes.perfil && p.nomes.perfil !== p.nome ? '<small>Nome no perfil</small><div>~' + esc(p.nomes.perfil) + '</div>' : '') +
+    '</div>';
+  }
+  if (p.grupo && p.descricao) h += '<div class="zap-pf-bloco"><small>Descrição</small><div>' + esc(p.descricao) + '</div></div>';
+  if (p.midias && p.midias.length){
+    h += '<div class="zap-pf-bloco"><small>Mídias</small><div class="zap-pf-midias">' + p.midias.map((m, i) => {
+      const u = zapUrl('/midia/' + (m.midia_thumb || m.midia_path));
+      return '<button data-i="' + i + '" style="background-image:url(' + u + ')">' + (m.tipo === 'video' ? '<i>▶</i>' : '') + '</button>';
+    }).join('') + '</div></div>';
+  }
+  h += '<div class="zap-pf-bloco zap-pf-acoes">' +
+    linha('bellOff', 'Silenciar notificações', 'zapPfSil', !!p.silenciada) +
+    (p.grupo ? '' : linha('bell', 'Avisar quando ficar online', 'zapPfVig', !!p.vigiado)) +
+    (p.grupo ? '' : linha('image', 'Silenciar status', 'zapPfStSil', !!p.status_silenciado)) +
+    (foto ? linha('baixar', 'Salvar foto de perfil (alta qualidade)', 'zapPfFotoHd') : '') +
+  '</div>';
+  if (p.grupo && p.participantes){
+    h += '<div class="zap-pf-bloco"><small>Participantes</small><ul class="contas zap-pf-part">' + p.participantes.map(x =>
+      '<li data-jid="' + esc(x.jid) + '">' + zapAvatar(x.jid, x.nome, false, false) + '<div><b>' + esc(x.nome) + '</b>' + (x.admin ? '<small>admin do grupo</small>' : '') + '</div></li>').join('') + '</ul></div>';
+  }
+  h += '<div class="zap-pf-bloco">' + linha('trash', 'Apagar conversa', 'zapPfApagar') + '</div>';
+  box.innerHTML = h;
+  zapCarregarFotos(box);
+  $('zapPfVoltar').onclick = zapFecharPerfil;
+  $('zapPfFoto').onclick = () => zapVerFotoPerfil(jid, p.nome);
+  const fhd = $('zapPfFotoHd'); if (fhd) fhd.onclick = () => zapVerFotoPerfil(jid, p.nome);
+  $('zapPfSil').onclick = async () => {
+    const ligar = !p.silenciada;
+    try{ await zapPost('/api/conversas/' + zapJ(jid) + '/silenciar', { ligar }); p.silenciada = ligar; $('zapPfSil').querySelector('.zap-chave').classList.toggle('on', ligar); aviso(ligar ? 'Conversa silenciada: sem notificação.' : 'Notificações ligadas de novo.'); zapCarregarLista(); }
+    catch(e){ aviso('Não deu: ' + e.message); }
+  };
+  const vg = $('zapPfVig'); if (vg) vg.onclick = () => zapAlternarVigia(() => { p.vigiado = !!ZAP.vigiados[jid]; vg.querySelector('.zap-chave').classList.toggle('on', p.vigiado); });
+  const ss = $('zapPfStSil'); if (ss) ss.onclick = async () => {
+    const ligar = !p.status_silenciado;
+    try{ await zapPost('/api/status-silenciar/' + zapJ(jid), { ligar }); p.status_silenciado = ligar; ss.querySelector('.zap-chave').classList.toggle('on', ligar); aviso(ligar ? 'Os status dessa pessoa vão pra "Silenciados".' : 'Status dessa pessoa voltam a aparecer normal.'); zapCarregarStatus(); }
+    catch(e){ aviso('Não deu: ' + e.message); }
+  };
+  $('zapPfApagar').onclick = () => zapConfirmarApagar(jid, p.nome);
+  box.querySelectorAll('.zap-pf-midias button').forEach(b => b.onclick = () => {
+    const m = p.midias[+b.dataset.i];
+    if (m.midia_path) zapAbrirVer(m.tipo, zapUrl('/midia/' + m.midia_path), m.midia_path, p.nome);
+    else aviso('Toque na mídia dentro da conversa pra baixar.');
+  });
+  box.querySelectorAll('.zap-pf-part li').forEach(li => li.onclick = () => {
+    const j = li.dataset.jid; const nomeP = li.querySelector('b').textContent;
+    zapIniciarCom(j, nomeP);
+  });
+}
+function zapFecharPerfil(){
+  const box = $('zapPerfil'); if (!box || box.hidden) return;
+  box.hidden = true; box.innerHTML = '';
+  if (ZAP.jid){ $('zapBar').hidden = false; $('zapMsgs').hidden = false; $('zapCompor').hidden = false; }
+}
+async function zapVerFotoPerfil(jid, nomeP){
+  aviso('Carregando foto em alta qualidade...', 3000);
+  try{
+    const r = await zapGet('/api/foto-hd/' + zapJ(jid));
+    zapAbrirVer('imagem', zapUrl('/midia/' + r.foto), r.foto.split('?')[0], nomeP, 'Foto_' + String(nomeP || 'perfil').replace(/\s+/g, '_') + '.jpg');
+  }catch(e){ aviso(e.message, 5000); }
+}
+
+/* ---------- ver foto/vídeo em tela cheia (com salvar) ---------- */
+function zapAbrirVer(tipo, url, caminho, titulo, nomeArq){
+  ZAP.ver = { caminho, nomeArq: nomeArq || null };
+  $('zapVerTit').textContent = titulo || '';
+  $('zapVerMeio').innerHTML = tipo === 'video'
+    ? '<video src="' + url + '" controls autoplay playsinline poster="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=="></video>'
+    : '<img src="' + url + '" alt="">';
+  $('zapVer').hidden = false;
+}
+function zapFecharVer(){
+  const v = $('zapVerMeio').querySelector('video'); if (v) try{ v.pause(); }catch(e){}
+  $('zapVerMeio').innerHTML = ''; $('zapVer').hidden = true; ZAP.ver = null;
+}
+function zapSalvar(caminho, nomeArq){
+  if (!caminho) return;
+  if (!window.ChatSlimNativo || typeof ChatSlimNativo.salvar !== 'function'){ aviso('Pra salvar na galeria, instale o APK novo do Radinho.', 5000); return; }
+  aviso('Salvando...', 2000);
+  setTimeout(() => {
+    let r = 'erro';
+    try{ r = ChatSlimNativo.salvar(String(caminho).split('?')[0], nomeArq || ''); }catch(e){ r = 'erro: ' + e.message; }
+    if (r === 'ok') aviso('Salvo na galeria (pasta Zap).', 3500);
+    else if (r === 'permissao') aviso('Libere o acesso à galeria e toque em salvar de novo.', 5000);
+    else aviso('Não salvou: ' + r, 5000);
+  }, 50);
+}
+function zapSalvarAtual(){ if (ZAP.ver) zapSalvar(ZAP.ver.caminho, ZAP.ver.nomeArq); }
+
 async function zapCarregarMensagens(primeira){
   const jid = ZAP.jid; if (!jid) return;
   let l;
@@ -3821,29 +4395,51 @@ function zapDia(ts){
 }
 function zapBolha(m, cont){
   const el = document.createElement('div');
-  el.className = 'bolha' + (m.de_mim ? ' minha' : '') + (cont ? ' cont' : '') + (m.apagada_pelo_remetente ? ' zap-apagada' : '');
+  el.className = 'bolha' + (m.de_mim ? ' minha' : '') + (cont ? ' cont' : '');
+  el.dataset.id = m.id;
   const url = m.midia_path ? zapUrl('/midia/' + encodeURIComponent(m.midia_path)) : null;
+  const thumb = m.midia_thumb ? zapUrl('/midia/' + encodeURIComponent(m.midia_thumb)) : null;
   let corpo = '';
   const legenda = m.texto ? '<div class="tx">' + esc(m.texto) + '</div>' : '';
+  const durTxt = m.duracao ? Math.floor(m.duracao / 60) + ':' + String(m.duracao % 60).padStart(2, '0') : '';
   if (m.tipo === 'imagem' || m.tipo === 'sticker'){
     if (url){ corpo = '<img class="foto' + (m.tipo === 'sticker' ? ' zap-sticker' : '') + '" alt="Foto" src="' + url + '">' + legenda; el.classList.add('foto-b'); }
-    else corpo = '<div class="tx zap-sem">' + ic('image') + ' ' + (m.tipo === 'sticker' ? 'Figurinha' : 'Foto') + ' (anterior à conexão)</div>' + legenda;
+    else if (thumb && m.pode_baixar){ corpo = '<div class="zap-baixar" style="background-image:url(' + thumb + ')"><button>' + ic('baixar') + '<span>Baixar foto</span></button></div>' + legenda; el.classList.add('foto-b'); }
+    else corpo = '<div class="tx zap-sem">' + ic('image') + ' ' + (m.tipo === 'sticker' ? 'Figurinha' : 'Foto') + (m.pode_baixar ? ' • toque pra baixar' : ' (não disponível)') + '</div>' + legenda;
   } else if (m.tipo === 'video'){
-    corpo = url ? '<video class="foto" controls preload="metadata" src="' + url + '"></video>' + legenda : '<div class="tx zap-sem">Vídeo (anterior à conexão)</div>' + legenda;
-    if (url) el.classList.add('foto-b');
+    if (url || thumb){
+      corpo = '<div class="zap-video" style="' + (thumb ? 'background-image:url(' + thumb + ')' : '') + '">' + (url ? '' : '<button>' + ic('baixar') + '<span>Baixar vídeo</span></button>') +
+        '<span class="zap-vtag">' + ic('camera') + (durTxt ? ' ' + durTxt : '') + '</span></div>' + legenda;
+      el.classList.add('foto-b');
+    } else corpo = '<div class="tx zap-sem">' + ic('camera') + ' Vídeo' + (m.pode_baixar ? ' • toque pra baixar' : ' (não disponível)') + '</div>' + legenda;
   } else if (m.tipo === 'audio'){
-    corpo = url ? '<div class="midia"><button aria-label="Ouvir">' + ic('play') + '</button>' + ondaHtml(m.id) + '<small class="zap-dur"></small></div>'
-                : '<div class="tx zap-sem">' + ic('mic') + ' Áudio (anterior à conexão)</div>';
+    corpo = url ? '<div class="midia"><button aria-label="Ouvir">' + ic('play') + '</button>' + ondaHtml(m.id) + '<small class="zap-dur">' + durTxt + '</small></div>'
+                : '<div class="tx zap-sem">' + ic('mic') + ' Áudio' + (m.pode_baixar ? ' • toque pra baixar' : ' (não disponível)') + '</div>';
   } else if (m.tipo === 'documento'){
-    corpo = '<div class="tx">📄 ' + esc(m.texto || 'Documento') + '</div>';
+    corpo = '<div class="tx zap-doc">📄 ' + esc(m.nome_arquivo || m.texto || 'Documento') + '</div>';
   } else {
     corpo = '<div class="tx">' + esc(m.texto) + '</div>';
   }
   const nm = ZAP.grupo && !m.de_mim && !cont ? '<div class="nm" style="color:' + corDe(m.remetente_jid) + '">' + esc(m.remetente_nome || String(m.remetente_jid || '').split('@')[0]) + '</div>' : '';
-  const apag = m.apagada_pelo_remetente ? '<div class="zap-tag">' + ic('trash') + ' apagada pra todos • guardada aqui</div>' : '';
-  el.innerHTML = nm + corpo + apag + '<div class="hr">' + hora(m.timestamp) + '</div>';
+  const apagada = m.apagada_pelo_remetente ? '<span class="zap-q" title="Apagada">?</span>' : '';
+  el.innerHTML = nm + corpo + '<div class="hr">' + apagada + hora(m.timestamp) + '</div>';
+  if (m.apagada_pelo_remetente){
+    el.querySelector('.zap-q').onclick = e => { e.stopPropagation(); aviso('Essa mensagem foi apagada' + (m.apagada_em ? ' às ' + hora(m.apagada_em) : '') + ', mas continua guardada aqui.', 4500); };
+  }
   const img = el.querySelector('img.foto');
-  if (img){ img.onclick = () => { $('verFotoImg').src = img.src; $('verFoto').hidden = false; }; img.onload = () => { const b = $('zapMsgs'); if (b.scrollHeight - b.scrollTop - b.clientHeight < 400) b.scrollTop = b.scrollHeight; }; }
+  if (img){
+    img.onclick = () => zapAbrirVer('imagem', url, m.midia_path, ZAP.nome);
+    img.onload = () => { const b = $('zapMsgs'); if (b.scrollHeight - b.scrollTop - b.clientHeight < 400) b.scrollTop = b.scrollHeight; };
+  }
+  const vid = el.querySelector('.zap-video');
+  if (vid && url) vid.onclick = () => zapAbrirVer('video', url, m.midia_path, ZAP.nome);
+  const baixar = el.querySelector('.zap-baixar, .zap-video button, .zap-sem');
+  if (baixar && m.pode_baixar && !url) baixar.onclick = async e => {
+    e.stopPropagation();
+    aviso('Baixando...', 4000);
+    try{ await zapPost('/api/midia/' + encodeURIComponent(m.id) + '/baixar'); ZAP.assinatura = ''; zapCarregarMensagens(); }
+    catch(err){ aviso(err.message, 5000); }
+  };
   const bt = el.querySelector('.midia button');
   if (bt) bt.onclick = () => zapTocar(url, bt, el.querySelector('.zap-dur'));
   return el;
@@ -3917,7 +4513,10 @@ function zapPararAudio(cancelar){
   if (cancelar) aviso('Áudio descartado.');
 }
 document.addEventListener('visibilitychange', () => {
-  if (!ZAP.iniciado || document.visibilityState !== 'visible') return;
+  if (!ZAP.iniciado) return;
+  zapFoco();
+  if (document.visibilityState !== 'visible') return;
+  zapAbrirPendente();
   zapAtualizarStatus(); zapCarregarLista();
   if (aba === 'zap' && ZAP.jid) zapCarregarMensagens();
 });
