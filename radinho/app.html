@@ -799,6 +799,44 @@
   .zap-tema-prev{position:sticky;top:0;z-index:3;box-shadow:0 8px 18px rgba(0,0,0,.55);min-height:190px}
   .zap-sec-ct{display:flex!important;align-items:center;justify-content:space-between;padding:14px 6px 6px!important;cursor:default!important;background:transparent!important;border:0!important;font-size:12.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--verde)}
   .zap-sec-ct b{font-size:12px;color:var(--sub);font-weight:600}
+  /* chamadas */
+  #zapCham{display:none;flex:1;min-height:0;overflow-y:auto;padding-bottom:30px}
+  #zapListaBox.modo-cham > :not(#zapCham){display:none!important}
+  #zapListaBox.modo-cham #zapCham{display:block}
+  .zap-vista-ch .zap-vista-n{background:#e53935!important;color:#fff!important}
+  .zap-vista-ch.tem-novo{border-color:#e53935!important}
+  .zap-vista-ch.tem-novo .zap-vista-ic{color:#ff6b6b!important}
+  .zap-ch-info{margin:2px 16px 10px;font-size:12.5px;color:var(--sub);line-height:1.4}
+  .zap-ch-lista{list-style:none;margin:0;padding:0 8px}
+  .zap-ch-lista li{display:flex;align-items:center;gap:12px;padding:10px 6px;border-radius:12px;cursor:pointer}
+  .zap-ch-lista li:active{background:rgba(255,255,255,.05)}
+  .zap-ch-lista li > div{flex:1;min-width:0}
+  .zap-ch-lista li b{display:block;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .zap-ch-lista li small{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--sub);margin-top:2px}
+  .zap-ch-lista .zap-av{width:48px;height:48px;flex:none}
+  .zap-ch-lista li.vz{color:var(--sub);cursor:default;font-size:14px;line-height:1.45;padding:20px 10px;text-align:center;display:block}
+  .zap-ch-seta{display:inline-grid;color:#25d366}
+  .zap-ch-seta svg{transform:rotate(0)}
+  .zap-ch-perdida b{color:#ff6b6b}
+  .zap-ch-perdida .zap-ch-seta,.zap-ch-recusada .zap-ch-seta{color:#ff6b6b}
+  .zap-ch-tocando .zap-ch-seta{color:#25d366;animation:zapPulsa 1s infinite}
+  .zap-ch-tipo{width:44px;height:44px;border:0;border-radius:50%;background:transparent;color:#25d366;display:grid;place-items:center;flex:none}
+  @keyframes zapPulsa{50%{opacity:.3}}
+  .zap-ligando{position:fixed;inset:0;z-index:75;background:linear-gradient(180deg,#0b3d2b,#0b141a 70%);display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:calc(48px + env(safe-area-inset-top)) 24px calc(30px + env(safe-area-inset-bottom));color:#fff}
+  .zap-ligando[hidden]{display:none!important}
+  .zap-lg-topo{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center}
+  .zap-lg-topo small{font-size:13px;letter-spacing:.4px;opacity:.75}
+  .zap-lg-av .zap-av{width:120px;height:120px;font-size:42px;box-shadow:0 0 0 0 rgba(37,211,102,.6);animation:zapAnelLig 1.6s infinite}
+  @keyframes zapAnelLig{0%{box-shadow:0 0 0 0 rgba(37,211,102,.55)}100%{box-shadow:0 0 0 26px rgba(37,211,102,0)}}
+  .zap-lg-topo b{font-size:28px;font-weight:600}
+  .zap-lg-topo span{font-size:15px;opacity:.8}
+  .zap-lg-bts{display:flex;justify-content:space-around;width:100%;max-width:340px}
+  .zap-lg-bts > div{display:flex;flex-direction:column;align-items:center;gap:10px;font-size:13px;opacity:.95;text-align:center;max-width:120px}
+  .zap-lg-bts button{width:72px;height:72px;border-radius:50%;border:0;display:grid;place-items:center;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  .zap-lg-rec{background:#e53935}.zap-lg-rec svg{transform:rotate(135deg)}
+  .zap-lg-at{background:#25d366;animation:zapBalanca 1.2s infinite}
+  @keyframes zapBalanca{0%,100%{transform:rotate(0)}10%{transform:rotate(-12deg)}20%{transform:rotate(12deg)}30%{transform:rotate(0)}}
+  .zap-lg-fechar{background:transparent;border:0;color:rgba(255,255,255,.7);font-size:14px;padding:8px 14px}
   /* menu de anexos */
   .zap-anx-fundo{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.35);display:flex;align-items:flex-end}
   .zap-anx-fundo[hidden]{display:none!important}
@@ -1149,6 +1187,7 @@
       </div>
       <div class="zap-vistas" id="zapVistas">
         <div class="zap-vistas-scroll" id="zapVistasScroll"></div>
+        <button class="zap-vista zap-vista-st zap-vista-ch" id="zapChamBtn" aria-label="Chamadas"><span class="zap-vista-ic"></span><b class="zap-vista-n" id="nCham" hidden></b></button>
         <button class="zap-vista zap-vista-st" id="zapStatusBtn" aria-label="Status"><span class="zap-vista-ic"></span><b class="zap-vista-n" id="nStatus" hidden></b></button>
       </div>
       <div class="zap-st-acoes" id="zapStAcoes" hidden>
@@ -1163,6 +1202,11 @@
       </div>
       <ul class="contas" id="zapLista"></ul>
       <button id="zapNovo" aria-label="Nova conversa">+</button>
+      <div id="zapCham">
+        <div class="zap-att-topo"><button class="zap-att-bt" id="zapChamVoltar" aria-label="Voltar pras conversas"></button><h2>Chamadas</h2></div>
+        <p class="zap-ch-info">Chamadas de voz e de vídeo do WhatsApp. Pra falar, toque em Atender: abre o WhatsApp oficial.</p>
+        <ul class="zap-ch-lista" id="zapChamLista"></ul>
+      </div>
       <div id="zapAtt">
         <div class="zap-att-topo">
           <button class="zap-att-bt" id="zapAttVoltar" aria-label="Voltar pras conversas"></button>
@@ -1212,6 +1256,9 @@
       <input type="file" id="zapInFoto" accept="image/*,video/*" hidden>
       <input type="file" id="zapInDoc" hidden>
     </div>
+    <div class="zap-ligando" id="zapLigando" hidden><div class="zap-lg-topo"><small id="zapLgTipo"></small><div class="zap-lg-av" id="zapLgAv"></div><b id="zapLgNome"></b><span id="zapLgSt">Tocando...</span></div>
+      <div class="zap-lg-bts"><div><button class="zap-lg-rec" id="zapLgRec" aria-label="Recusar"></button><small>Recusar</small></div><div><button class="zap-lg-at" id="zapLgAt" aria-label="Atender no WhatsApp"></button><small>Atender no WhatsApp</small></div></div>
+      <button class="zap-lg-fechar" id="zapLgFechar">Deixar tocando</button></div>
     <div class="zap-anx-fundo" id="zapAnxFundo" hidden><div class="zap-anx"><i class="zap-anx-pega"></i><div class="zap-anx-grade" id="zapAnxGrade"></div></div></div>
     <div class="zap-anx-form" id="zapAnxForm" hidden></div>
   </div>
@@ -1461,7 +1508,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 77;
+const APP_VERSAO = 78;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1649,6 +1696,9 @@ const ICONES = {
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   radio:'<rect x="3" y="8" width="18" height="13" rx="3"/><path d="M7 8 17 3"/><circle cx="15.5" cy="14.5" r="2.6"/><path d="M6.5 13h3M6.5 16h3"/>',
   chat:'<path d="M6.5 3.5h11A2.5 2.5 0 0 1 20 6v7.5a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5V6a2.5 2.5 0 0 1 2.5-2.5z"/><circle cx="8.5" cy="9.75" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="9.75" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="9.75" r="1.1" fill="currentColor" stroke="none"/>',
+  fone:'<path d="M5 3.5h3.2l1.6 4.2-2 1.4a11 11 0 0 0 5.1 5.1l1.4-2 4.2 1.6V17a2.5 2.5 0 0 1-2.7 2.5A15.5 15.5 0 0 1 2.5 6.2 2.5 2.5 0 0 1 5 3.5z"/>',
+  videocam:'<rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="m15.5 10.5 6-3.5v10l-6-3.5z"/>',
+  setaChamada:'<path d="M17 7 7 17"/><path d="M16 17H7V8"/>',
   camera:'<path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h2l1.5-2h6l1.5 2h2A2.5 2.5 0 0 1 21 8.5v9a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.5"/>',
   image:'<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/>',
   mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5M8 22h8"/>',
@@ -3978,6 +4028,7 @@ function zapIniciar(){
   $('zapVoltar').onclick = zapFecharConversa;
   $('zapBusca').oninput = () => { ZAP.busca = $('zapBusca').value.trim().toLowerCase(); zapRenderLista(); };
   $('zapStatusBtn').onclick = () => zapMudarVista('status');
+  zapLigarChamadas();
   $('zapLupa').onclick = () => zapBuscaAbrir($('zapBusca').hidden);
   $('zapArqBt').onclick = () => zapMudarVista('arquivadas');
   $('zapSelX').onclick = zapSelFim;
@@ -4063,6 +4114,7 @@ function zapConectarEventos(){
     else if (e.tipo === 'alerta_online'){ if (document.visibilityState === 'visible') aviso('🟢 ' + (e.nome || 'Contato') + ' está online agora', 5000); }
     else if (e.tipo === 'reacao'){ if (ZAP.jid && ZAP.jid === e.conversaJid){ ZAP.assinatura = ''; zapCarregarMensagens(); } }
     else if (e.tipo === 'status_msg'){ if (ZAP.jid === e.conversaJid) zapAtualizarVez(e.id, e.status); zapCarregarLista(); }
+    else if (e.tipo === 'chamada'){ zapEventoChamada(e); }
     else if (e.tipo === 'mensagem_nova'){
       if (!e.deMim && ['digitando', 'gravando'].includes(ZAP.presencas[e.conversaJid])){ ZAP.presencas[e.conversaJid] = 'online'; if (ZAP.jid === e.conversaJid) zapRenderPresenca(); }
       zapCarregarLista();
@@ -4179,7 +4231,9 @@ function zapRenderLista(){
   zapRenderVistas();
   const lupa = $('zapLupa'); if (lupa && !lupa.innerHTML) lupa.innerHTML = ic('search');
   $('zapListaBox').classList.toggle('modo-att', ZAP.vista === 'status');
+  $('zapListaBox').classList.toggle('modo-cham', ZAP.vista === 'chamadas');
   if (ZAP.vista === 'status') return zapRenderListaStatus();
+  if (ZAP.vista === 'chamadas'){ zapRenderChamadas(); return; }
   $('zapBusca').placeholder = 'Buscar conversa';
   const arq = zapArquivadas(), fix = zapFixadas();
   let bset = null, emb = null;
@@ -4263,6 +4317,7 @@ function zapMudarVista(v){
   $('zapBusca').value = ''; ZAP.busca = '';
   zapRenderLista();
   if (ZAP.modoStatus) zapCarregarStatus();
+  if (ZAP.vista === 'chamadas'){ zapCarregarChamadas().then(() => zapPost('/api/chamadas/vistas')).then(r => r && zapBadgeChamadas(r.novas)).catch(() => {}); }
 }
 function zapRenderVistas(){
   const sc = $('zapVistasScroll'), s = $('zapStatusBtn'); if (!sc || !s) return;
@@ -4794,6 +4849,82 @@ document.addEventListener('click', e => {
   const a = e.target.closest && e.target.closest('.zap-link'); if (!a) return;
   e.preventDefault(); e.stopPropagation(); zapAbrirExterno(a.dataset.url);
 }, true);
+
+/* ---------- chamadas do WhatsApp (voz e vídeo): aviso, histórico e recusar ---------- */
+function zapAbrirWhatsApp(jid){
+  const num = String(jid || '').split('@')[0].replace(/\D/g, '');
+  zapAbrirExterno(num ? 'whatsapp://send?phone=' + num : 'whatsapp://');
+}
+function zapBadgeChamadas(n){
+  ZAP.chamNovas = n || 0;
+  const b = $('nCham'); if (!b) return;
+  b.hidden = !n; b.textContent = n > 99 ? '99+' : n;
+  $('zapChamBtn').classList.toggle('tem-novo', !!n);
+}
+async function zapCarregarChamadas(){
+  try{ const r = await zapGet('/api/chamadas'); ZAP.chamadas = r.lista || []; zapBadgeChamadas(r.novas); }catch(e){ return; }
+  if (ZAP.vista === 'chamadas') zapRenderChamadas();
+}
+function zapRenderChamadas(){
+  const ul = $('zapChamLista'); if (!ul) return;
+  const l = ZAP.chamadas || [];
+  if (!l.length){ ul.innerHTML = '<li class="vz">Nenhuma chamada ainda. As chamadas do WhatsApp que chegarem com o Zap ligado aparecem aqui.</li>'; return; }
+  const txt = { tocando: 'Tocando agora', perdida: 'Perdida', recusada: 'Recusada', atendida: 'Atendida no WhatsApp' };
+  ul.innerHTML = '';
+  for (const c of l){
+    const li = document.createElement('li');
+    const quando = (() => { const d = new Date(c.ts), h = new Date(); const ont = new Date(h); ont.setDate(h.getDate() - 1);
+      return (d.toDateString() === h.toDateString() ? 'Hoje' : d.toDateString() === ont.toDateString() ? 'Ontem' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })) + ', ' + hora(c.ts); })();
+    li.className = 'zap-ch-' + c.status;
+    li.innerHTML = zapAvatar(c.de, c.nome, c.grupo, false) +
+      '<div><b>' + esc(c.nome || c.de.split('@')[0]) + '</b><small><i class="zap-ch-seta">' + icp('setaChamada', 14) + '</i>' + txt[c.status] + ' • ' + quando + '</small></div>' +
+      '<button class="zap-ch-tipo" aria-label="Abrir no WhatsApp">' + icp(c.video ? 'videocam' : 'fone', 20) + '</button>';
+    li.querySelector('.zap-ch-tipo').onclick = e => { e.stopPropagation(); zapAbrirWhatsApp(c.de); };
+    li.onclick = () => { if (c.status === 'tocando') zapMostrarLigando(c); else { const ex = ZAP.conversas.find(x => x.jid === c.de); zapAbrirConversa(ex || { jid: c.de, nome_exibicao: c.nome, eh_grupo: 0 }); } };
+    ul.appendChild(li);
+  }
+  zapCarregarFotos(ul);
+}
+function zapEventoChamada(e){
+  ZAP.chamadas = ZAP.chamadas || [];
+  const i = ZAP.chamadas.findIndex(c => c.id === e.id);
+  const reg = { id: e.id, de: e.de, nome: e.nome, video: e.video, status: e.status, ts: i >= 0 ? ZAP.chamadas[i].ts : Date.now() };
+  if (i >= 0) ZAP.chamadas[i] = Object.assign(ZAP.chamadas[i], reg); else ZAP.chamadas.unshift(reg);
+  zapBadgeChamadas(e.novas);
+  if (e.status === 'tocando') zapMostrarLigando(reg);
+  else if (ZAP.ligando && ZAP.ligando.id === e.id){
+    $('zapLgSt').textContent = { perdida: 'A pessoa desligou', recusada: 'Recusada', atendida: 'Atendida no WhatsApp' }[e.status] || '';
+    setTimeout(zapFecharLigando, 1400);
+  }
+  if (ZAP.vista === 'chamadas'){ zapRenderChamadas(); if (e.status !== 'tocando') zapPost('/api/chamadas/vistas').then(r => zapBadgeChamadas(r.novas)).catch(() => {}); }
+}
+function zapMostrarLigando(c){
+  ZAP.ligando = c;
+  $('zapLgTipo').textContent = c.video ? 'Chamada de vídeo do WhatsApp' : 'Chamada de voz do WhatsApp';
+  $('zapLgAv').innerHTML = zapAvatar(c.de, c.nome, false, false);
+  $('zapLgNome').textContent = c.nome || String(c.de).split('@')[0];
+  $('zapLgSt').textContent = 'Tocando...';
+  $('zapLgAt').innerHTML = icp(c.video ? 'videocam' : 'fone', 30);
+  $('zapLgRec').innerHTML = icp('fone', 30);
+  $('zapLigando').hidden = false;
+  zapCarregarFotos($('zapLigando'));
+  if (navigator.vibrate) try{ navigator.vibrate([400, 250, 400]); }catch(e){}
+}
+function zapFecharLigando(){ $('zapLigando').hidden = true; ZAP.ligando = null; }
+function zapLigarChamadas(){
+  $('zapChamBtn').querySelector('.zap-vista-ic').innerHTML = icp('fone', 19);
+  $('zapChamBtn').onclick = () => zapMudarVista('chamadas');
+  $('zapChamVoltar').innerHTML = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>';
+  $('zapChamVoltar').onclick = () => zapMudarVista('conversas');
+  $('zapLgFechar').onclick = zapFecharLigando;
+  $('zapLgAt').onclick = () => { const c = ZAP.ligando; zapFecharLigando(); zapAbrirWhatsApp(c && c.de); };
+  $('zapLgRec').onclick = async () => {
+    const c = ZAP.ligando; if (!c) return;
+    try{ await zapPost('/api/chamadas/' + encodeURIComponent(c.id) + '/recusar'); $('zapLgSt').textContent = 'Recusada'; setTimeout(zapFecharLigando, 900); }
+    catch(e){ aviso('Não recusou: ' + e.message, 4000); }
+  };
+  zapCarregarChamadas();
+}
 
 /* ---------- menu de anexos (igual ao WhatsApp) ---------- */
 const ZAP_ANX_IC = {
@@ -5596,6 +5727,7 @@ function zapRenderPresenca(){
 
 /* ---------- botão voltar do Android: fecha o que estiver aberto; se nada, o app fecha ---------- */
 window.radinhoVoltar = function(){
+  try{ if (!$('zapLigando').hidden){ zapFecharLigando(); return true; } if (ZAP.vista === 'chamadas'){ zapMudarVista('conversas'); return true; } }catch(e){}
   try{ if (!$('zapAnxForm').hidden){ zapFecharForm(); return true; } if (!$('zapAnxFundo').hidden){ zapFecharAnexos(); return true; } }catch(e){}
   try{
     if (ZAP.iniciado){
