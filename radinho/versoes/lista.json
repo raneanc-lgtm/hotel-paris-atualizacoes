@@ -1,5 +1,10 @@
 [
  {
+  "v": 79,
+  "ts": 1794183200909,
+  "resumo": "botão de ligar/desligar o rádio no topo"
+ },
+ {
   "v": 78,
   "ts": 1794182942635,
   "resumo": "chamadas do WhatsApp (voz e vídeo): aviso tocando, recusar, atender no oficial e histórico"
