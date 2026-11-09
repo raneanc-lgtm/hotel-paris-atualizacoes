@@ -1,5 +1,10 @@
 [
  {
+  "v": 83,
+  "ts": 1794185580346,
+  "resumo": "Zap abre na hora com as conversas guardadas enquanto o motor liga"
+ },
+ {
   "v": 82,
   "ts": 1794184914043,
   "resumo": "fechar o app para tudo (igual ao Parar do Android)"
