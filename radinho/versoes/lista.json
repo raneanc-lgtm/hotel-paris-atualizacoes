@@ -1,5 +1,10 @@
 [
  {
+  "v": 82,
+  "ts": 1794184914043,
+  "resumo": "fechar o app para tudo (igual ao Parar do Android)"
+ },
+ {
   "v": 81,
   "ts": 1794184166340,
   "resumo": "fechar o Radinho de vez (segurar o botão de ligar/desligar)"

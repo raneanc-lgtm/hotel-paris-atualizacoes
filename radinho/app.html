@@ -1521,7 +1521,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 81;
+const APP_VERSAO = 82;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1673,11 +1673,17 @@ function aplicarEnergiaRadio(){
   if (off){ desligarStandby(); try{ desligarVivo(); }catch(e){} try{ $('visor1').textContent = 'RÁDIO DESLIGADO'; $('visor2').textContent = 'Toque no botão lá em cima pra ligar'; }catch(e){} }
   else { sincronizarStandby(); try{ if (cfgLocal.vivo) ligarVivo(); }catch(e){} }
 }
+// o Android avisa que o app está fechando (voltar na tela inicial): para o rádio e sai do canal
+window.radinhoFechando = function(){
+  try{ desligarStandby(); }catch(e){}
+  try{ if (refCanal && uid) refCanal.child('online/' + uid).remove(); }catch(e){}
+  try{ if (typeof db !== 'undefined' && db && db.goOffline) setTimeout(() => db.goOffline(), 300); }catch(e){}
+};
 // fecha tudo (rádio, Zap e o serviço do Android) — nada fica rodando até abrir de novo
 async function fecharDeVez(){
   const nativo = window.ChatSlimNativo && typeof ChatSlimNativo.fecharTudo === 'function';
   if (!nativo && !standbyNativo()){ aviso('Essa função precisa do APK novo do Radinho.', 4000); return; }
-  const ok = await confirmar('Fechar o Radinho de vez?', 'Para o rádio, o Zap e tudo que roda por trás. Enquanto estiver fechado não chega notificação nem chamada.\n\nPra voltar, é só abrir o Radinho de novo.', 'Fechar tudo', true);
+  const ok = await confirmar('Fechar o Radinho de vez?', 'Para o rádio, o Zap e tudo que roda por trás (igual ao Parar do Android). Fechar o app pelo voltar ou arrastando da lista também faz isso.\n\nPra voltar, é só abrir o Radinho de novo.', 'Fechar tudo', true);
   if (!ok) return;
   try{ LS.set('radinho_boot', '0'); }catch(e){}
   desligarStandby();
