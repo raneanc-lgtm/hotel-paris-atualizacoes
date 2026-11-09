@@ -805,6 +805,10 @@
   .btn-power.off{color:#ff6b6b;border-color:rgba(255,107,107,.45)!important}
   body.radio-off #led{background:#555!important;box-shadow:none!important}
   body.radio-off #ptt{opacity:.35;pointer-events:none;filter:grayscale(1)}
+  /* transcrição */
+  .zap-transc-bt{display:inline-flex;align-items:center;gap:5px;margin:6px 4px 0;border:0;border-radius:12px;background:rgba(255,255,255,.08);color:inherit;opacity:.85;font-size:12.5px;padding:5px 10px;cursor:pointer}
+  .zap-transc-bt.car span{animation:zapPulsa 1s infinite}
+  .zap-transc{margin:7px 4px 0;padding:7px 10px;border-left:3px solid rgba(255,255,255,.35);background:rgba(0,0,0,.14);border-radius:4px 10px 10px 4px;font-size:14px;line-height:1.4;white-space:pre-wrap}
   /* chamadas */
   #zapCham{display:none;flex:1;min-height:0;overflow-y:auto;padding-bottom:30px}
   #zapListaBox.modo-cham > :not(#zapCham){display:none!important}
@@ -1299,7 +1303,7 @@
       <div class="opcao" style="border-bottom:0;padding-bottom:4px"><span>Sensibilidade do Voice Talk<small id="lblVox">Média</small></span></div>
       <input type="range" id="rgVox" min="1" max="3" step="1" value="2">
     </div>
-    <div class="opcao">
+    <div class="opcao" hidden style="display:none">
       <span>Manter vivo em segundo plano<small>Segura o áudio ativo pra receber chamadas com o app minimizado</small></span>
       <label class="sw"><input type="checkbox" id="swVivo"><b></b></label>
     </div>
@@ -1363,6 +1367,7 @@
         <label class="sw"><input type="checkbox" id="swZapOnline"><b></b></label>
       </div>
       <button class="btn sec" id="btnZapTema" data-ic="paleta">Aparência do Zap (cores, balões, papel de parede)</button>
+      <button class="btn sec" id="btnZapTransc" data-ic="mic">Transcrição de áudio</button>
       <button class="btn sec" id="btnZapSync" data-ic="refresh">Sincronizar contatos do WhatsApp</button>
       <button class="btn perigo" id="btnZapZerar" data-ic="logout">Desconectar o WhatsApp e gerar código novo</button>
       <h4>BACKUP E VERSÃO</h4>
@@ -1515,7 +1520,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 79;
+const APP_VERSAO = 80;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1657,6 +1662,8 @@ const standbyNativo = () => !!(window.RadinhoNativo && typeof RadinhoNativo.stan
 const escondido = () => document.visibilityState !== 'visible';
 /* ---------------- ligar / desligar o rádio (economiza bateria) ---------------- */
 const radioDesligado = () => LS.get('radinho_desligado') === '1';
+// "Manter vivo" (som inaudível) saiu: o serviço do Android faz isso; desliga pra não gastar bateria à toa
+try{ LS.set('radinho_vivo', '0'); cfgLocal.vivo = false; }catch(e){}
 function aplicarEnergiaRadio(){
   const off = radioDesligado();
   document.body.classList.toggle('radio-off', off);
@@ -1725,6 +1732,7 @@ const ICONES = {
   gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   radio:'<rect x="3" y="8" width="18" height="13" rx="3"/><path d="M7 8 17 3"/><circle cx="15.5" cy="14.5" r="2.6"/><path d="M6.5 13h3M6.5 16h3"/>',
   chat:'<path d="M6.5 3.5h11A2.5 2.5 0 0 1 20 6v7.5a2.5 2.5 0 0 1-2.5 2.5H11l-4.5 4v-4A2.5 2.5 0 0 1 4 13.5V6a2.5 2.5 0 0 1 2.5-2.5z"/><circle cx="8.5" cy="9.75" r="1.1" fill="currentColor" stroke="none"/><circle cx="12" cy="9.75" r="1.1" fill="currentColor" stroke="none"/><circle cx="15.5" cy="9.75" r="1.1" fill="currentColor" stroke="none"/>',
+  texto:'<path d="M4 6h16M4 12h16M4 18h10"/>',
   power:'<path d="M12 3v8"/><path d="M6.3 6.6a8 8 0 1 0 11.4 0"/>',
   fone:'<path d="M5 3.5h3.2l1.6 4.2-2 1.4a11 11 0 0 0 5.1 5.1l1.4-2 4.2 1.6V17a2.5 2.5 0 0 1-2.7 2.5A15.5 15.5 0 0 1 2.5 6.2 2.5 2.5 0 0 1 5 3.5z"/>',
   videocam:'<rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="m15.5 10.5 6-3.5v10l-6-3.5z"/>',
@@ -3830,6 +3838,7 @@ function prepararAjustes(){
   $('btnAjustes').onclick = () => { renderInfoVersao(); renderAdmin(); sincronizarAjustesExtra(); $('fundo').hidden = false; };
   if ($('swSilencio')) $('swSilencio').onchange = () => { if (!!$('swSilencio').checked !== !!cfgLocal.silencio) alternarSilencio(); };
   if ($('swZapOnline')) $('swZapOnline').onchange = () => { zapAlternarEsconder($('swZapOnline').checked); setTimeout(() => { $('swZapOnline').checked = !!(typeof ZAP !== 'undefined' && ZAP.cfg && ZAP.cfg.esconder_online); }, 600); };
+  if ($('btnZapTransc')) $('btnZapTransc').onclick = () => { $('fundo').hidden = true; zapConfigTranscricao(); };
   if ($('btnBackupAgora')) $('btnBackupAgora').onclick = () => { $('fundo').hidden = true; fazerBackupInterface(false); };
   if ($('btnBackupRest')) $('btnBackupRest').onclick = () => { $('fundo').hidden = true; restaurarBackupInterface(); };
   if ($('btnDowngrade')) $('btnDowngrade').onclick = () => { $('fundo').hidden = true; escolherVersaoAnterior(); };
@@ -4879,6 +4888,32 @@ document.addEventListener('click', e => {
   const a = e.target.closest && e.target.closest('.zap-link'); if (!a) return;
   e.preventDefault(); e.stopPropagation(); zapAbrirExterno(a.dataset.url);
 }, true);
+
+/* ---------- transcrever áudio ---------- */
+async function zapConfigTranscricao(){
+  let tem = false; try{ tem = !!(await zapGet('/api/config')).transcricao_tem; }catch(e){}
+  const r = await janela({ titulo: 'Transcrição de áudio',
+    texto: (tem ? 'A transcrição está ligada. Pra trocar a chave, cole a nova aqui (deixe vazio e toque em Salvar pra desligar).\n\n' : '') +
+      'Usa o Whisper do Groq, que é grátis. Pra pegar sua chave:\n1. Abra console.groq.com/keys e entre com sua conta do Google.\n2. Toque em "Create API Key", dê um nome e copie a chave (começa com gsk_).\n3. Cole aqui embaixo.\n\nO áudio vai pro Groq só quando você toca em Transcrever. A chave fica guardada só no seu celular.',
+    campos: [{ id: 'k', label: 'Chave do Groq', placeholder: tem ? '•••••• (já configurada)' : 'gsk_...', senha: true, minusculo: true, max: 200 }], ok: 'Salvar' });
+  if (!r) return false;
+  if (!r.k && tem && !(await confirmar('Desligar a transcrição?', 'A chave vai ser apagada.', 'Desligar'))) return false;
+  if (r.k && !/^gsk_\w{20,}$/.test(r.k)){ aviso('Essa chave não parece do Groq (começa com gsk_).', 5000); return false; }
+  try{ await zapPost('/api/transcricao/chave', { chave: r.k }); aviso(r.k ? 'Transcrição ligada!' : 'Transcrição desligada.', 3000); return !!r.k; }
+  catch(e){ aviso('Não salvou: ' + e.message, 5000); return false; }
+}
+async function zapTranscrever(m, bt){
+  bt.disabled = true; bt.classList.add('car'); bt.querySelector('span').textContent = 'Transcrevendo...';
+  const voltar = () => { bt.disabled = false; bt.classList.remove('car'); bt.querySelector('span').textContent = 'Transcrever'; };
+  try{
+    const r = await fetch(zapUrl('/api/mensagens/' + encodeURIComponent(m.id) + '/transcrever'), { method: 'POST', headers: { 'X-ChatSlim': '1', 'Content-Type': 'application/json' }, body: '{}' });
+    const j = await r.json().catch(() => ({}));
+    if (j.semChave){ voltar(); if (await zapConfigTranscricao()) zapTranscrever(m, bt); return; }
+    if (!r.ok) throw new Error(j.erro || 'erro ' + r.status);
+    m.transcricao = j.texto;
+    const d = document.createElement('div'); d.className = 'zap-transc'; d.textContent = j.texto; bt.replaceWith(d);
+  }catch(e){ voltar(); aviso('Não transcreveu: ' + e.message, 5000); }
+}
 
 /* ---------- chamadas do WhatsApp (voz e vídeo): aviso, histórico e recusar ---------- */
 function zapAbrirWhatsApp(jid){
@@ -6024,7 +6059,8 @@ function zapBolha(m, cont){
       el.classList.add('foto-b');
     } else corpo = '<div class="tx zap-sem">' + ic('camera') + ' Vídeo' + (m.pode_baixar ? ' • toque pra baixar' : ' (não disponível)') + '</div>' + legenda;
   } else if (m.tipo === 'audio'){
-    corpo = url ? '<div class="midia"><button aria-label="Ouvir">' + ic('play') + '</button>' + ondaHtml(m.id) + '<small class="zap-dur">' + durTxt + '</small></div>'
+    corpo = url ? '<div class="midia"><button aria-label="Ouvir">' + ic('play') + '</button>' + ondaHtml(m.id) + '<small class="zap-dur">' + durTxt + '</small></div>' +
+      (m.transcricao ? '<div class="zap-transc">' + esc(m.transcricao) + '</div>' : '<button class="zap-transc-bt" data-transc="' + esc(m.id) + '">' + icp('texto', 14) + '<span>Transcrever</span></button>')
                 : '<div class="tx zap-sem">' + ic('mic') + ' Áudio' + (m.pode_baixar ? ' • toque pra baixar' : ' (não disponível)') + '</div>';
   } else if (m.tipo === 'unica'){
     corpo = '<div class="tx zap-unica"><span class="zap-um">1</span><span><b>Visualização única</b><small>' +
@@ -6046,6 +6082,7 @@ function zapBolha(m, cont){
   if (nr) el.classList.add('tem-reac');
   el.innerHTML = nm + cit + corpo + '<div class="hr">' + apagada + hora(m.timestamp) + vez + '</div>' + reac;
   if (el.classList.contains('esp-b')) zapLigarEspecial(el, m);
+  const tb = el.querySelector('[data-transc]'); if (tb) tb.onclick = e => { e.stopPropagation(); zapTranscrever(m, tb); };
   const citEl = el.querySelector('.zap-cit');
   if (citEl) citEl.onclick = e => { e.stopPropagation(); zapIrParaMsg(m.citada_id); };
   zapGestosMsg(el, m);
