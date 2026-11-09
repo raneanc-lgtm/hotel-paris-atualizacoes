@@ -1526,7 +1526,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 83;
+const APP_VERSAO = 84;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4212,6 +4212,23 @@ function zapGuardarMsgsCache(jid, l){
   idx.slice(25).forEach(j => { try{ localStorage.removeItem('zap_cache_msgs_' + j); }catch(e){} });
   zapGuardarCache('zap_cache_idx', idx.slice(0, 25));
 }
+let zapFotosTO = null;
+function zapGuardarFotosCache(){
+  clearTimeout(zapFotosTO);
+  zapFotosTO = setTimeout(() => {
+    const m = {}; Object.keys(ZAP.fotos).forEach(j => { const f = ZAP.fotos[j]; if (f && f.url) m[j] = String(f.url).replace(ZAP.base, ''); });
+    zapGuardarCache('zap_cache_fotos', m);
+  }, 1500);
+}
+// motor respondeu: volta as fotos guardadas na hora e busca as que faltam
+function zapMotorPronto(){
+  if (ZAP.motorOk) return; ZAP.motorOk = true;
+  const m = zapLerCache('zap_cache_fotos') || {};
+  Object.keys(m).forEach(j => { if (!ZAP.fotos[j] || !ZAP.fotos[j].url) ZAP.fotos[j] = { url: zapUrl(m[j]), t: Date.now() }; });
+  Object.keys(ZAP.fotos).forEach(j => { if (!ZAP.fotos[j].url) delete ZAP.fotos[j]; });
+  if (!ZAP.jid) zapRenderLista(); else { document.querySelectorAll('.zap-av[data-foto]').forEach(el => { const f = ZAP.fotos[el.dataset.foto]; if (f && f.url){ el.style.backgroundImage = 'url(' + f.url + ')'; el.classList.add('zap-com-foto'); } }); }
+  zapCarregarFotos(document);
+}
 function zapBannerConexao(txt){
   let b = $('zapConBanner');
   if (!txt){ if (b) b.hidden = true; return; }
@@ -4236,16 +4253,18 @@ async function zapAtualizarStatus(){
   let d;
   try{ d = await zapGet('/api/status'); }
   catch(e){
+    ZAP.motorOk = false;
     if (preso || !zapAbrirDoCache('Ligando o Zap...')) zapMostrarConexao('iniciando');
     ZAP.tStatus = setTimeout(zapAtualizarStatus, 1000); return;
   }
+  zapMotorPronto();
   if (d.status === 'conectado'){
     const novo = !ZAP.conectado;
     ZAP.conectado = true; ZAP.inicioCon = 0;
     zapBannerConexao('');
     $('zapCon').hidden = true;
     $('zapListaBox').hidden = !!ZAP.jid;
-    if (novo){ zapCarregarLista(); zapCarregarVigiados(); if (ZAP.jid) zapCarregarMensagens(); }
+    if (novo){ Object.keys(ZAP.fotos).forEach(j => { if (!ZAP.fotos[j].url) delete ZAP.fotos[j]; }); zapCarregarLista(); zapCarregarVigiados(); if (ZAP.jid) zapCarregarMensagens(); setTimeout(() => zapCarregarFotos(document), 800); }
   } else {
     ZAP.conectado = false;
     if (d.status === 'aguardando_qr'){ zapBannerConexao(''); zapMostrarConexao('parear', d.qrImagem); return; }
@@ -4549,6 +4568,7 @@ function zapAvatar(jid, nomeC, grupo, on){
 // busca as fotos de perfil dos avatares que estão na tela (o motor guarda por 1 dia)
 const zapFilaFotos = new Set();
 function zapCarregarFotos(raiz){
+  if (!ZAP.motorOk) return;            // motor ainda ligando: tenta quando ele responder
   (raiz || document).querySelectorAll('.zap-av[data-foto]').forEach(el => {
     const jid = el.dataset.foto, f = ZAP.fotos[jid];
     if (f && (f.url || Date.now() - f.t < 10 * 60 * 1000)) return;
@@ -4563,17 +4583,17 @@ async function zapProximaFoto(){
     zapFotosRodando++;
     zapGet('/api/foto/' + zapJ(jid)).then(r => {
       const url = r && r.foto ? zapUrl('/midia/' + r.foto) : null;
-      ZAP.fotos[jid] = { url: null, t: Date.now() };
-      if (!url) return;
+      if (!url){ if (ZAP.conectado) ZAP.fotos[jid] = { url: null, t: Date.now() }; else delete ZAP.fotos[jid]; return; }
       const im = new Image();
       im.onload = () => {        // só troca as iniciais pela foto se ela carregou de verdade
         ZAP.fotos[jid] = { url, t: Date.now() };
+        zapGuardarFotosCache();
         document.querySelectorAll('.zap-av[data-foto="' + CSS.escape(jid) + '"]').forEach(el => {
           el.style.backgroundImage = 'url(' + url + ')'; el.classList.add('zap-com-foto');
         });
       };
       im.src = url;
-    }).catch(() => { ZAP.fotos[jid] = { url: null, t: Date.now() }; })
+    }).catch(() => { delete ZAP.fotos[jid]; })     // falhou (motor ligando/sem rede): não marca como "sem foto"
       .finally(() => { zapFotosRodando--; zapProximaFoto(); });
   }
 }
