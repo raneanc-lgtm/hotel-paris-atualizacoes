@@ -1386,6 +1386,7 @@
     <input type="file" id="inArquivo" hidden>
 
     <button class="btn sec" id="btnFechar">Fechar</button>
+    <button class="btn sec" id="btnFecharTudo" data-ic="power">Fechar o Radinho de vez</button>
     <button class="btn perigo" id="btnSair" data-ic="logout">Sair do canal</button>
   </div>
 </div>
@@ -1520,7 +1521,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 80;
+const APP_VERSAO = 81;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1672,9 +1673,22 @@ function aplicarEnergiaRadio(){
   if (off){ desligarStandby(); try{ desligarVivo(); }catch(e){} try{ $('visor1').textContent = 'RÁDIO DESLIGADO'; $('visor2').textContent = 'Toque no botão lá em cima pra ligar'; }catch(e){} }
   else { sincronizarStandby(); try{ if (cfgLocal.vivo) ligarVivo(); }catch(e){} }
 }
+// fecha tudo (rádio, Zap e o serviço do Android) — nada fica rodando até abrir de novo
+async function fecharDeVez(){
+  const nativo = window.ChatSlimNativo && typeof ChatSlimNativo.fecharTudo === 'function';
+  if (!nativo && !standbyNativo()){ aviso('Essa função precisa do APK novo do Radinho.', 4000); return; }
+  const ok = await confirmar('Fechar o Radinho de vez?', 'Para o rádio, o Zap e tudo que roda por trás. Enquanto estiver fechado não chega notificação nem chamada.\n\nPra voltar, é só abrir o Radinho de novo.', 'Fechar tudo', true);
+  if (!ok) return;
+  try{ LS.set('radinho_boot', '0'); }catch(e){}
+  desligarStandby();
+  try{ if (typeof db !== 'undefined' && db && refCanal && uid) await Promise.race([refCanal.child('online/' + uid).remove(), new Promise(r => setTimeout(r, 800))]); }catch(e){}
+  try{ if (typeof db !== 'undefined' && db && db.goOffline) db.goOffline(); }catch(e){}
+  try{ if (nativo){ ChatSlimNativo.fecharTudo(); return; } }catch(e){}
+  aviso('Rádio parado. Feche o app pela lista de apps abertos.', 5000);
+}
 async function alternarEnergiaRadio(){
   if (!radioDesligado()){
-    const ok = await confirmar('Desligar o rádio?', 'O Rádio e o Chat param de receber chamadas e mensagens até você ligar de novo. Isso economiza bateria.' + (temZap() ? '\n\nO Zap continua funcionando com o app aberto. Com o app fechado ele pode parar de avisar, porque é o rádio que mantém o app vivo por trás.' : ''), 'Desligar');
+    const ok = await confirmar('Desligar o rádio?', 'Dica: segure esse botão pra fechar o Radinho de vez.\n\nO Rádio e o Chat param de receber chamadas e mensagens até você ligar de novo. Isso economiza bateria.' + (temZap() ? '\n\nO Zap continua funcionando com o app aberto. Com o app fechado ele pode parar de avisar, porque é o rádio que mantém o app vivo por trás.' : ''), 'Desligar');
     if (!ok) return;
     LS.set('radinho_desligado', '1'); aplicarEnergiaRadio(); aviso('Rádio desligado.');
   } else {
@@ -6558,7 +6572,15 @@ function exigirCanal(){
 
 (async function iniciar(){
   prepararLayout();
-  try{ $('btnPower').onclick = alternarEnergiaRadio; $('btnPower').innerHTML = ic('power'); }catch(e){}
+  try{
+    const bp = $('btnPower'); bp.innerHTML = ic('power');
+    let to = null, segurou = false;
+    bp.addEventListener('pointerdown', () => { segurou = false; clearTimeout(to); to = setTimeout(() => { segurou = true; vibrar(30); fecharDeVez(); }, 650); });
+    ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => bp.addEventListener(ev, () => clearTimeout(to)));
+    bp.addEventListener('contextmenu', e => e.preventDefault());
+    bp.onclick = () => { if (segurou){ segurou = false; return; } alternarEnergiaRadio(); };
+  }catch(e){}
+  try{ $('btnFecharTudo').onclick = () => { $('fundo').hidden = true; fecharDeVez(); }; }catch(e){}
   prepararMaster();
   prepararPTT();
   prepararChat();
