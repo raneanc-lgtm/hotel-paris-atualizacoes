@@ -1461,7 +1461,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 76;
+const APP_VERSAO = 77;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4845,8 +4845,9 @@ function zapForm(titulo, k, html, aoEnviar, rotuloOk){
 function zapFecharForm(){ const b = $('zapAnxForm'); if (b.dataset.parar) try{ clearInterval(+b.dataset.parar); }catch(e){} delete b.dataset.parar; b.hidden = true; b.innerHTML = ''; }
 async function zapEnviarEspecial(tipo, dados){
   const jid = ZAP.jid; if (!jid) throw new Error('Abra uma conversa');
+  zapMarcarEnvio();
   await zapPost('/api/conversas/' + zapJ(jid) + '/especial', { tipo, dados });
-  zapCarregarMensagens();
+  zapMarcarEnvio(); await zapCarregarMensagens(); zapDescerFim();
 }
 
 /* Localização */
@@ -5797,7 +5798,7 @@ async function zapCarregarMensagens(primeira){
   if (ass === ZAP.assinatura) return;
   ZAP.assinatura = ass;
   const box = $('zapMsgs');
-  const fim = primeira || box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+  const fim = primeira || Date.now() - (ZAP.enviouEm || 0) < 10000 || box.scrollHeight - box.scrollTop - box.clientHeight < 160;
   box.innerHTML = '';
   if (!l.length){ box.innerHTML = '<div class="vazio">Nenhuma mensagem guardada nesta conversa ainda.</div>'; return; }
   let ant = null, diaAnt = '';
@@ -5813,8 +5814,22 @@ async function zapCarregarMensagens(primeira){
     if (!m.de_mim) zapMarcarNaoLidasDepois();
     ant = { quem, ts: m.timestamp };
   }
-  if (fim) requestAnimationFrame(() => { box.scrollTop = box.scrollHeight; });
+  if (fim) zapDescerFim();
 }
+// desce a conversa até a última mensagem (de novo depois que as fotos carregam)
+function zapDescerFim(){
+  const box = $('zapMsgs'); if (!box) return;
+  const ir = () => { box.scrollTop = box.scrollHeight; };
+  requestAnimationFrame(ir); setTimeout(ir, 120); setTimeout(ir, 450);
+}
+function zapMarcarEnvio(){ ZAP.enviouEm = Date.now(); zapDescerFim(); }
+// teclado abrindo/fechando: se estava no fim, continua no fim
+(function(){
+  let noFim = true;
+  const box = () => $('zapMsgs');
+  document.addEventListener('scroll', e => { const b = box(); if (e.target === b) noFim = b.scrollHeight - b.scrollTop - b.clientHeight < 160; }, true);
+  try{ new ResizeObserver(() => { const b = box(); if (b && noFim && !b.hidden) b.scrollTop = b.scrollHeight; }).observe(document.getElementById('zapMsgs')); }catch(e){}
+})();
 let zapLidasTO = null;
 function zapMarcarNaoLidasDepois(){
   clearTimeout(zapLidasTO);
@@ -6175,7 +6190,8 @@ async function zapEnviarTexto(){
   if (!texto || !ZAP.jid) return;
   t.value = ''; t.style.height = 'auto'; zapIconeEnviar();
   const citada = ZAP.resp ? ZAP.resp.id : null; zapCancelarResp();
-  try{ await zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/mensagens', { texto, citada }); zapCarregarMensagens(); }
+  zapMarcarEnvio();
+  try{ await zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/mensagens', { texto, citada }); zapMarcarEnvio(); await zapCarregarMensagens(); zapDescerFim(); }
   catch(e){ t.value = texto; zapIconeEnviar(); aviso('Não enviou: ' + e.message, 5000); }
 }
 // antes de mandar foto/vídeo: mostra a prévia, legenda e a opção de visualização única
@@ -6204,7 +6220,8 @@ async function zapEnviarArquivo(blob, tipo, nomeArq, op){
   if (op.legenda) fd.append('legenda', op.legenda);
   if (op.unica) fd.append('unica', '1');
   aviso('Enviando...', 8000);
-  try{ await zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/midia', fd); aviso('Enviado.'); zapCarregarMensagens(); }
+  zapMarcarEnvio();
+  try{ await zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/midia', fd); aviso('Enviado.'); zapMarcarEnvio(); await zapCarregarMensagens(); zapDescerFim(); }
   catch(e){ aviso('Não enviou: ' + e.message, 5000); }
 }
 async function zapComecarAudio(){
