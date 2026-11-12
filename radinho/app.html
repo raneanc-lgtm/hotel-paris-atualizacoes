@@ -469,6 +469,7 @@
   #zapListaBox{flex:1;min-height:0;display:flex;flex-direction:column}
   #zapListaBox[hidden],#zapCon[hidden],#zapCompor[hidden],.zap-bar[hidden]{display:none!important}
   #zapLista{flex:1;min-height:0;overflow-y:auto}
+  #zapLista > li, #zapNovoLista > li[data-i]{content-visibility:auto;contain-intrinsic-size:auto 68px}
   #zapLista li .zap-hr{font-size:11px;color:var(--sub);flex:none;align-self:flex-start;margin-top:3px}
   #zapLista li small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #zapLista li svg.i{width:13px;height:13px;vertical-align:-2px}
@@ -1099,6 +1100,27 @@
   .zap-um-bt{width:42px;height:42px;border-radius:50%;border:2px dashed var(--sub);background:transparent;color:var(--sub);font-weight:900;font-size:15px;flex:none;display:grid;place-items:center;padding:0}
   .zap-um-bt.on{border-style:solid;border-color:var(--verde);background:var(--verde);color:#062012}
   #zapGravBar .zap-um-bt{width:30px;height:30px;font-size:12px}
+  /* ---------- fluidez: resposta ao toque e entradas suaves (só opacidade/transform: o celular anima sem esforço) ---------- */
+  @keyframes zapEntra{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+  @keyframes zapSurge{from{opacity:0}to{opacity:1}}
+  @keyframes zapSobe{from{opacity:.3;transform:translateY(26px)}to{opacity:1;transform:none}}
+  @keyframes zapNova{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+  #pZap.zap-entrando > #zapBar,#pZap.zap-entrando > #zapMsgs,#pZap.zap-entrando > #zapCompor{animation:zapEntra .17s cubic-bezier(.2,.8,.2,1)}
+  #pZap.zap-voltando > #zapListaBox{animation:zapSurge .15s ease-out}
+  .fundo:not([hidden]){animation:zapSurge .15s ease-out}
+  .fundo:not([hidden]) > .painel-aj{animation:zapSobe .2s cubic-bezier(.2,.8,.2,1)}
+  #zapMsgs .bolha.zap-nova{animation:zapNova .2s cubic-bezier(.2,.8,.2,1);transform-origin:0 100%}
+  #zapMsgs .bolha.minha.zap-nova{transform-origin:100% 100%}
+  #zapMsgs .bolha.minha .tx::after{width:66px}      /* espaço pra hora + visto: mensagem curta não fica por baixo da hora */
+  #zapMsgs .bolha.zap-pend{pointer-events:none}
+  #zapMsgs .bolha.zap-pend .zap-vez{opacity:.4}
+  #zapLista > li,#zapNovoLista > li[data-i]{transition:background-color .12s}
+  #zapLista > li:active,#zapNovoLista > li[data-i]:active{background-color:rgba(255,255,255,.055)}
+  #zapLista,#zapNovoLista{touch-action:pan-y;overscroll-behavior:contain}
+  #zapMsgs{overscroll-behavior:contain}
+  .zap-vista,.zap-vista-min,#zapNovo,#zapDescer,#zapArqBt,#zapLupa{transition:transform .1s}
+  .zap-vista:active,#zapNovo:active,#zapDescer:active,#zapArqBt:active,#zapLupa:active{transform:scale(.94)}
+  @media (prefers-reduced-motion:reduce){ #pZap.zap-entrando > *,#pZap.zap-voltando > *,.fundo:not([hidden]),.fundo:not([hidden]) > .painel-aj,#zapMsgs .bolha.zap-nova{animation:none} }
 </style>
 </head>
 <body>
@@ -1526,7 +1548,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 84;
+const APP_VERSAO = 85;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1578,7 +1600,7 @@ function aviso(msg, ms){
 }
 function vibrar(p){ if(cfgLocal.vibra && navigator.vibrate){ try{ navigator.vibrate(p); }catch(e){} } }
 function esc(s){ return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-function hora(ts){ return new Date(ts||Date.now()).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+function hora(ts){ const d = new Date(ts||Date.now()), h = d.getHours(), m = d.getMinutes(); return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m; }   // (formatador do sistema é lento demais pra chamar centenas de vezes)
 const TS = () => firebase.database.ServerValue.TIMESTAMP;
 async function hashSenha(c, senha){
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('radinho:' + c + ':' + senha));
@@ -1680,6 +1702,7 @@ function aplicarEnergiaRadio(){
 }
 // o Android avisa que o app está fechando (voltar na tela inicial): para o rádio e sai do canal
 window.radinhoFechando = function(){
+  try{ if (ZAP.iniciado){ zapGuardarPendentes(); zapPost('/api/salvar-agora').catch(() => {}); } }catch(e){}
   try{ desligarStandby(); }catch(e){}
   try{ if (refCanal && uid) refCanal.child('online/' + uid).remove(); }catch(e){}
   try{ if (typeof db !== 'undefined' && db && db.goOffline) setTimeout(() => db.goOffline(), 300); }catch(e){}
@@ -1691,6 +1714,7 @@ async function fecharDeVez(){
   const ok = await confirmar('Fechar o Radinho de vez?', 'Para o rádio, o Zap e tudo que roda por trás (igual ao Parar do Android). Fechar o app pelo voltar ou arrastando da lista também faz isso.\n\nPra voltar, é só abrir o Radinho de novo.', 'Fechar tudo', true);
   if (!ok) return;
   try{ LS.set('radinho_boot', '0'); }catch(e){}
+  try{ if (ZAP.iniciado){ zapGuardarPendentes(); await Promise.race([zapPost('/api/salvar-agora').catch(() => {}), new Promise(r => setTimeout(r, 700))]); } }catch(e){}
   desligarStandby();
   try{ if (typeof db !== 'undefined' && db && refCanal && uid) await Promise.race([refCanal.child('online/' + uid).remove(), new Promise(r => setTimeout(r, 800))]); }catch(e){}
   try{ if (typeof db !== 'undefined' && db && db.goOffline) db.goOffline(); }catch(e){}
@@ -4090,7 +4114,7 @@ function zapIniciar(){
   $('zapVoltar').innerHTML = '<span style="font-size:20px;line-height:1">‹</span>';
   $('zapVoltar').setAttribute('aria-label', 'Voltar pras conversas');
   $('zapVoltar').onclick = zapFecharConversa;
-  $('zapBusca').oninput = () => { ZAP.busca = $('zapBusca').value.trim().toLowerCase(); zapRenderLista(); };
+  $('zapBusca').oninput = () => { ZAP.busca = $('zapBusca').value.trim().toLowerCase(); $('zapLista').scrollTop = 0; zapRenderLista(); };
   $('zapStatusBtn').onclick = () => zapMudarVista('status');
   zapLigarChamadas();
   $('zapLupa').onclick = () => zapBuscaAbrir($('zapBusca').hidden);
@@ -4111,7 +4135,7 @@ function zapIniciar(){
   $('zapDescer').onclick = () => { const b = $('zapMsgs'); b.scrollTo({ top: b.scrollHeight, behavior: 'smooth' }); };
   $('zapNovo').onclick = zapAbrirNovo;
   $('zapNovoFechar').onclick = () => { $('zapNovoFundo').hidden = true; };
-  $('zapNovoBusca').oninput = zapRenderNovo;
+  { let t = null; $('zapNovoBusca').oninput = () => { clearTimeout(t); t = setTimeout(zapRenderNovo, 120); }; }
   $('zapNovoIr').onclick = zapNovoPorNumero;
   $('zapSincBtn').innerHTML = ic('refresh') + '<span>Sincronizar contatos do WhatsApp</span>';
   $('zapSincBtn').onclick = zapSincronizarContatos;
@@ -4173,15 +4197,15 @@ function zapConectarEventos(){
   es.onmessage = ev => {
     let e; try{ e = JSON.parse(ev.data); }catch(_){ return; }
     if (e.tipo === 'status' || e.tipo === 'qr') zapAtualizarStatus();
-    else if (e.tipo === 'conversas') zapCarregarLista();
-    else if (e.tipo === 'status_novo') zapCarregarStatus();
+    else if (e.tipo === 'conversas') zapPedirLista();
+    else if (e.tipo === 'status_novo') zapPedirStatus();
     else if (e.tipo === 'alerta_online'){ if (document.visibilityState === 'visible') aviso('🟢 ' + (e.nome || 'Contato') + ' está online agora', 5000); }
-    else if (e.tipo === 'reacao'){ if (ZAP.jid && ZAP.jid === e.conversaJid){ ZAP.assinatura = ''; zapCarregarMensagens(); } }
-    else if (e.tipo === 'status_msg'){ if (ZAP.jid === e.conversaJid) zapAtualizarVez(e.id, e.status); zapCarregarLista(); }
+    else if (e.tipo === 'reacao'){ if (ZAP.jid && ZAP.jid === e.conversaJid) zapCarregarMensagens(); }
+    else if (e.tipo === 'status_msg'){ if (ZAP.jid === e.conversaJid) zapAtualizarVez(e.id, e.status); zapPedirLista(500); }
     else if (e.tipo === 'chamada'){ zapEventoChamada(e); }
     else if (e.tipo === 'mensagem_nova'){
       if (!e.deMim && ['digitando', 'gravando'].includes(ZAP.presencas[e.conversaJid])){ ZAP.presencas[e.conversaJid] = 'online'; if (ZAP.jid === e.conversaJid) zapRenderPresenca(); }
-      zapCarregarLista();
+      zapPedirLista();
       if (ZAP.jid === e.conversaJid) zapCarregarMensagens();
       else if (!e.deMim && (aba !== 'zap' || document.visibilityState !== 'visible')) {
         if (aba !== 'zap') aviso('Zap • ' + (e.remetenteNome || 'Nova mensagem') + ': ' + String(e.texto || '[' + (e.tipoMsg || 'mídia') + ']').slice(0, 60));
@@ -4192,7 +4216,7 @@ function zapConectarEventos(){
       ZAP.presencas[e.jid] = e.status;
       if (e.visto_em) ZAP.vistos[e.jid] = e.visto_em;
       if (ZAP.jid === e.jid) zapRenderPresenca();
-      if (aba === 'zap' && !ZAP.jid) zapRenderLista();
+      if (aba === 'zap' && !ZAP.jid) zapPresencaNaLista(e.jid);
     }
   };
   es.onerror = () => {
@@ -4203,6 +4227,16 @@ function zapConectarEventos(){
 
 /* cache local: o Zap abre na hora com o que tinha, enquanto o motor liga por trás */
 function zapGuardarCache(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+const zapCachePend = {}; let zapCacheTO = null;
+function zapGuardarDepois(k, fn){
+  zapCachePend[k] = fn;
+  if (!zapCacheTO) zapCacheTO = setTimeout(zapGuardarPendentes, 2000);
+}
+function zapGuardarPendentes(){
+  clearTimeout(zapCacheTO); zapCacheTO = null;
+  Object.keys(zapCachePend).forEach(k => { const fn = zapCachePend[k]; delete zapCachePend[k]; try{ if (k.indexOf('fn:') === 0) fn(); else zapGuardarCache(k, fn()); }catch(e){} });
+}
+window.addEventListener('pagehide', zapGuardarPendentes);
 function zapLerCache(k){ try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){ return null; } }
 function zapGuardarMsgsCache(jid, l){
   const leves = l.slice(-60).map(m => { const c = Object.assign({}, m); delete c.raw; return c; });
@@ -4327,20 +4361,46 @@ async function zapGerarCodigo(){
 }
 
 /* ---------- lista de conversas ---------- */
-async function zapCarregarLista(){
-  try{ ZAP.conversas = await zapGet('/api/conversas') || []; }catch(e){ return; }
-  zapGuardarCache('zap_cache_conversas', ZAP.conversas.slice(0, 200));
-  if (!ZAP.statusCarregado){ ZAP.statusCarregado = true; zapCarregarStatus(); }
-  const n = ZAP.conversas.reduce((s, c) => s + (c.nao_lidas || 0), 0);
-  const b = $('bdZap'); b.textContent = n > 99 ? '99+' : n; b.hidden = true; // a notificação já chega no topo do celular
-  zapRenderLista();
+// vários avisos seguidos (mensagens, vistos, sincronização) viram UMA busca só
+let zapListaP = null, zapListaDeNovo = false, zapListaTO = null, zapListaQuando = 0, zapListaUlt = 0;
+function zapPedirLista(espera){
+  const quando = Math.max(Date.now() + (espera || 0), zapListaUlt + 250);
+  if (zapListaTO){ if (quando >= zapListaQuando) return; clearTimeout(zapListaTO); }
+  zapListaQuando = quando;
+  zapListaTO = setTimeout(() => { zapListaTO = null; zapCarregarLista(); }, Math.max(0, quando - Date.now()));
 }
+function zapCarregarLista(){
+  if (zapListaP){ zapListaDeNovo = true; return zapListaP; }
+  zapListaUlt = Date.now();
+  zapListaP = (async () => {
+    let l;
+    try{ l = await zapGet('/api/conversas') || []; }catch(e){ return; }
+    ZAP.conversas = l;
+    zapGuardarDepois('zap_cache_conversas', () => ZAP.conversas.slice(0, 200));
+    if (!ZAP.statusCarregado){ ZAP.statusCarregado = true; zapCarregarStatus(); }
+    if (ZAP.jid) return;                 // lista escondida atrás da conversa: desenha quando voltar
+    if (ZAP.vista === 'status' || ZAP.vista === 'chamadas'){ zapRenderVistas(); return; }
+    zapRenderLista();
+  })();
+  const p = zapListaP;
+  const fim = () => { zapListaP = null; if (zapListaDeNovo){ zapListaDeNovo = false; zapPedirLista(); } };
+  p.then(fim, fim);
+  return p;
+}
+let zapStatusTO = null;
+function zapPedirStatus(){ if (zapStatusTO) return; zapStatusTO = setTimeout(() => { zapStatusTO = null; zapCarregarStatus(); }, 400); }
+let zapDiaIni = 0, zapDiaFim = 0, zapOntemIni = 0;
 function zapQuando(ts){
-  const d = new Date(ts), h = new Date();
-  if (d.toDateString() === h.toDateString()) return hora(ts);
-  const ontem = new Date(h); ontem.setDate(h.getDate() - 1);
-  if (d.toDateString() === ontem.toDateString()) return 'ontem';
-  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+  const agora = Date.now();
+  if (agora >= zapDiaFim || agora < zapDiaIni){      // limites de hoje/ontem: calculados uma vez por dia
+    const h = new Date(); h.setHours(0, 0, 0, 0); zapDiaIni = h.getTime();
+    const a = new Date(h); a.setDate(h.getDate() + 1); zapDiaFim = a.getTime();
+    const o = new Date(h); o.setDate(h.getDate() - 1); zapOntemIni = o.getTime();
+  }
+  if (ts >= zapDiaIni && ts < zapDiaFim) return hora(ts);
+  if (ts >= zapOntemIni && ts < zapDiaIni) return 'ontem';
+  const d = new Date(ts), dd = d.getDate(), mm = d.getMonth() + 1;
+  return (dd < 10 ? '0' : '') + dd + '/' + (mm < 10 ? '0' : '') + mm;
 }
 function zapRenderLista(){
   const ul = $('zapLista'); if (!ul) return;
@@ -4369,30 +4429,62 @@ function zapRenderLista(){
   });
   if (ZAP.busca) l = l.filter(c => String(c.nome_exibicao || '').toLowerCase().includes(ZAP.busca));
   if (ZAP.vista !== 'arquivadas') l = l.slice().sort((a, b) => (fix.has(b.jid) ? 1 : 0) - (fix.has(a.jid) ? 1 : 0));
-  ul.innerHTML = '';
   if (!l.length){ ul.innerHTML = '<li class="vz" style="cursor:default">' + zapVaziaTxt() + '</li>'; return; }
-  for (const c of l.slice(0, 300)){
-    const li = document.createElement('li');
-    const pr = ZAP.presencas[c.jid];
-    const on = pr === 'online' || pr === 'digitando' || pr === 'gravando';
-    if (c.nao_lidas) li.classList.add('zap-nl');
-    if (ZAP.sel && ZAP.sel.has(c.jid)) li.classList.add('zap-marc');
-    let previa;
-    if (pr === 'digitando') previa = '<i class="zap-dig">digitando...</i>';
-    else if (pr === 'gravando') previa = '<i class="zap-dig">gravando áudio...</i>';
-    else {
-      const vez = c.ultima_de_mim ? '<span class="zap-vez' + (c.ultima_status >= 4 ? ' lida' : '') + '">' + icp(c.ultima_status >= 3 ? 'checks' : 'check', 16) + '</span>' : '';
-      previa = vez + esc(String(c.ultima_mensagem_texto || '').slice(0, 60));
-    }
-    li.innerHTML = zapAvatar(c.jid, c.nome_exibicao, c.eh_grupo, on) +
-      '<div><b>' + esc(c.nome_exibicao) + '</b><small>' + previa + '</small></div>' +
-      '<span class="zap-hr">' + (fix.has(c.jid) ? icp('pin', 12) + ' ' : '') + (c.silenciada ? icp('bellOff', 12) + ' ' : '') + (c.ultima_mensagem_ts ? zapQuando(c.ultima_mensagem_ts) : '') + '</span>' +
-      (c.nao_lidas ? '<span class="nlida">' + c.nao_lidas + '</span>' : '');
-    li.onclick = () => { if (li.dataset.segurou){ delete li.dataset.segurou; return; } if (ZAP.sel) return zapSelToggle(c.jid); zapAbrirConversa(c); };
-    zapSegurar(li, () => { if (ZAP.sel) zapSelToggle(c.jid); else zapSelIniciar(c.jid); });
-    ul.appendChild(li);
-  }
+  const linhas = l.slice(0, 300).map(c => zapLinhaConversa(c, fix.has(c.jid)));
+  const quer = new Set(linhas);
+  for (const filho of Array.from(ul.children)) if (!quer.has(filho)) filho.remove();
+  let ref = ul.firstElementChild;
+  for (const li of linhas){ if (ref === li) ref = ref.nextElementSibling; else ul.insertBefore(li, ref); }
+  if (zapLis.size > 900) for (const [j, li] of zapLis) if (!quer.has(li)) zapLis.delete(j);
   zapCarregarFotos(ul);
+}
+// uma linha da lista: reaproveitada enquanto nada nela mudou
+const zapLis = new Map();
+function zapLinhaConversa(c, fixada){
+  const pr = ZAP.presencas[c.jid];
+  const on = pr === 'online' || pr === 'digitando' || pr === 'gravando';
+  const f = ZAP.fotos[c.jid], marc = !!(ZAP.sel && ZAP.sel.has(c.jid));
+  const quando = c.ultima_mensagem_ts ? zapQuando(c.ultima_mensagem_ts) : '';
+  const txt = String(c.ultima_mensagem_texto || '').slice(0, 60);
+  const ass = [c.nome_exibicao, pr || '', txt, c.ultima_de_mim ? 1 : 0, c.ultima_status | 0, c.nao_lidas | 0, fixada ? 1 : 0, c.silenciada ? 1 : 0, quando, c.eh_grupo ? 1 : 0, (f && f.url) || ''].join('\u0001');
+  let li = zapLis.get(c.jid);
+  if (!li){
+    li = document.createElement('li'); zapLis.set(c.jid, li);
+    li.onclick = () => { const a = li._c; if (li.dataset.segurou){ delete li.dataset.segurou; return; } if (ZAP.sel) return zapSelToggle(a.jid); zapAbrirConversa(a); };
+    zapSegurar(li, () => { const j = li._c.jid; if (ZAP.sel) zapSelToggle(j); else zapSelIniciar(j); });
+  }
+  li._c = c;
+  li.classList.toggle('zap-marc', marc);
+  if (li._ass === ass) return li;
+  li._ass = ass;
+  li.classList.toggle('zap-nl', !!c.nao_lidas);
+  let previa;
+  if (pr === 'digitando') previa = '<i class="zap-dig">digitando...</i>';
+  else if (pr === 'gravando') previa = '<i class="zap-dig">gravando áudio...</i>';
+  else {
+    const vez = c.ultima_de_mim ? '<span class="zap-vez' + (c.ultima_status >= 4 ? ' lida' : '') + '">' + icp(c.ultima_status >= 3 ? 'checks' : 'check', 16) + '</span>' : '';
+    previa = vez + esc(txt);
+  }
+  const avVelho = zapFotoObs && li.querySelector('.zap-av'); if (avVelho) zapFotoObs.unobserve(avVelho);
+  li.innerHTML = zapAvatar(c.jid, c.nome_exibicao, c.eh_grupo, on) +
+    '<div><b>' + esc(c.nome_exibicao) + '</b><small>' + previa + '</small></div>' +
+    '<span class="zap-hr">' + (fixada ? icp('pin', 12) + ' ' : '') + (c.silenciada ? icp('bellOff', 12) + ' ' : '') + quando + '</span>' +
+    (c.nao_lidas ? '<span class="nlida">' + c.nao_lidas + '</span>' : '');
+  return li;
+}
+// online/digitando: atualiza só a linha daquela pessoa, uma vez por quadro
+let zapPresPend = null;
+function zapPresencaNaLista(jid){
+  if (!zapPresPend){
+    zapPresPend = new Set();
+    requestAnimationFrame(() => {
+      const st = zapPresPend; zapPresPend = null;
+      if (ZAP.jid || aba !== 'zap' || ZAP.vista === 'status' || ZAP.vista === 'chamadas') return;
+      const fix = zapFixadas();
+      st.forEach(j => { const li = zapLis.get(j); if (li && li.isConnected && li._c) zapLinhaConversa(li._c, fix.has(j)); });
+    });
+  }
+  zapPresPend.add(jid);
 }
 function zapVaziaTxt(){
   if (ZAP.busca) return 'Nada com esse nome.';
@@ -4447,17 +4539,20 @@ function zapRenderVistas(){
   html += chip('grupos', 'Grupos', 'users', somaNL(c => c.eh_grupo && !arq.has(c.jid) && !emb.has(c.jid)), true);
   for (const bl of zapBlocos()) { const set = new Set(bl.jids); html += chip('bloco:' + bl.id, bl.nome, 'bloco', somaNL(c => set.has(c.jid)), false); }
   html += '<button class="zap-vista zap-vista-add" data-vista="novo-bloco" aria-label="Novo bloco">' + icp('plus', 18) + '</button>';
-  sc.innerHTML = html;
-  sc.querySelectorAll('[data-vista]').forEach(b => {
-    const v = b.dataset.vista;
-    if (v === 'novo-bloco'){ b.onclick = () => zapNovoBloco(); return; }
-    if (v.indexOf('bloco:') === 0){ zapArrastarBloco(b, v.slice(6), v); return; }
-    b.onclick = () => zapMudarVista(v);
-  });
-  const ativo = sc.querySelector('.zap-vista.on'); if (ativo) try{ sc.scrollLeft = Math.max(0, ativo.offsetLeft - 40); }catch(e){}
+  if (sc._html !== html){
+    const mudouVista = sc._vista !== ZAP.vista; sc._vista = ZAP.vista;
+    sc._html = html; sc.innerHTML = html;
+    sc.querySelectorAll('[data-vista]').forEach(b => {
+      const v = b.dataset.vista;
+      if (v === 'novo-bloco'){ b.onclick = () => zapNovoBloco(); return; }
+      if (v.indexOf('bloco:') === 0){ zapArrastarBloco(b, v.slice(6), v); return; }
+      b.onclick = () => zapMudarVista(v);
+    });
+    const ativo = sc.querySelector('.zap-vista.on'); if (ativo && mudouVista) try{ sc.scrollLeft = Math.max(0, ativo.offsetLeft - 40); }catch(e){}
+  }
   const ab = $('zapArqBt'); const narq = somaNL(c => arq.has(c.jid));
-  if (ab) { ab.innerHTML = icp('arquivo', 16) + '<span>Arquivadas</span>' + (narq ? '<b class="zap-vista-n">' + (narq > 99 ? '99+' : narq) + '</b>' : ''); ab.classList.toggle('on', ZAP.vista === 'arquivadas'); }
-  s.querySelector('.zap-vista-ic').innerHTML = icp('historias', 19);
+  if (ab) { const h = icp('arquivo', 16) + '<span>Arquivadas</span>' + (narq ? '<b class="zap-vista-n">' + (narq > 99 ? '99+' : narq) + '</b>' : ''); if (ab._html !== h){ ab._html = h; ab.innerHTML = h; } ab.classList.toggle('on', ZAP.vista === 'arquivadas'); }
+  const sic = s.querySelector('.zap-vista-ic'); if (!sic._ok){ sic._ok = 1; sic.innerHTML = icp('historias', 19); }
   const bs = $('nStatus'), nst = ZAP.statusLista.filter(x => !x.meu && !x.silenciado && zapStatusNovos(x) > 0).length;
   if (bs) { bs.textContent = nst > 99 ? '99+' : nst; bs.hidden = !nst; }
   s.classList.toggle('on', ZAP.vista === 'status');
@@ -4466,9 +4561,11 @@ function zapRenderVistas(){
   const nv = $('zapNovo'); if (nv) nv.hidden = (ZAP.vista === 'status' || ZAP.vista === 'arquivadas');
 }
 function zapAtualizarVez(id, status){
-  const box = $('zapMsgs'); if (!box) return;
-  const bolha = Array.from(box.querySelectorAll('.bolha')).find(b => b.dataset.id === id);
+  const bolha = ZAP.bolhas && ZAP.bolhasJid === ZAP.jid ? ZAP.bolhas.get(id) : null;
   if (!bolha) return;
+  bolha._st = status; zapVezNaBolha(bolha, status);
+}
+function zapVezNaBolha(bolha, status){
   const hr = bolha.querySelector('.hr'); if (!hr) return;
   let v = hr.querySelector('.zap-vez');
   if (!v) { v = document.createElement('span'); hr.appendChild(v); }
@@ -4567,14 +4664,21 @@ function zapAvatar(jid, nomeC, grupo, on){
 
 // busca as fotos de perfil dos avatares que estão na tela (o motor guarda por 1 dia)
 const zapFilaFotos = new Set();
+// só pede a foto de quem está aparecendo na tela (pedir centenas de uma vez pesa a conexão com o WhatsApp)
+let zapFotoObs = null;
 function zapCarregarFotos(raiz){
   if (!ZAP.motorOk) return;            // motor ainda ligando: tenta quando ele responder
-  (raiz || document).querySelectorAll('.zap-av[data-foto]').forEach(el => {
-    const jid = el.dataset.foto, f = ZAP.fotos[jid];
-    if (f && (f.url || Date.now() - f.t < 10 * 60 * 1000)) return;
-    zapFilaFotos.add(jid);
-  });
-  zapProximaFoto();
+  const tem = jid => { const f = ZAP.fotos[jid]; return f && (f.url || Date.now() - f.t < 10 * 60 * 1000); };
+  const faltam = [];
+  (raiz || document).querySelectorAll('.zap-av[data-foto]').forEach(el => { if (!tem(el.dataset.foto)) faltam.push(el); });
+  if (!faltam.length) return;
+  if (!('IntersectionObserver' in window)){ faltam.forEach(el => zapFilaFotos.add(el.dataset.foto)); zapProximaFoto(); return; }
+  if (!zapFotoObs) zapFotoObs = new IntersectionObserver(ents => {
+    let n = 0;
+    ents.forEach(e => { if (!e.isIntersecting) return; zapFotoObs.unobserve(e.target); e.target._obs = 0; const j = e.target.dataset.foto; if (j && !tem(j)){ zapFilaFotos.add(j); n++; } });
+    if (n) zapProximaFoto();
+  }, { rootMargin: '500px 0px' });
+  faltam.forEach(el => { if (!el._obs){ el._obs = 1; zapFotoObs.observe(el); } });
 }
 let zapFotosRodando = 0;
 async function zapProximaFoto(){
@@ -4888,24 +4992,22 @@ function zapRenderNovo(){
   const ul = $('zapNovoLista'), q = $('zapNovoBusca').value.trim().toLowerCase(), qd = q.replace(/\D/g, '');
   let l = ZAP.contatos || [];
   if (q) l = l.filter(c => c.nome.toLowerCase().includes(q) || (qd && c.jid.includes(qd)));
-  ul.innerHTML = '';
-  if (!l.length){ ul.innerHTML = '<li class="vz" style="cursor:default">' + (q ? 'Ninguém com esse nome. Digite o número lá em cima.' : 'Os contatos aparecem aqui conforme o WhatsApp sincroniza. Você também pode digitar o número lá em cima.') + '</li>'; return; }
+  if (!l.length){ ul.onclick = null; ul.innerHTML = '<li class="vz" style="cursor:default">' + (q ? 'Ninguém com esse nome. Digite o número lá em cima.' : 'Os contatos aparecem aqui conforme o WhatsApp sincroniza. Você também pode digitar o número lá em cima.') + '</li>'; return; }
   const agenda = l.filter(c => c.agenda), whats = l.filter(c => !c.agenda);
-  const secao = (txt, qtd) => { const h = document.createElement('li'); h.className = 'zap-sec-ct'; h.innerHTML = '<span>' + txt + '</span><b>' + qtd.toLocaleString('pt-BR') + '</b>'; ul.appendChild(h); };
-  let n = 0;
-  const ordem = [];
-  if (agenda.length){ ordem.push(['Da sua agenda', agenda]); }
-  if (whats.length){ ordem.push(['Do WhatsApp', whats]); }
-  for (const [titulo, grupo] of ordem){
-   secao(titulo, grupo.length);
-   for (const c of grupo){
-    const li = document.createElement('li');
-    // foto só dos primeiros (pedir milhares de fotos de uma vez faz o WhatsApp travar)
-    li.innerHTML = zapAvatar(c.jid, c.nome, false, false).replace(n++ < 120 ? /^$/ : / data-foto="[^"]*"/, '') + '<div><b>' + esc(c.nome) + '</b><small>' + esc(c.numero) + '</small></div>';
-    li.onclick = () => zapIniciarCom(c.jid, c.nome);
-    ul.appendChild(li);
-   }
+  const partes = [], vis = [];
+  for (const [titulo, grupo] of [['Da sua agenda', agenda], ['Do WhatsApp', whats]]){
+    if (!grupo.length) continue;
+    partes.push('<li class="zap-sec-ct"><span>' + titulo + '</span><b>' + grupo.length.toLocaleString('pt-BR') + '</b></li>');
+    for (const c of grupo){
+      // foto só dos primeiros (pedir milhares de fotos de uma vez faz o WhatsApp travar)
+      let av = zapAvatar(c.jid, c.nome, false, false); if (vis.length >= 120) av = av.replace(/ data-foto="[^"]*"/, '');
+      partes.push('<li data-i="' + vis.length + '">' + av + '<div><b>' + esc(c.nome) + '</b><small>' + esc(c.numero) + '</small></div></li>');
+      vis.push(c);
+    }
   }
+  ZAP.novoVis = vis;
+  ul.innerHTML = partes.join('');
+  ul.onclick = e => { const li = e.target.closest('li[data-i]'); const c = li && ZAP.novoVis[+li.dataset.i]; if (c) zapIniciarCom(c.jid, c.nome); };
   zapCarregarFotos(ul);
 }
 async function zapSincronizarContatos(){
@@ -5808,8 +5910,13 @@ function zapMontarEditorImagem(im, url){
 }
 
 /* ---------- conversa ---------- */
+function zapAnimar(cl){
+  const p = $('pZap'); if (!p) return;
+  p.classList.remove('zap-entrando', 'zap-voltando'); p.classList.add(cl);
+  clearTimeout(zapAnimar.t); zapAnimar.t = setTimeout(() => p.classList.remove(cl), 280);
+}
 function zapAbrirConversa(c){
-  if (!ZAP.jid){ const l = $('zapLista'); ZAP.rolagemLista = l ? l.scrollTop : 0; }
+  if (!ZAP.jid){ const l = $('zapLista'); ZAP.rolagemLista = l ? l.scrollTop : 0; zapAnimar('zap-entrando'); }
   ZAP.modoStatus = false; $('zapStAcoes').hidden = true; $('zapNovo').hidden = false;
   zapFecharPerfil();
   ZAP.jid = c.jid; ZAP.nome = c.nome_exibicao; ZAP.grupo = !!c.eh_grupo; ZAP.assinatura = '';
@@ -5818,11 +5925,12 @@ function zapAbrirConversa(c){
   $('zapNome').textContent = c.nome_exibicao;
   $('zapBarAv').innerHTML = zapAvatar(c.jid, c.nome_exibicao, c.eh_grupo, false);
   zapCarregarFotos($('zapBarAv'));
-  $('zapMsgs').innerHTML = '<div class="vazio">Carregando...</div>';
+  $('zapMsgs').innerHTML = '';
+  setTimeout(() => { const b = $('zapMsgs'); if (ZAP.jid === c.jid && !b.firstChild) b.innerHTML = '<div class="vazio">Carregando...</div>'; }, 400);
   zapRenderPresenca();
   zapCarregarMensagens(true);
   zapFoco();
-  zapPost('/api/conversas/' + zapJ(c.jid) + '/lidas').then(zapCarregarLista).catch(() => {});
+  zapPost('/api/conversas/' + zapJ(c.jid) + '/lidas').then(() => zapPedirLista()).catch(() => {});
   if (!ZAP.grupo) zapGet('/api/presenca/' + zapJ(c.jid)).then(p => {
     if (p && p.status) ZAP.presencas[c.jid] = p.status;
     if (p && p.visto_em) ZAP.vistos[c.jid] = p.visto_em;
@@ -5834,6 +5942,7 @@ function zapFecharConversa(){
   if (ZAP.gravando) zapPararAudio(true);
   zapPararTocar();
   zapFecharPerfil();
+  if (ZAP.jid) zapAnimar('zap-voltando');
   ZAP.jid = null;
   $('zapDescer').hidden = true;
   $('zapBar').hidden = true; $('zapMsgs').hidden = true; $('zapCompor').hidden = true;
@@ -6066,8 +6175,24 @@ function zapSalvar(caminho, nomeArq){
 }
 function zapSalvarAtual(){ if (ZAP.ver) zapSalvar(ZAP.ver.caminho, ZAP.ver.nomeArq); }
 
+// várias mensagens chegando juntas viram UMA busca; e só as bolhas novas/alteradas são desenhadas
 async function zapCarregarMensagens(primeira){
   const jid = ZAP.jid; if (!jid) return;
+  if (!primeira && ZAP.msgsIndo === jid){ ZAP.msgsDeNovo = true; return; }
+  if (!primeira && Date.now() - (ZAP.msgsUlt || 0) < 150){        // rajada: a primeira entra na hora, as seguintes juntas
+    if (!ZAP.msgsTO) ZAP.msgsTO = setTimeout(() => { ZAP.msgsTO = null; zapCarregarMensagens(); }, 160);
+    return;
+  }
+  ZAP.msgsIndo = jid; ZAP.msgsDeNovo = false; ZAP.msgsUlt = Date.now();
+  try{ await zapBuscarMensagens(primeira, jid); }
+  finally{
+    if (ZAP.msgsIndo === jid){
+      ZAP.msgsIndo = null;
+      if (ZAP.msgsDeNovo && ZAP.jid === jid){ ZAP.msgsDeNovo = false; zapCarregarMensagens(); }
+    }
+  }
+}
+async function zapBuscarMensagens(primeira, jid){
   let l;
   try{ l = await zapGet('/api/conversas/' + zapJ(jid) + '/mensagens'); }
   catch(e){                       // motor ainda ligando: mostra o que ficou guardado
@@ -6076,28 +6201,76 @@ async function zapCarregarMensagens(primeira){
   }
   if (ZAP.jid !== jid) return;
   ZAP.msgsAtuais = l;
-  zapGuardarMsgsCache(jid, l);
-  const ass = l.map(m => m.id + (m.apagada_pelo_remetente ? 'x' : '') + (m.midia_path ? 'm' : '') + (m.reacoes ? JSON.stringify(m.reacoes) : '')).join(',');
+  zapGuardarDepois('fn:msgs', () => zapGuardarMsgsCache(jid, l));
+  const ass = l.map(m => m.id + (m.apagada_pelo_remetente ? 'x' : '') + (m.midia_path ? 'm' : '') + (m.transcricao ? 't' : '') + (m.reacoes ? JSON.stringify(m.reacoes) : '')).join(',');
   if (ass === ZAP.assinatura) return;
   ZAP.assinatura = ass;
   const box = $('zapMsgs');
   const fim = primeira || Date.now() - (ZAP.enviouEm || 0) < 10000 || box.scrollHeight - box.scrollTop - box.clientHeight < 160;
-  box.innerHTML = '';
-  if (!l.length){ box.innerHTML = '<div class="vazio">Nenhuma mensagem guardada nesta conversa ainda.</div>'; return; }
-  let ant = null, diaAnt = '';
-  for (const m of l){
+  if (!l.length){ ZAP.bolhas = null; if (!(ZAP.pendentes || []).some(p => p.jid === jid && p.el.isConnected)) box.innerHTML = '<div class="vazio">Nenhuma mensagem guardada nesta conversa ainda.</div>'; return; }
+  if (!ZAP.bolhas || ZAP.bolhasJid !== jid){ ZAP.bolhas = new Map(); ZAP.bolhasJid = jid; }
+  const jaTinha = ZAP.bolhas.size > 0 && !!box.querySelector('.bolha');
+  // abrindo: mostra o fim da conversa na hora e completa o resto no quadro seguinte
+  if (primeira && l.length > 60 && ZAP.bolhas.size < 20){
+    zapDesenharMensagens(box, l, l.length - 40);
+    box.scrollTop = box.scrollHeight;
+    await new Promise(r => requestAnimationFrame(() => setTimeout(r, 0)));
+    if (ZAP.jid !== jid || ZAP.msgsAtuais !== l) return;
+  }
+  zapDesenharMensagens(box, l, 0, !primeira && jaTinha);
+  if (fim){ box.scrollTop = box.scrollHeight; zapDescerFim(); }
+}
+function zapAssMsg(m, cont){
+  return [m.id, cont ? 1 : 0, m.tipo, m.texto || '', m.midia_path || '', m.midia_thumb || '', m.pode_baixar ? 1 : 0, m.apagada_pelo_remetente ? 1 : 0, m.transcricao || '',
+    m.remetente_nome || '', m.reacoes ? JSON.stringify(m.reacoes) : '', m.dados ? JSON.stringify(m.dados) : '', m.timestamp, m.duracao || ''].join('\u0001');
+}
+function zapDesenharMensagens(box, l, de, animar){
+  const mapa = ZAP.bolhas, quer = [], novas = [];
+  let ant = null, diaAnt = '', novaDeFora = false;
+  for (let i = 0; i < l.length; i++){
+    const m = l[i];
     const dia = new Date(m.timestamp).toDateString();
+    if (i < (de || 0)){ if (dia !== diaAnt){ diaAnt = dia; ant = null; } ant = { quem: m.de_mim ? 'eu' : (m.remetente_jid || ''), ts: m.timestamp }; continue; }
     if (dia !== diaAnt){
       diaAnt = dia;
-      const sep = document.createElement('div'); sep.className = 'zap-dia'; sep.textContent = zapDia(m.timestamp); box.appendChild(sep); ant = null;
+      let sep = mapa.get('dia:' + dia);
+      if (!sep){ sep = document.createElement('div'); sep.className = 'zap-dia'; mapa.set('dia:' + dia, sep); }
+      const t = zapDia(m.timestamp); if (sep.textContent !== t) sep.textContent = t;
+      quer.push(sep); ant = null;
     }
     const quem = m.de_mim ? 'eu' : (m.remetente_jid || '');
     const cont = ant && ant.quem === quem && (m.timestamp - ant.ts) < 120000;
-    box.appendChild(zapBolha(m, cont));
-    if (!m.de_mim) zapMarcarNaoLidasDepois();
+    const a = zapAssMsg(m, cont);
+    let el = mapa.get(m.id);
+    // bolha tocando áudio não é trocada (senão o botão de parar se perde)
+    if (!el || (el._ass !== a && !(ZAP.audioBt && el.contains(ZAP.audioBt)))){
+      const sel = el && el.classList.contains('zap-msel');
+      if (!el && !m.de_mim) novaDeFora = true;
+      const eraNova = !el;
+      el = zapBolha(m, cont); if (eraNova) novas.push(el); el._ass = a; el._st = m.status; mapa.set(m.id, el);
+      if (sel) el.classList.add('zap-msel');
+    } else if (m.de_mim && el._st !== m.status){ el._st = m.status; zapVezNaBolha(el, m.status); }
+    quer.push(el);
     ant = { quem, ts: m.timestamp };
   }
-  if (fim) zapDescerFim();
+  // bolhas provisórias (acabei de enviar): ficam no fim até a mensagem de verdade aparecer
+  if (ZAP.pendentes && ZAP.pendentes.length){
+    const usados = new Set(), ficam = [];
+    for (const p of ZAP.pendentes){
+      if (p.jid !== ZAP.bolhasJid || Date.now() - p.ts > 90000) continue;
+      const real = l.find(m => m.de_mim && !p.antes.has(m.id) && !usados.has(m.id) && m.timestamp >= p.ts - 5000);
+      if (real){ usados.add(real.id); const i = novas.indexOf(mapa.get(real.id)); if (i >= 0) novas.splice(i, 1); continue; }
+      ficam.push(p); quer.push(p.el);
+    }
+    ZAP.pendentes = ficam;
+  }
+  const vivos = new Set(quer);
+  for (const filho of Array.from(box.children)) if (!vivos.has(filho)) filho.remove();
+  let ref = box.firstElementChild;
+  for (const el of quer){ if (ref === el) ref = ref.nextElementSibling; else box.insertBefore(el, ref); }
+  for (const [k, el] of mapa) if (!vivos.has(el)) mapa.delete(k);
+  if (novaDeFora) zapMarcarNaoLidasDepois();
+  if (animar && novas.length && novas.length <= 4) novas.forEach(el => { el.classList.add('zap-nova'); setTimeout(() => el.classList.remove('zap-nova'), 320); });
 }
 // desce a conversa até a última mensagem (de novo depois que as fotos carregam)
 function zapDescerFim(){
@@ -6116,7 +6289,7 @@ function zapMarcarEnvio(){ ZAP.enviouEm = Date.now(); zapDescerFim(); }
 let zapLidasTO = null;
 function zapMarcarNaoLidasDepois(){
   clearTimeout(zapLidasTO);
-  zapLidasTO = setTimeout(() => { if (ZAP.jid && aba === 'zap') zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/lidas').then(zapCarregarLista).catch(() => {}); }, 800);
+  zapLidasTO = setTimeout(() => { if (ZAP.jid && aba === 'zap') zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/lidas').then(() => zapPedirLista()).catch(() => {}); }, 800);
 }
 function zapDia(ts){
   const d = new Date(ts), h = new Date();
@@ -6474,10 +6647,31 @@ async function zapEnviarTexto(){
   const t = $('zapIn'), texto = t.value.trim();
   if (!texto || !ZAP.jid) return;
   t.value = ''; t.style.height = 'auto'; zapIconeEnviar();
-  const citada = ZAP.resp ? ZAP.resp.id : null; zapCancelarResp();
+  const resp = ZAP.resp, citada = resp ? resp.id : null; zapCancelarResp();
+  const pend = zapBolhaPendente(texto, resp);
   zapMarcarEnvio();
-  try{ await zapPost('/api/conversas/' + zapJ(ZAP.jid) + '/mensagens', { texto, citada }); zapMarcarEnvio(); await zapCarregarMensagens(); zapDescerFim(); }
-  catch(e){ t.value = texto; zapIconeEnviar(); aviso('Não enviou: ' + e.message, 5000); }
+  try{
+    await zapPost('/api/conversas/' + zapJ(pend.jid) + '/mensagens', { texto, citada });
+    zapMarcarEnvio(); await zapCarregarMensagens(); zapDescerFim();
+    setTimeout(() => zapTirarPendente(pend), 5000);        // garantia: nunca fica bolha provisória sobrando
+  }
+  catch(e){ zapTirarPendente(pend); if (ZAP.jid === pend.jid && !t.value){ t.value = texto; zapIconeEnviar(); } aviso('Não enviou: ' + e.message, 5000); }
+}
+function zapBolhaPendente(texto, resp){
+  const jid = ZAP.jid, box = $('zapMsgs');
+  const m = { id: 'pend:' + Date.now(), de_mim: 1, tipo: 'texto', texto, timestamp: Date.now(), status: 1 };
+  if (resp){ m.citada_id = resp.id; m.citada_texto = resp.texto || ''; m.citada_autor = resp.de_mim ? 'eu' : (resp.remetente_jid || jid); }
+  const el = zapBolha(m, false);
+  el.classList.add('zap-pend', 'zap-nova'); setTimeout(() => el.classList.remove('zap-nova'), 320);
+  const vazio = box.querySelector('.vazio'); if (vazio) vazio.remove();
+  box.appendChild(el);
+  const p = { jid, el, ts: m.timestamp, antes: new Set((ZAP.msgsAtuais || []).map(x => x.id)) };
+  (ZAP.pendentes = ZAP.pendentes || []).push(p);
+  return p;
+}
+function zapTirarPendente(p){
+  if (p.el.isConnected) p.el.remove();
+  if (ZAP.pendentes) ZAP.pendentes = ZAP.pendentes.filter(x => x !== p);
 }
 // antes de mandar foto/vídeo: mostra a prévia, legenda e a opção de visualização única
 function zapPreviaEnvio(file){
@@ -6548,8 +6742,9 @@ function zapPararAudio(cancelar){
 document.addEventListener('visibilitychange', () => {
   if (!ZAP.iniciado) return;
   zapFoco();
-  if (document.visibilityState !== 'visible') return;
+  if (document.visibilityState !== 'visible'){ zapGuardarPendentes(); return; }
   zapAbrirPendente();
+  if (!ZAP.es || ZAP.es.readyState !== 1) zapConectarEventos();     // o canal de avisos caiu enquanto estava fora: religa já
   zapAtualizarStatus(); zapCarregarLista();
   if (aba === 'zap' && ZAP.jid) zapCarregarMensagens();
 });
