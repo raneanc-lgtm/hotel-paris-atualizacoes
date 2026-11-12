@@ -133,6 +133,7 @@
   .painel-aj h2{margin:0 0 6px;font-size:18px}
   .painel-aj h4{margin:18px 0 4px;font-size:12px;letter-spacing:2px;color:var(--sub)}
   .opcao{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--borda)}
+  #opManter[hidden]{display:none}
   .opcao span small{display:block;color:var(--sub);font-size:12px;margin-top:2px}
   .sw{position:relative;width:48px;height:28px;flex:none;margin:0}
   .sw input{opacity:0;width:0;height:0}
@@ -1334,6 +1335,10 @@
       <span>Manter vivo em segundo plano<small>Segura o áudio ativo pra receber chamadas com o app minimizado</small></span>
       <label class="sw"><input type="checkbox" id="swVivo"><b></b></label>
     </div>
+    <div class="opcao" id="opManter" hidden>
+      <span>Manter aberto em segundo plano<small id="lblManter">Desligado: fechar o app para tudo</small></span>
+      <label class="sw"><input type="checkbox" id="swManter"><b></b></label>
+    </div>
     <div class="opcao">
       <span>Manter tela ligada<small>Útil em viagem ou serviço</small></span>
       <label class="sw"><input type="checkbox" id="swTela"><b></b></label>
@@ -1548,7 +1553,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 85;
+const APP_VERSAO = 86;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -1711,7 +1716,7 @@ window.radinhoFechando = function(){
 async function fecharDeVez(){
   const nativo = window.ChatSlimNativo && typeof ChatSlimNativo.fecharTudo === 'function';
   if (!nativo && !standbyNativo()){ aviso('Essa função precisa do APK novo do Radinho.', 4000); return; }
-  const ok = await confirmar('Fechar o Radinho de vez?', 'Para o rádio, o Zap e tudo que roda por trás (igual ao Parar do Android). Fechar o app pelo voltar ou arrastando da lista também faz isso.\n\nPra voltar, é só abrir o Radinho de novo.', 'Fechar tudo', true);
+  const ok = await confirmar('Fechar o Radinho de vez?', 'Para o rádio, o Zap e tudo que roda por trás (igual ao Parar do Android).' + (LS.get('radinho_manter') === '1' ? '' : ' Fechar o app pelo voltar ou arrastando da lista também faz isso.') + '\n\nPra voltar, é só abrir o Radinho de novo.', 'Fechar tudo', true);
   if (!ok) return;
   try{ LS.set('radinho_boot', '0'); }catch(e){}
   try{ if (ZAP.iniciado){ zapGuardarPendentes(); await Promise.race([zapPost('/api/salvar-agora').catch(() => {}), new Promise(r => setTimeout(r, 700))]); } }catch(e){}
@@ -3944,6 +3949,22 @@ function prepararAjustes(){
     if (gravando) parar();
     cfgLocal.trava = e.target.checked; LS.set('radinho_trava', cfgLocal.trava ? '1' : '0'); textoPTT();
   };
+  // fechar o app: para tudo (padrão) ou continua recebendo por trás — a escolha fica guardada no Android
+  (function(){
+    const temPonte = !!window.ChatSlimNativo, nova = temPonte && typeof ChatSlimNativo.manterAberto === 'function';
+    const op = $('opManter'), sw = $('swManter'); if (!op || !temPonte) return;
+    const txt = on => { $('lblManter').textContent = on ? 'Ligado: ao fechar, o rádio e o Zap continuam recebendo' : 'Desligado: fechar o app para tudo'; };
+    op.hidden = false;
+    let on = false; try{ if (nova) on = !!ChatSlimNativo.manterAbertoAtual(); }catch(e){}
+    sw.checked = on; txt(on); LS.set('radinho_manter', on ? '1' : '0');
+    sw.onchange = e => {
+      if (!nova){ e.target.checked = false; aviso('Essa opção precisa do APK novo do Radinho.', 4500); return; }
+      const lig = e.target.checked;
+      try{ ChatSlimNativo.manterAberto(lig); }catch(err){ e.target.checked = !lig; aviso('Não deu pra mudar.', 3000); return; }
+      LS.set('radinho_manter', lig ? '1' : '0'); txt(lig);
+      aviso(lig ? 'Ao fechar o app, o rádio e o Zap continuam por trás.' : 'Fechar o app agora para tudo.', 3500);
+    };
+  })();
   $('swVivo').onchange = e => {
     cfgLocal.vivo = e.target.checked; LS.set('radinho_vivo', cfgLocal.vivo ? '1' : '0');
     cfgLocal.vivo ? ligarVivo() : desligarVivo();

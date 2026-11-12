@@ -1,5 +1,10 @@
 [
  {
+  "v": 86,
+  "ts": 1794475589891,
+  "resumo": "opção Manter aberto em segundo plano (fechar para tudo ou continua recebendo)"
+ },
+ {
   "v": 85,
   "ts": 1794474304026,
   "resumo": "pente fino: Zap muito mais leve e fluido, reconecta mais rápido, mensagem aparece na hora ao enviar"
