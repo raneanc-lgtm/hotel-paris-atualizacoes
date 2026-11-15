@@ -1345,7 +1345,7 @@
       <label class="sw"><input type="checkbox" id="swVivo"><b></b></label>
     </div>
     <div class="opcao" id="opManter" hidden>
-      <span>Manter aberto em segundo plano<small id="lblManter">Desligado: fechar o app para tudo</small></span>
+      <span>Manter aberto em segundo plano<small id="lblManter">Ligado: recebe mensagens na hora em segundo plano</small></span>
       <label class="sw"><input type="checkbox" id="swManter"><b></b></label>
     </div>
     <div class="opcao">
@@ -1562,7 +1562,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 89;
+const APP_VERSAO = 90;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3962,7 +3962,7 @@ function prepararAjustes(){
   (function(){
     const temPonte = !!window.ChatSlimNativo, nova = temPonte && typeof ChatSlimNativo.manterAberto === 'function';
     const op = $('opManter'), sw = $('swManter'); if (!op || !temPonte) return;
-    const txt = on => { $('lblManter').textContent = on ? 'Ligado: ao fechar, o rádio e o Zap continuam recebendo' : 'Desligado: fechar o app para tudo'; };
+    const txt = on => { $('lblManter').textContent = on ? 'Ligado: recebe na hora em segundo plano (notificação fixa do Zap)' : 'Desligado: mensagens podem atrasar com o app fechado'; };
     op.hidden = false;
     let on = false; try{ if (nova) on = !!ChatSlimNativo.manterAbertoAtual(); }catch(e){}
     sw.checked = on; txt(on); LS.set('radinho_manter', on ? '1' : '0');
@@ -3971,7 +3971,7 @@ function prepararAjustes(){
       const lig = e.target.checked;
       try{ ChatSlimNativo.manterAberto(lig); }catch(err){ e.target.checked = !lig; aviso('Não deu pra mudar.', 3000); return; }
       LS.set('radinho_manter', lig ? '1' : '0'); txt(lig);
-      aviso(lig ? 'Ao fechar o app, o rádio e o Zap continuam por trás.' : 'Fechar o app agora para tudo.', 3500);
+      aviso(lig ? 'Pronto: o Zap fica recebendo mensagens na hora, mesmo em segundo plano. Aparece uma notificação fixa pra isso.' : 'Desligado. Com o app em segundo plano, as mensagens podem atrasar.', 4500);
     };
   })();
   $('swVivo').onchange = e => {
@@ -4225,7 +4225,9 @@ function zapConectarEventos(){
   ZAP.es = es;
   es.onopen = () => zapAtualizarStatus();
   es.onmessage = ev => {
+    ZAP.esUlt = Date.now();                       // chegou algo (evento ou batida): o canal está vivo
     let e; try{ e = JSON.parse(ev.data); }catch(_){ return; }
+    if (e.tipo === 'bat') return;                 // batida do motor, só pra saber que o canal respira
     if (e.tipo === 'status' || e.tipo === 'qr') zapAtualizarStatus();
     else if (e.tipo === 'conversas') zapPedirLista();
     else if (e.tipo === 'status_novo') zapPedirStatus();
@@ -4253,6 +4255,14 @@ function zapConectarEventos(){
     if (es.readyState === 2){ setTimeout(zapConectarEventos, 1500); }
     if (!ZAP.conectado && !zapAbrirDoCache('Ligando o Zap...')) zapMostrarConexao('iniciando');
   };
+  ZAP.esUlt = Date.now();
+  // vigia o canal: se ficar mudo (nem batida nem evento) com o app na frente, religa — pega conexão meia-morta
+  if (!ZAP.esVigia) ZAP.esVigia = setInterval(() => {
+    if (document.visibilityState !== 'visible' || aba !== 'zap') return;
+    const mudo = Date.now() - (ZAP.esUlt || 0) > 50000;
+    const caido = !ZAP.es || ZAP.es.readyState === 2;
+    if (mudo || caido) zapConectarEventos();
+  }, 15000);
 }
 
 /* cache local: o Zap abre na hora com o que tinha, enquanto o motor liga por trás */

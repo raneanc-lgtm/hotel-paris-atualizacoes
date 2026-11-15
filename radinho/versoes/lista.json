@@ -1,5 +1,10 @@
 [
  {
+  "v": 90,
+  "ts": 1794775113174,
+  "resumo": "mensagens chegam na hora em segundo plano (opção Manter aberto); canal de eventos com batida e religada automática"
+ },
+ {
   "v": 89,
   "ts": 1794773790060,
   "resumo": "Status e Chamadas saíram do meio dos filtros e foram pra linha de baixo, à direita; filtros ficaram só com os filtros"
