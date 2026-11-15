@@ -1403,8 +1403,8 @@
       <button class="btn sec" id="btnZapSync" data-ic="refresh">Sincronizar contatos do WhatsApp</button>
       <button class="btn perigo" id="btnZapZerar" data-ic="logout">Desconectar o WhatsApp e gerar código novo</button>
       <h4>BACKUP E VERSÃO</h4>
-      <button class="btn sec" id="btnBackupAgora" data-ic="baixar">Fazer backup da interface agora</button>
-      <button class="btn sec" id="btnBackupRest" data-ic="refresh">Restaurar um backup</button>
+      <button class="btn sec" id="btnBackupAgora" data-ic="baixar">Fazer backup agora (tudo)</button>
+      <button class="btn sec" id="btnBackupRest" data-ic="refresh">Restaurar backup</button>
       <button class="btn sec" id="btnDowngrade" data-ic="desfazer">Voltar pra uma versão anterior</button>
       <input type="file" id="inBackupArq" accept=".json,application/json" hidden>
     </div>
@@ -1553,7 +1553,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 86;
+const APP_VERSAO = 87;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3893,12 +3893,12 @@ function prepararAjustes(){
   if ($('swSilencio')) $('swSilencio').onchange = () => { if (!!$('swSilencio').checked !== !!cfgLocal.silencio) alternarSilencio(); };
   if ($('swZapOnline')) $('swZapOnline').onchange = () => { zapAlternarEsconder($('swZapOnline').checked); setTimeout(() => { $('swZapOnline').checked = !!(typeof ZAP !== 'undefined' && ZAP.cfg && ZAP.cfg.esconder_online); }, 600); };
   if ($('btnZapTransc')) $('btnZapTransc').onclick = () => { $('fundo').hidden = true; zapConfigTranscricao(); };
-  if ($('btnBackupAgora')) $('btnBackupAgora').onclick = () => { $('fundo').hidden = true; fazerBackupInterface(false); };
-  if ($('btnBackupRest')) $('btnBackupRest').onclick = () => { $('fundo').hidden = true; restaurarBackupInterface(); };
+  if ($('btnBackupAgora')) $('btnBackupAgora').onclick = () => { $('fundo').hidden = true; fazerBackupCompleto(false); };
+  if ($('btnBackupRest')) $('btnBackupRest').onclick = () => { $('fundo').hidden = true; restaurarBackup(); };
   if ($('btnDowngrade')) $('btnDowngrade').onclick = () => { $('fundo').hidden = true; escolherVersaoAnterior(); };
   if ($('inBackupArq')) $('inBackupArq').onchange = async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
-    try{ aplicarBackupInterface(JSON.parse(await f.text())); }catch(err){ aviso('Esse arquivo não é um backup do Radinho.', 4000); }
+    try{ const j = JSON.parse(await f.text()); if (j && j.tipo === 'radinho-backup-completo') aplicarBackupCompleto(j); else aplicarBackupInterface(j); }catch(err){ aviso('Esse arquivo não é um backup do Radinho.', 4000); }
   };
   if ($('btnZapZerar')) $('btnZapZerar').onclick = () => { $('fundo').hidden = true; mudarAba('zap'); zapZerarConexao(); };
   if ($('btnZapTema')) $('btnZapTema').onclick = () => { $('fundo').hidden = true; zapEditorTema(); };
@@ -4283,6 +4283,7 @@ function zapMotorPronto(){
   Object.keys(ZAP.fotos).forEach(j => { if (!ZAP.fotos[j].url) delete ZAP.fotos[j]; });
   if (!ZAP.jid) zapRenderLista(); else { document.querySelectorAll('.zap-av[data-foto]').forEach(el => { const f = ZAP.fotos[el.dataset.foto]; if (f && f.url){ el.style.backgroundImage = 'url(' + f.url + ')'; el.classList.add('zap-com-foto'); } }); }
   zapCarregarFotos(document);
+  if (ZAP.fotosAgenda){ const js = ZAP.fotosAgenda; ZAP.fotosAgenda = null; zapFotosJa(js); }
 }
 function zapBannerConexao(txt){
   let b = $('zapConBanner');
@@ -4722,6 +4723,17 @@ async function zapProximaFoto(){
       .finally(() => { zapFotosRodando--; zapProximaFoto(); });
   }
 }
+// pede de propósito a foto de cada jid da lista (3 por vez, em ordem), sem depender da rolagem
+function zapFotosJa(jids){
+  if (!ZAP.motorOk){ ZAP.fotosAgenda = (jids || []).slice(); return; }   // motor ligando: guarda pra quando conectar
+  let n = 0;
+  for (const j of jids || []){
+    const f = ZAP.fotos[j];
+    if (f && (f.url || Date.now() - f.t < 600000)) continue;             // já tem foto, ou já vi que não tem (há <10min)
+    if (!zapFilaFotos.has(j)){ zapFilaFotos.add(j); n++; }
+  }
+  if (n) zapProximaFoto();
+}
 
 /* ---------- segurar o dedo (menu) ---------- */
 function zapSegurar(el, fn){
@@ -5020,8 +5032,7 @@ function zapRenderNovo(){
     if (!grupo.length) continue;
     partes.push('<li class="zap-sec-ct"><span>' + titulo + '</span><b>' + grupo.length.toLocaleString('pt-BR') + '</b></li>');
     for (const c of grupo){
-      // foto só dos primeiros (pedir milhares de fotos de uma vez faz o WhatsApp travar)
-      let av = zapAvatar(c.jid, c.nome, false, false); if (vis.length >= 120) av = av.replace(/ data-foto="[^"]*"/, '');
+      const av = zapAvatar(c.jid, c.nome, false, false);
       partes.push('<li data-i="' + vis.length + '">' + av + '<div><b>' + esc(c.nome) + '</b><small>' + esc(c.numero) + '</small></div></li>');
       vis.push(c);
     }
@@ -5029,7 +5040,7 @@ function zapRenderNovo(){
   ZAP.novoVis = vis;
   ul.innerHTML = partes.join('');
   ul.onclick = e => { const li = e.target.closest('li[data-i]'); const c = li && ZAP.novoVis[+li.dataset.i]; if (c) zapIniciarCom(c.jid, c.nome); };
-  zapCarregarFotos(ul);
+  zapFotosJa(vis.map(c => c.jid));     // toda foto de perfil que existir aparece sozinha, sem precisar clicar
 }
 async function zapSincronizarContatos(){
   const b = $('zapSincBtn'); b.disabled = true; b.innerHTML = ic('refresh') + '<span>Sincronizando... (pode levar até 1 minuto)</span>';
@@ -6787,7 +6798,52 @@ async function fazerBackupInterface(auto){
 }
 function backupAutomatico(){
   const ult = parseInt(LS.get('radinho_ult_backup')) || 0;
-  if (Date.now() - ult > 20 * 3600 * 1000) setTimeout(() => fazerBackupInterface(true), 20000);
+  if (Date.now() - ult > 20 * 3600 * 1000) setTimeout(() => fazerBackupCompleto(true), 20000);
+  zapOferecerRestauro();
+}
+// backup COMPLETO (histórico + interface) pro Downloads, que sobrevive à reinstalação
+async function fazerBackupCompleto(auto){
+  if (!temZap()){ if (!auto) aviso('O backup completo só funciona no APK master.', 4000); return; }
+  try{
+    await zapPost('/api/interface/retrato', { dados: dadosInterface() });   // o retrato da tela entra no arquivo
+    const temNativo = window.ChatSlimNativo && typeof ChatSlimNativo.backupSalvar === 'function';
+    if (!temNativo){ await fazerBackupInterface(auto); if (!auto) aviso('Backup da interface feito. Pro backup completo em Downloads (que sobrevive à reinstalação), instale o APK novo.', 6000); return; }
+    if (!auto) aviso('Salvando backup completo...', 2000);
+    const r = ChatSlimNativo.backupSalvar();     // o Java pega do motor e grava em Downloads/Radinho
+    if (r === 'ok'){
+      try{ await zapPost('/api/backup/marcar', {}); }catch(_){}
+      LS.set('radinho_ult_backup', String(Date.now()));
+      if (!auto) aviso('Backup salvo em Downloads › Radinho (radinho-backup.json). Guarde esse arquivo: com ele você recupera tudo, até depois de reinstalar.', 7000);
+    } else if (r === 'permissao'){ if (!auto) aviso('Permita o acesso ao armazenamento e tente de novo.', 5000); }
+    else if (!auto) aviso('Não gravou no Downloads: ' + r, 6000);
+  }catch(e){ if (!auto) aviso('Não fez o backup: ' + e.message, 5000); }
+}
+function restaurarBackup(){
+  const acoes = [{ ic: 'clip', txt: 'Escolher o arquivo do backup', fn: () => $('inBackupArq').click() }];
+  acoes.push({ ic: 'refresh', txt: 'Backups da interface guardados no app', fn: () => restaurarBackupInterface() });
+  acoes.push({ ic: 'x', txt: 'Cancelar', fn: () => {} });
+  folha('Restaurar backup', 'O backup completo fica em Downloads › Radinho (radinho-backup.json). Toque em "Escolher o arquivo do backup" e selecione ele — volta todo o histórico, contatos e a interface. Nada do que já tem aqui é apagado.', acoes);
+}
+async function aplicarBackupCompleto(j){
+  if (!j || j.tipo !== 'radinho-backup-completo') return aplicarBackupInterface(j);
+  if (!temZap()){ aviso('Precisa do APK master pra restaurar o histórico.', 4000); return; }
+  const nm = (j.mensagens || []).length;
+  if (!(await confirmar('Restaurar backup completo?', 'Traz de volta ' + nm.toLocaleString('pt-BR') + ' mensagens, os contatos e a interface do backup. O que já existe aqui é mantido — nada é apagado. O app reinicia.', 'Restaurar'))) return;
+  try{
+    const r = await zapPost('/api/backup/importar', j);
+    const inter = r && r.interface;
+    if (inter){ try{ Object.keys(inter).forEach(k => { if (!BK_FORA.has(k)) localStorage.setItem(k, inter[k]); }); }catch(e){} }
+    LS.set('radinho_aviso', 'Backup restaurado: ' + ((r.resumo && r.resumo.mensagens) || nm).toLocaleString('pt-BR') + ' mensagens de volta.');
+    location.reload();
+  }catch(e){ aviso('Não restaurou: ' + e.message, 5000); }
+}
+// na primeira vez que abre sem nenhuma conversa (reinstalou), oferece restaurar — uma vez só
+async function zapOferecerRestauro(){
+  if (!temZap() || LS.get('radinho_ja_ofereci_restauro') === '1') return;
+  let info; try{ info = await zapGet('/api/backup/info'); }catch(e){ return; }
+  if (!info || info.conversas > 0 || info.restaurado_em) return;
+  LS.set('radinho_ja_ofereci_restauro', '1');
+  setTimeout(() => restaurarBackup(), 1500);
 }
 async function restaurarBackupInterface(){
   let lista = [];

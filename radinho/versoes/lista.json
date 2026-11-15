@@ -1,5 +1,10 @@
 [
  {
+  "v": 87,
+  "ts": 1794772281404,
+  "resumo": "backup completo que sobrevive à reinstalação, histórico não some mais ao apagar no celular, fotos dos contatos aparecem sozinhas"
+ },
+ {
   "v": 86,
   "ts": 1794475589891,
   "resumo": "opção Manter aberto em segundo plano (fechar para tudo ou continua recebendo)"
