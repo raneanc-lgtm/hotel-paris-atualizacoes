@@ -19,7 +19,7 @@
   :root{
     --bg:#0b0d0c; --corpo:#161a18; --corpo2:#1f2421; --borda:#2c332f;
     --txt:#eef2ef; --sub:#8c9790; --verde:#3ddc84; --verde-esc:#1f7a49;
-    --verm:#ff4d4d; --amarelo:#ffc53d; --visor:#0a1a10; --visor-txt:#7dffb0;
+    --verm:#ff4d4d; --amarelo:#ffc53d; --visor:#0a1a10; --visor-txt:#7dffb0; --acento-bg:#15362490;
     --minha:#1d4a32;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -318,7 +318,7 @@
   body.pro{
     --bg:#0c0d10; --corpo:#15171b; --corpo2:#1d2026; --borda:#2a2e36;
     --txt:#e9ebef; --sub:#8b929d; --verde:#ff9f1a; --verde-esc:#5a3a0a;
-    --verm:#ff3b30; --amarelo:#ffcc33; --visor:#120c03; --visor-txt:#ffb43a; --minha:#3a2a10;
+    --verm:#ff3b30; --amarelo:#ffcc33; --visor:#120c03; --visor-txt:#ffb43a; --minha:#3a2a10; --acento-bg:#3a2a1090;
     background:radial-gradient(120% 60% at 50% 0%,#1a1d22 0%,#0c0d10 60%) fixed;
   }
   body.pro .tela{background:transparent}
@@ -504,13 +504,13 @@
   .zap-ib{width:38px;height:38px;border-radius:10px;border:1px solid #1f6a45;background:transparent;color:#8fe0b2;display:grid;place-items:center;flex:none}
   .zap-ib svg.i{width:18px;height:18px}
   #zapStatusBtn{margin:0}
-  .zap-vistas{display:flex;gap:8px;align-items:stretch;margin:2px 0 8px}
-  .zap-vista{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--corpo2);border:1px solid var(--borda);color:var(--txt);border-radius:12px;padding:10px 8px;font-size:14px;font-weight:600;cursor:pointer;position:relative;min-height:44px}
-  .zap-vista.on{border-color:var(--verde);color:var(--verde)}
-  .zap-vista-ic{display:inline-flex;color:var(--sub)}
+  .zap-vistas{display:flex;gap:10px;align-items:center;margin:6px 0 12px;padding-top:6px}
+  .zap-vista{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--corpo2);border:0;color:var(--sub);border-radius:999px;padding:0 16px;height:42px;font-size:14px;font-weight:600;cursor:pointer;position:relative;white-space:nowrap}
+  .zap-vista.on{background:var(--acento-bg);color:var(--verde)}
+  .zap-vista-ic{display:inline-flex;color:inherit}
   .zap-vista.on .zap-vista-ic{color:var(--verde)}
   .zap-vista-ic svg{width:17px;height:17px}
-  .zap-vista-st{flex:none;width:48px;padding:10px 0}
+  .zap-vista-st{flex:none;width:42px;padding:0}
   .zap-vista-n{position:absolute;top:-6px;right:-6px;background:var(--verm);color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box}
   .badge[hidden],.zap-vista-n[hidden]{display:none!important}
   .zap-vez{display:inline-flex;vertical-align:-3px;margin-right:2px;color:var(--sub)}
@@ -526,11 +526,11 @@
   .zap-sel-ac svg{width:20px;height:20px}
   #zapLista li.zap-marc{background:rgba(37,211,102,.16)}
   .zap-sel-bar[hidden],.zap-vistas[hidden]{display:none!important}
-  .zap-vistas-scroll{display:flex;gap:8px;overflow-x:auto;flex:1;-ms-overflow-style:none;scrollbar-width:none}
+  .zap-vistas-scroll{display:flex;gap:10px;overflow-x:auto;overflow-y:visible;flex:1;-ms-overflow-style:none;scrollbar-width:none;padding-top:6px;margin-top:-6px}
   .zap-vistas-scroll::-webkit-scrollbar{display:none}
   .zap-vistas-scroll .zap-vista{flex:none}
-  .zap-vista-add{flex:none;width:44px;padding:10px 0}
-  .zap-vista-min{width:46px;padding:10px 0;justify-content:center}
+  .zap-vista-add{flex:none;width:42px;padding:0}
+  .zap-vista-min{flex:none;width:42px;padding:0;justify-content:center}
   .zap-vista.arrastando{opacity:.92;box-shadow:0 6px 18px rgba(0,0,0,.55);transition:none}
   .zap-perg-fix{position:fixed!important;z-index:50}
   /* tema do Zap (só mexe nas conversas do Zap) */
@@ -601,13 +601,13 @@
   .zap-tema-papeis button{flex:none;width:58px;height:86px;border-radius:10px;border:2px solid var(--borda);background-size:cover;background-position:center;cursor:pointer;color:var(--sub);font-size:11px}
   .zap-tema-papeis button.on{border-color:var(--verde)}
   .zap-tema-cor[hidden]{display:none!important}
-  .zap-busca-linha{display:flex;gap:8px;align-items:center;margin:0 0 8px}
-  .zap-lupa{flex:none;width:36px;height:36px;border-radius:50%;background:var(--corpo2);border:1px solid var(--borda);color:var(--sub);display:grid;place-items:center;cursor:pointer}
-  .zap-lupa.on{border-color:var(--verde);color:var(--verde)}
+  .zap-busca-linha{display:flex;gap:10px;align-items:center;margin:0 0 10px}
+  .zap-lupa{flex:none;width:42px;height:42px;border-radius:50%;background:var(--corpo2);border:0;color:var(--sub);display:grid;place-items:center;cursor:pointer}
+  .zap-lupa.on{background:var(--acento-bg);color:var(--verde)}
   .zap-lupa svg{width:19px;height:19px}
   .zap-busca-linha .zap-busca{flex:1;margin:0}
-  .zap-arq-bt{flex:none;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--corpo2);border:1px solid var(--borda);color:var(--txt);border-radius:999px;padding:0 14px;height:36px;font-size:13px;font-weight:600;cursor:pointer;position:relative}
-  .zap-arq-bt.on{border-color:var(--verde);color:var(--verde)}
+  .zap-arq-bt{flex:none;display:flex;align-items:center;justify-content:center;gap:7px;background:var(--corpo2);border:0;color:var(--sub);border-radius:999px;padding:0 16px;height:42px;font-size:14px;font-weight:600;cursor:pointer;position:relative}
+  .zap-arq-bt.on{background:var(--acento-bg);color:var(--verde)}
   .zap-arq-bt svg{width:16px;height:16px;color:var(--sub)}
   .zap-arq-bt.on svg{color:var(--verde)}
   .zap-arq-bt .zap-vista-n{position:absolute;top:-6px;right:-6px}
@@ -1553,7 +1553,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 87;
+const APP_VERSAO = 88;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
