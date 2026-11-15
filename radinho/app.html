@@ -612,6 +612,13 @@
   .zap-arq-bt.on svg{color:var(--verde)}
   .zap-arq-bt .zap-vista-n{position:absolute;top:-6px;right:-6px}
   .zap-arq-bt[hidden]{display:none!important}
+  .zap-ut{flex:none;width:42px;height:42px;border-radius:50%;background:var(--corpo2);border:0;color:var(--sub);display:grid;place-items:center;cursor:pointer;position:relative;transition:transform .1s}
+  .zap-ut:active{transform:scale(.94)}
+  .zap-ut svg{width:19px;height:19px;color:inherit}
+  .zap-ut.tem-novo{color:var(--verde)}
+  .zap-ut.on{background:var(--acento-bg);color:var(--verde)}
+  #zapChamBtn{margin-left:auto}
+  .zap-ut[hidden]{display:none!important}
   .zap-vista-st.tem-novo{border-color:var(--verde)}
   .zap-vista-st.tem-novo .zap-vista-ic{color:var(--verde)}
   .zap-vista-st .zap-vista-n{background:var(--verde);color:#062012}
@@ -821,6 +828,8 @@
   #zapListaBox.modo-cham > :not(#zapCham){display:none!important}
   #zapListaBox.modo-cham #zapCham{display:block}
   .zap-vista-ch .zap-vista-n{background:#e53935!important;color:#fff!important}
+  .zap-ut .zap-vista-n{position:absolute;top:-4px;right:-4px}
+  #zapChamBtn.tem-novo{color:#ff6b6b}
   .zap-vista-ch.tem-novo{border-color:#e53935!important}
   .zap-vista-ch.tem-novo .zap-vista-ic{color:#ff6b6b!important}
   .zap-ch-info{margin:2px 16px 10px;font-size:12.5px;color:var(--sub);line-height:1.4}
@@ -1226,8 +1235,6 @@
       </div>
       <div class="zap-vistas" id="zapVistas">
         <div class="zap-vistas-scroll" id="zapVistasScroll"></div>
-        <button class="zap-vista zap-vista-st zap-vista-ch" id="zapChamBtn" aria-label="Chamadas"><span class="zap-vista-ic"></span><b class="zap-vista-n" id="nCham" hidden></b></button>
-        <button class="zap-vista zap-vista-st" id="zapStatusBtn" aria-label="Status"><span class="zap-vista-ic"></span><b class="zap-vista-n" id="nStatus" hidden></b></button>
       </div>
       <div class="zap-st-acoes" id="zapStAcoes" hidden>
         <button class="alvo" id="zapPostTexto"></button>
@@ -1238,6 +1245,8 @@
         <button class="zap-lupa" id="zapLupa" aria-label="Buscar"></button>
         <input class="zap-busca" id="zapBusca" type="search" placeholder="Buscar conversa" hidden>
         <button class="zap-arq-bt" id="zapArqBt" aria-label="Arquivadas"></button>
+        <button class="zap-ut zap-vista-ch" id="zapChamBtn" aria-label="Chamadas"><span class="zap-vista-ic"></span><b class="zap-vista-n" id="nCham" hidden></b></button>
+        <button class="zap-ut" id="zapStatusBtn" aria-label="Status"><span class="zap-vista-ic"></span><b class="zap-vista-n" id="nStatus" hidden></b></button>
       </div>
       <ul class="contas" id="zapLista"></ul>
       <button id="zapNovo" aria-label="Nova conversa">+</button>
@@ -1553,7 +1562,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 88;
+const APP_VERSAO = 89;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4540,8 +4549,9 @@ function zapSelRender(){
 }
 function zapBuscaAbrir(abrir){
   const inp = $('zapBusca'), arqb = $('zapArqBt'), lupa = $('zapLupa');
-  if (abrir){ inp.hidden = false; if (arqb) arqb.hidden = true; lupa.classList.add('on'); lupa.innerHTML = ic('x'); setTimeout(() => inp.focus(), 30); }
-  else { inp.value = ''; ZAP.busca = ''; inp.hidden = true; if (arqb) arqb.hidden = false; lupa.classList.remove('on'); lupa.innerHTML = ic('search'); zapRenderLista(); }
+  const ut = [$('zapChamBtn'), $('zapStatusBtn')];
+  if (abrir){ inp.hidden = false; if (arqb) arqb.hidden = true; ut.forEach(b => b && (b.hidden = true)); lupa.classList.add('on'); lupa.innerHTML = ic('x'); setTimeout(() => inp.focus(), 30); }
+  else { inp.value = ''; ZAP.busca = ''; inp.hidden = true; if (arqb) arqb.hidden = false; ut.forEach(b => b && (b.hidden = false)); lupa.classList.remove('on'); lupa.innerHTML = ic('search'); zapRenderLista(); }
 }
 function zapMudarVista(v){
   ZAP.vista = (ZAP.vista === v) ? 'conversas' : v;
