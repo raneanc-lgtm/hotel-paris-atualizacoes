@@ -1562,7 +1562,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 90;
+const APP_VERSAO = 91;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4100,7 +4100,11 @@ window.addEventListener('pagehide', () => { if (gravando) parar(); soltarMic(); 
 function temZap(){ return !!(window.ChatSlimNativo && typeof ChatSlimNativo.abrir === 'function'); }
 function zapUrl(c){ return ZAP.base + c; }
 async function zapGet(c){
-  const r = await fetch(zapUrl(c), { cache: 'no-store' });
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 15000);   // motor travado não pendura a busca pra sempre
+  let r;
+  try{ r = await fetch(zapUrl(c), { cache: 'no-store', signal: ctrl.signal }); }
+  finally{ clearTimeout(t); }
   const d = await r.json().catch(() => null);
   if (r.status === 404 && !(d && d.erro)) throw new Error('essa função precisa do APK novo do Radinho');
   if (!r.ok) throw new Error((d && d.erro) || ('Erro ' + r.status));
@@ -4110,7 +4114,12 @@ async function zapPost(c, corpo){
   const op = { method: 'POST', headers: { 'X-ChatSlim': '1' } };
   if (corpo instanceof FormData) op.body = corpo;
   else { op.headers['Content-Type'] = 'application/json'; op.body = JSON.stringify(corpo || {}); }
-  const r = await fetch(zapUrl(c), op);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 60000);
+  op.signal = ctrl.signal;
+  let r;
+  try{ r = await fetch(zapUrl(c), op); }
+  finally{ clearTimeout(t); }
   const d = await r.json().catch(() => null);
   if (r.status === 404 && !(d && d.erro)) throw new Error('essa função precisa do APK novo do Radinho');
   if (!r.ok) throw new Error((d && d.erro) || ('Erro ' + r.status));
@@ -4223,7 +4232,11 @@ function zapConectarEventos(){
   let es;
   try{ es = new EventSource(zapUrl('/api/eventos')); }catch(e){ setTimeout(zapConectarEventos, 4000); return; }
   ZAP.es = es;
-  es.onopen = () => zapAtualizarStatus();
+  es.onopen = () => {
+    zapAtualizarStatus();
+    zapPedirLista();                                  // (re)conectou: puxa a lista fresca
+    if (aba === 'zap' && ZAP.jid) zapCarregarMensagens();
+  };
   es.onmessage = ev => {
     ZAP.esUlt = Date.now();                       // chegou algo (evento ou batida): o canal está vivo
     let e; try{ e = JSON.parse(ev.data); }catch(_){ return; }
@@ -4403,7 +4416,7 @@ async function zapGerarCodigo(){
 
 /* ---------- lista de conversas ---------- */
 // vários avisos seguidos (mensagens, vistos, sincronização) viram UMA busca só
-let zapListaP = null, zapListaDeNovo = false, zapListaTO = null, zapListaQuando = 0, zapListaUlt = 0;
+let zapListaP = null, zapListaDeNovo = false, zapListaTO = null, zapListaQuando = 0, zapListaUlt = 0, zapListaInicio = 0;
 function zapPedirLista(espera){
   const quando = Math.max(Date.now() + (espera || 0), zapListaUlt + 250);
   if (zapListaTO){ if (quando >= zapListaQuando) return; clearTimeout(zapListaTO); }
@@ -4411,7 +4424,11 @@ function zapPedirLista(espera){
   zapListaTO = setTimeout(() => { zapListaTO = null; zapCarregarLista(); }, Math.max(0, quando - Date.now()));
 }
 function zapCarregarLista(){
-  if (zapListaP){ zapListaDeNovo = true; return zapListaP; }
+  if (zapListaP){
+    if (Date.now() - (zapListaInicio || 0) > 20000){ zapListaP = null; }   // travou demais: solta e refaz
+    else { zapListaDeNovo = true; return zapListaP; }
+  }
+  zapListaInicio = Date.now();
   zapListaUlt = Date.now();
   zapListaP = (async () => {
     let l;

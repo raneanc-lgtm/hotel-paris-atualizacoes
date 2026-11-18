@@ -1,5 +1,10 @@
 [
  {
+  "v": 91,
+  "ts": 1795018756171,
+  "resumo": "conserta a lista que travava e não atualizava: busca com tempo-limite, destrava sozinha e ressincroniza ao reconectar"
+ },
+ {
   "v": 90,
   "ts": 1794775113174,
   "resumo": "mensagens chegam na hora em segundo plano (opção Manter aberto); canal de eventos com batida e religada automática"
