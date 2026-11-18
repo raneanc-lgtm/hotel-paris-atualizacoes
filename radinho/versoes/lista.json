@@ -1,5 +1,10 @@
 [
  {
+  "v": 93,
+  "ts": 1795020338094,
+  "resumo": "Zap não fica mais preso em conectando: a tela cutuca o motor pra religar na hora"
+ },
+ {
   "v": 92,
   "ts": 1795019513848,
   "resumo": "nova opção: Zap acorda pelo aviso do WhatsApp oficial (recebe na hora sem conexão presa, gasta menos bateria)"
