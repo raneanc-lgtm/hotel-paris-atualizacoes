@@ -133,7 +133,7 @@
   .painel-aj h2{margin:0 0 6px;font-size:18px}
   .painel-aj h4{margin:18px 0 4px;font-size:12px;letter-spacing:2px;color:var(--sub)}
   .opcao{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--borda)}
-  #opManter[hidden]{display:none}
+  #opManter[hidden],#opEscuta[hidden]{display:none}
   .opcao span small{display:block;color:var(--sub);font-size:12px;margin-top:2px}
   .sw{position:relative;width:48px;height:28px;flex:none;margin:0}
   .sw input{opacity:0;width:0;height:0}
@@ -1348,6 +1348,10 @@
       <span>Manter aberto em segundo plano<small id="lblManter">Ligado: recebe mensagens na hora em segundo plano</small></span>
       <label class="sw"><input type="checkbox" id="swManter"><b></b></label>
     </div>
+    <div class="opcao" id="opEscuta" hidden style="cursor:pointer">
+      <span>Acordar pelo aviso do WhatsApp<small id="lblEscuta">Toque pra liberar</small></span>
+      <b id="bdEscuta" style="font-size:12px;font-weight:700;color:var(--acento,#3ddc84);white-space:nowrap">Ativar</b>
+    </div>
     <div class="opcao">
       <span>Manter tela ligada<small>Útil em viagem ou serviço</small></span>
       <label class="sw"><input type="checkbox" id="swTela"><b></b></label>
@@ -1562,7 +1566,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 91;
+const APP_VERSAO = 92;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3973,6 +3977,27 @@ function prepararAjustes(){
       LS.set('radinho_manter', lig ? '1' : '0'); txt(lig);
       aviso(lig ? 'Pronto: o Zap fica recebendo mensagens na hora, mesmo em segundo plano. Aparece uma notificação fixa pra isso.' : 'Desligado. Com o app em segundo plano, as mensagens podem atrasar.', 4500);
     };
+  })();
+  // "push" do Zap: o aviso do WhatsApp oficial acorda o motor (precisa liberar o acesso às notificações uma vez)
+  (function(){
+    const N = window.ChatSlimNativo, op = $('opEscuta'); if (!op || !N) return;
+    const ok = typeof N.escutaAtiva === 'function'; // APK com a função (ponte v7+)
+    op.hidden = false;
+    const pintar = () => {
+      let on = false; try{ if (ok) on = !!N.escutaAtiva(); }catch(e){}
+      $('bdEscuta').textContent = on ? 'Ativo ✓' : 'Ativar';
+      $('lblEscuta').textContent = !ok ? 'Precisa do APK novo do Radinho'
+        : on ? 'Ativo: o Zap acorda quando o WhatsApp oficial recebe mensagem. Pode deixar "Manter aberto" desligado e gastar menos bateria.'
+             : 'Toque pra liberar o acesso às notificações. O Radinho só vê de qual app veio o aviso, não lê as mensagens.';
+    };
+    pintar();
+    op.onclick = () => {
+      if (!ok){ aviso('Essa opção precisa do APK novo do Radinho.', 4500); return; }
+      try{ N.abrirAcessoNotificacoes(); }catch(e){ return; }
+      aviso('Ache "Radinho" na lista e ligue. Se estiver bloqueado (cinza): Informações do app → ⋮ → "Permitir configurações restritas".', 7000);
+    };
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) pintar(); });
+    window.addEventListener('focus', pintar);
   })();
   $('swVivo').onchange = e => {
     cfgLocal.vivo = e.target.checked; LS.set('radinho_vivo', cfgLocal.vivo ? '1' : '0');

@@ -1,5 +1,10 @@
 [
  {
+  "v": 92,
+  "ts": 1795019513848,
+  "resumo": "nova opção: Zap acorda pelo aviso do WhatsApp oficial (recebe na hora sem conexão presa, gasta menos bateria)"
+ },
+ {
   "v": 91,
   "ts": 1795018756171,
   "resumo": "conserta a lista que travava e não atualizava: busca com tempo-limite, destrava sozinha e ressincroniza ao reconectar"
