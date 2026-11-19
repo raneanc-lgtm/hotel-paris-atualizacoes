@@ -1,5 +1,10 @@
 [
  {
+  "v": 94,
+  "ts": 1795100937421,
+  "resumo": "Chamadas: arrastar pro lado pra excluir"
+ },
+ {
   "v": 93,
   "ts": 1795020338094,
   "resumo": "Zap não fica mais preso em conectando: a tela cutuca o motor pra religar na hora"

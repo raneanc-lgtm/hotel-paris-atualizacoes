@@ -834,9 +834,12 @@
   .zap-vista-ch.tem-novo .zap-vista-ic{color:#ff6b6b!important}
   .zap-ch-info{margin:2px 16px 10px;font-size:12.5px;color:var(--sub);line-height:1.4}
   .zap-ch-lista{list-style:none;margin:0;padding:0 8px}
-  .zap-ch-lista li{display:flex;align-items:center;gap:12px;padding:10px 6px;border-radius:12px;cursor:pointer}
-  .zap-ch-lista li:active{background:rgba(255,255,255,.05)}
-  .zap-ch-lista li > div{flex:1;min-width:0}
+  .zap-ch-lista li{position:relative;overflow:hidden;border-radius:12px;cursor:pointer;touch-action:pan-y;transition:height .22s ease,opacity .22s ease}
+  .zap-ch-fr{position:relative;display:flex;align-items:center;gap:12px;padding:10px 6px;background:var(--bg,#0b0d0e);border-radius:12px;will-change:transform}
+  .zap-ch-fr:active{background:#141718}
+  .zap-ch-fr > div{flex:1;min-width:0}
+  .zap-ch-del{position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#d93636;color:#fff;font-size:14px;font-weight:600;border-radius:12px;opacity:0}
+  .zap-ch-del span{display:flex;align-items:center;gap:6px}
   .zap-ch-lista li b{display:block;font-size:16px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .zap-ch-lista li small{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--sub);margin-top:2px}
   .zap-ch-lista .zap-av{width:48px;height:48px;flex:none}
@@ -1566,7 +1569,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 93;
+const APP_VERSAO = 94;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -5220,14 +5223,52 @@ function zapRenderChamadas(){
     const quando = (() => { const d = new Date(c.ts), h = new Date(); const ont = new Date(h); ont.setDate(h.getDate() - 1);
       return (d.toDateString() === h.toDateString() ? 'Hoje' : d.toDateString() === ont.toDateString() ? 'Ontem' : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })) + ', ' + hora(c.ts); })();
     li.className = 'zap-ch-' + c.status;
-    li.innerHTML = zapAvatar(c.de, c.nome, c.grupo, false) +
+    li.innerHTML = '<div class="zap-ch-del"><span>🗑 Excluir</span><span>Excluir 🗑</span></div><div class="zap-ch-fr">' + zapAvatar(c.de, c.nome, c.grupo, false) +
       '<div><b>' + esc(c.nome || c.de.split('@')[0]) + '</b><small><i class="zap-ch-seta">' + icp('setaChamada', 14) + '</i>' + txt[c.status] + ' • ' + quando + '</small></div>' +
-      '<button class="zap-ch-tipo" aria-label="Abrir no WhatsApp">' + icp(c.video ? 'videocam' : 'fone', 20) + '</button>';
-    li.querySelector('.zap-ch-tipo').onclick = e => { e.stopPropagation(); zapAbrirWhatsApp(c.de); };
-    li.onclick = () => { if (c.status === 'tocando') zapMostrarLigando(c); else { const ex = ZAP.conversas.find(x => x.jid === c.de); zapAbrirConversa(ex || { jid: c.de, nome_exibicao: c.nome, eh_grupo: 0 }); } };
+      '<button class="zap-ch-tipo" aria-label="Abrir no WhatsApp">' + icp(c.video ? 'videocam' : 'fone', 20) + '</button></div>';
+    li.querySelector('.zap-ch-tipo').onclick = e => { e.stopPropagation(); if (li._arrastou) return; zapAbrirWhatsApp(c.de); };
+    zapArrastarExcluir(li, c);
+    li.onclick = () => { if (li._arrastou) return; if (c.status === 'tocando') zapMostrarLigando(c); else { const ex = ZAP.conversas.find(x => x.jid === c.de); zapAbrirConversa(ex || { jid: c.de, nome_exibicao: c.nome, eh_grupo: 0 }); } };
     ul.appendChild(li);
   }
   zapCarregarFotos(ul);
+}
+// arrastar pro lado (esquerda ou direita) pra excluir a chamada do histórico
+function zapArrastarExcluir(li, c){
+  const fr = li.querySelector('.zap-ch-fr'), del = li.querySelector('.zap-ch-del');
+  let x0 = 0, y0 = 0, dx = 0, ativo = false, decidiu = false, id = null;
+  li.addEventListener('pointerdown', e => { if (e.button) return; x0 = e.clientX; y0 = e.clientY; dx = 0; ativo = true; decidiu = false; li._arrastou = false; id = e.pointerId; fr.style.transition = 'none'; });
+  li.addEventListener('pointermove', e => {
+    if (!ativo || e.pointerId !== id) return;
+    const mx = e.clientX - x0, my = e.clientY - y0;
+    if (!decidiu){
+      if (Math.abs(my) > 10 && Math.abs(my) > Math.abs(mx)){ ativo = false; return; }   // rolando a lista
+      if (Math.abs(mx) < 12) return;
+      decidiu = true; li._arrastou = true; try{ li.setPointerCapture(id); }catch(_){}
+    }
+    dx = mx;
+    fr.style.transform = 'translateX(' + dx + 'px)';
+    del.style.opacity = Math.min(1, Math.abs(dx) / 60);
+  });
+  const soltar = () => {
+    if (!ativo) return; ativo = false;
+    if (!decidiu){ return; }
+    setTimeout(() => { li._arrastou = false; }, 50);
+    fr.style.transition = 'transform .2s ease';
+    if (Math.abs(dx) > li.offsetWidth * 0.35){
+      fr.style.transform = 'translateX(' + (dx > 0 ? '' : '-') + '110%)';
+      li._arrastou = true;
+      li.style.height = li.offsetHeight + 'px';
+      setTimeout(() => { li.style.height = '0'; li.style.opacity = '0'; }, 160);
+      setTimeout(() => { li.remove(); if (!$('zapChamLista').children.length) zapRenderChamadas(); }, 400);
+      ZAP.chamadas = (ZAP.chamadas || []).filter(x => x.id !== c.id);
+      zapPost('/api/chamadas/' + encodeURIComponent(c.id) + '/apagar').catch(() => { aviso('Não deu pra excluir agora.', 3000); zapCarregarChamadas(); });
+    } else {
+      fr.style.transform = ''; del.style.opacity = 0;
+    }
+  };
+  li.addEventListener('pointerup', soltar);
+  li.addEventListener('pointercancel', () => { if (decidiu){ fr.style.transition = 'transform .2s ease'; fr.style.transform = ''; del.style.opacity = 0; } ativo = false; });
 }
 function zapEventoChamada(e){
   ZAP.chamadas = ZAP.chamadas || [];
