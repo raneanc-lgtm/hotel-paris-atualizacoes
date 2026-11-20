@@ -1,5 +1,10 @@
 [
  {
+  "v": 95,
+  "ts": 1795219142052,
+  "resumo": "Tablet/tela grande: Zap em tela cheia, lista de conversas fixa à esquerda e a conversa à direita (igual WhatsApp Web)"
+ },
+ {
   "v": 94,
   "ts": 1795100937421,
   "resumo": "Chamadas: arrastar pro lado pra excluir"

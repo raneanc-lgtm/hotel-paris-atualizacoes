@@ -1134,6 +1134,40 @@
   .zap-vista,.zap-vista-min,#zapNovo,#zapDescer,#zapArqBt,#zapLupa{transition:transform .1s}
   .zap-vista:active,#zapNovo:active,#zapDescer:active,#zapArqBt:active,#zapLupa:active{transform:scale(.94)}
   @media (prefers-reduced-motion:reduce){ #pZap.zap-entrando > *,#pZap.zap-voltando > *,.fundo:not([hidden]),.fundo:not([hidden]) > .painel-aj,#zapMsgs .bolha.zap-nova{animation:none} }
+
+  /* ===== TABLET / TELA GRANDE: tela cheia, lista de conversas à esquerda e conversa à direita (igual WhatsApp Web) ===== */
+  @media (min-width:900px){
+    .tela{max-width:1680px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
+    #pRadio,#pChat{width:100%;max-width:640px;margin-left:auto;margin-right:auto}
+    .tela:not(:has(#pZap:not([hidden]))) > header,.tela:not(:has(#pZap:not([hidden]))) > .abas{width:100%;max-width:640px;margin-left:auto;margin-right:auto}
+    #pChat{max-width:860px}
+    .tela:has(#pZap:not([hidden])) > header,.tela:has(#pZap:not([hidden])) > .abas{width:clamp(340px,34%,460px);margin-left:0;margin-right:0;padding-right:12px;box-sizing:border-box}
+    #pZap:not([hidden]){display:grid;grid-template-columns:clamp(340px,34%,460px) minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr) auto auto;column-gap:16px;min-height:0}
+    #pZap > #zapCon{grid-column:1 / -1;grid-row:1 / -1}
+    #pZap > #zapListaBox{grid-column:1;grid-row:1 / -1;min-height:0;overflow:hidden;border-right:1px solid var(--borda);padding-right:12px}
+    #pZap:has(> #zapMsgs:not([hidden])) > #zapListaBox[hidden]{display:flex!important}
+    #pZap > #zapBar{grid-column:2;grid-row:1}
+    #pZap > #zapMsgBar{grid-column:2;grid-row:2}
+    #pZap > #zapReacRow{grid-column:2;grid-row:3}
+    #pZap > #zapPerfil{grid-column:2;grid-row:2 / 5}
+    #pZap > #zapMsgs{grid-column:2;grid-row:4;min-height:0;padding:10px 6%}
+    #pZap > #zapResp{grid-column:2;grid-row:5}
+    #pZap > #zapCompor{grid-column:2;grid-row:6;padding-left:2%;padding-right:2%}
+    #pZap > #zapBar #zapVoltar{display:none}
+    #pZap:has(> #zapMsgs:not([hidden])){border-radius:0;overflow:visible;background:transparent}
+    #pZap:has(> #zapMsgs:not([hidden])) > #zapBar,#pZap:has(> #zapMsgs:not([hidden])) > #zapMsgs,#pZap:has(> #zapMsgs:not([hidden])) > #zapCompor{background-color:var(--zap-fundo-conv,#0f1413)}
+    #pZap > #zapBar{border-radius:18px 18px 0 0;padding:12px 16px 8px!important}
+    #pZap > #zapCompor{border-radius:0 0 18px 18px}
+    #pZap #zapDescer{right:14px;bottom:96px}
+    .bolha{max-width:min(70%,620px)}
+    /* conversa aberta na lista */
+    .contas li.zap-atv{background:#1f2d27;border-color:#2f6b4c}
+    /* lado direito vazio, antes de abrir uma conversa */
+    #pZap:has(> #zapListaBox:not([hidden])):not(:has(> #zapMsgs:not([hidden])))::after{
+      content:"Selecione uma conversa pra começar";grid-column:2;grid-row:1 / -1;display:grid;place-items:center;text-align:center;
+      color:var(--sub);font-size:16px;border:1px dashed var(--borda);border-radius:18px;margin-bottom:12px}
+    #zapNovo{right:18px}
+  }
 </style>
 </head>
 <body>
@@ -1569,7 +1603,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 94;
+const APP_VERSAO = 95;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4289,7 +4323,7 @@ function zapConectarEventos(){
       ZAP.presencas[e.jid] = e.status;
       if (e.visto_em) ZAP.vistos[e.jid] = e.visto_em;
       if (ZAP.jid === e.jid) zapRenderPresenca();
-      if (aba === 'zap' && !ZAP.jid) zapPresencaNaLista(e.jid);
+      if (aba === 'zap' && (!ZAP.jid || zapLarga())) zapPresencaNaLista(e.jid);
     }
   };
   es.onerror = () => {
@@ -4341,7 +4375,7 @@ function zapMotorPronto(){
   const m = zapLerCache('zap_cache_fotos') || {};
   Object.keys(m).forEach(j => { if (!ZAP.fotos[j] || !ZAP.fotos[j].url) ZAP.fotos[j] = { url: zapUrl(m[j]), t: Date.now() }; });
   Object.keys(ZAP.fotos).forEach(j => { if (!ZAP.fotos[j].url) delete ZAP.fotos[j]; });
-  if (!ZAP.jid) zapRenderLista(); else { document.querySelectorAll('.zap-av[data-foto]').forEach(el => { const f = ZAP.fotos[el.dataset.foto]; if (f && f.url){ el.style.backgroundImage = 'url(' + f.url + ')'; el.classList.add('zap-com-foto'); } }); }
+  if (!ZAP.jid || zapLarga()) zapRenderLista(); else { document.querySelectorAll('.zap-av[data-foto]').forEach(el => { const f = ZAP.fotos[el.dataset.foto]; if (f && f.url){ el.style.backgroundImage = 'url(' + f.url + ')'; el.classList.add('zap-com-foto'); } }); }
   zapCarregarFotos(document);
   if (ZAP.fotosAgenda){ const js = ZAP.fotosAgenda; ZAP.fotosAgenda = null; zapFotosJa(js); }
 }
@@ -4466,7 +4500,7 @@ function zapCarregarLista(){
     ZAP.conversas = l;
     zapGuardarDepois('zap_cache_conversas', () => ZAP.conversas.slice(0, 200));
     if (!ZAP.statusCarregado){ ZAP.statusCarregado = true; zapCarregarStatus(); }
-    if (ZAP.jid) return;                 // lista escondida atrás da conversa: desenha quando voltar
+    if (ZAP.jid && !zapLarga()) return; // lista escondida atrás da conversa (celular): desenha quando voltar
     if (ZAP.vista === 'status' || ZAP.vista === 'chamadas'){ zapRenderVistas(); return; }
     zapRenderLista();
   })();
@@ -4543,6 +4577,7 @@ function zapLinhaConversa(c, fixada){
   }
   li._c = c;
   li.classList.toggle('zap-marc', marc);
+  li.classList.toggle('zap-atv', ZAP.jid === c.jid);
   if (li._ass === ass) return li;
   li._ass = ass;
   li.classList.toggle('zap-nl', !!c.nao_lidas);
@@ -4567,7 +4602,7 @@ function zapPresencaNaLista(jid){
     zapPresPend = new Set();
     requestAnimationFrame(() => {
       const st = zapPresPend; zapPresPend = null;
-      if (ZAP.jid || aba !== 'zap' || ZAP.vista === 'status' || ZAP.vista === 'chamadas') return;
+      if ((ZAP.jid && !zapLarga()) || aba !== 'zap' || ZAP.vista === 'status' || ZAP.vista === 'chamadas') return;
       const fix = zapFixadas();
       st.forEach(j => { const li = zapLis.get(j); if (li && li.isConnected && li._c) zapLinhaConversa(li._c, fix.has(j)); });
     });
@@ -4862,7 +4897,7 @@ async function zapApagar(jid){
 async function zapCarregarStatus(){
   try{ ZAP.statusLista = await zapGet('/api/status-contatos') || []; }catch(e){ return; }
   zapRenderBotaoStatus();
-  if (ZAP.vista === 'status' && !ZAP.jid) zapRenderListaStatus();
+  if (ZAP.vista === 'status' && (!ZAP.jid || zapLarga())) zapRenderListaStatus();
 }
 function zapStatusNovos(a){ return a.itens.filter(x => !ZAP.statusVistos[x.id]).length; }
 function zapRenderBotaoStatus(){ zapRenderVistas(); }
@@ -6047,7 +6082,16 @@ function zapMontarEditorImagem(im, url){
 }
 
 /* ---------- conversa ---------- */
+const zapMQ = window.matchMedia ? matchMedia('(min-width:900px)') : { matches: false };
+function zapLarga(){ return !!zapMQ.matches; }
+function zapMarcarAtiva(){
+  const ul = $('zapLista'); if (!ul) return;
+  ul.querySelectorAll('li.zap-atv').forEach(li => { if (!li._c || li._c.jid !== ZAP.jid) li.classList.remove('zap-atv'); });
+  if (ZAP.jid){ const li = zapLis.get(ZAP.jid); if (li) li.classList.add('zap-atv'); }
+}
+try{ zapMQ.addEventListener && zapMQ.addEventListener('change', () => { try{ if (aba === 'zap' && ZAP.conectado){ if (zapLarga()){ zapRenderLista(); zapMarcarAtiva(); } else if (ZAP.jid) $('zapListaBox').hidden = true; } }catch(e){} }); }catch(e){}
 function zapAnimar(cl){
+  if (zapLarga()) return;   // tablet: lista e conversa lado a lado, sem animação de troca de tela
   const p = $('pZap'); if (!p) return;
   p.classList.remove('zap-entrando', 'zap-voltando'); p.classList.add(cl);
   clearTimeout(zapAnimar.t); zapAnimar.t = setTimeout(() => p.classList.remove(cl), 280);
@@ -6066,6 +6110,7 @@ function zapAbrirConversa(c){
   setTimeout(() => { const b = $('zapMsgs'); if (ZAP.jid === c.jid && !b.firstChild) b.innerHTML = '<div class="vazio">Carregando...</div>'; }, 400);
   zapRenderPresenca();
   zapCarregarMensagens(true);
+  zapMarcarAtiva();
   zapFoco();
   zapPost('/api/conversas/' + zapJ(c.jid) + '/lidas').then(() => zapPedirLista()).catch(() => {});
   if (!ZAP.grupo) zapGet('/api/presenca/' + zapJ(c.jid)).then(p => {
@@ -6086,6 +6131,7 @@ function zapFecharConversa(){
   $('zapListaBox').hidden = !ZAP.conectado;
   zapFoco();
   zapRenderLista();
+  zapMarcarAtiva();
   // volta pro mesmo lugar da lista
   const l = $('zapLista'); if (l) l.scrollTop = ZAP.rolagemLista || 0;
   // abriu pelos contatos: volta pros contatos, onde estava
