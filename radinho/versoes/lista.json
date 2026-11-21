@@ -1,5 +1,10 @@
 [
  {
+  "v": 97,
+  "ts": 1795220244716,
+  "resumo": "conexão mais paciente: não reinicia a tentativa de conectar no meio quando a rede está lenta"
+ },
+ {
   "v": 96,
   "ts": 1795219616360,
   "resumo": "Corrige responder/encaminhar sumindo ao segurar uma mensagem no tablet (a fileira de emojis cobria os botões)"

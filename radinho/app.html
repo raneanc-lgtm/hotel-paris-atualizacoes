@@ -1605,7 +1605,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 96;
+const APP_VERSAO = 97;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4422,7 +4422,7 @@ async function zapAtualizarStatus(){
     if (d.status === 'aguardando_qr'){ zapBannerConexao(''); zapMostrarConexao('parear', d.qrImagem); return; }
     if (preso || !zapAbrirDoCache('Conectando ao WhatsApp...')) zapMostrarConexao('conectando', d.qrImagem);
     // demorando pra conectar: cutuca o motor pra religar na hora (motor novo; o velho só ignora)
-    if (Date.now() - (ZAP.ultAcordar || 0) > 8000){ ZAP.ultAcordar = Date.now(); zapPost('/api/acordar', { origem: 'tela' }).catch(() => {}); }
+    if (Date.now() - (ZAP.ultAcordar || 0) > 20000){ ZAP.ultAcordar = Date.now(); zapPost('/api/acordar', { origem: 'tela' }).catch(() => {}); }
     ZAP.tStatus = setTimeout(zapAtualizarStatus, 1500);
   }
 }
