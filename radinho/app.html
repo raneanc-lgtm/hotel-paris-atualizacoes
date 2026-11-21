@@ -1147,7 +1147,9 @@
     #pZap > #zapListaBox{grid-column:1;grid-row:1 / -1;min-height:0;overflow:hidden;border-right:1px solid var(--borda);padding-right:12px}
     #pZap:has(> #zapMsgs:not([hidden])) > #zapListaBox[hidden]{display:flex!important}
     #pZap > #zapBar{grid-column:2;grid-row:1}
-    #pZap > #zapMsgBar{grid-column:2;grid-row:2}
+    #pZap > #zapMsgBar{grid-column:2;grid-row:1;background:var(--zap-fundo-conv,#0f1413)!important;border-radius:18px 18px 0 0!important;padding:12px 16px 8px!important;position:relative;z-index:5}
+    #pZap > #zapMsgBar .zap-msgbar-ac button{width:48px;height:48px}
+    #pZap > #zapMsgBar .zap-msgbar-ac svg{width:24px;height:24px}
     #pZap > #zapReacRow{grid-column:2;grid-row:3}
     #pZap > #zapPerfil{grid-column:2;grid-row:2 / 5}
     #pZap > #zapMsgs{grid-column:2;grid-row:4;min-height:0;padding:10px 6%}
@@ -1603,7 +1605,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 95;
+const APP_VERSAO = 96;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -6647,7 +6649,12 @@ function zapMsgSelRender(){
   row.hidden = false;
   const r = bol ? bol.getBoundingClientRect() : { top: 120, left: 20, right: 300 };
   const w = row.offsetWidth || 300;
-  let top = r.top - 58; if (top < 70) top = Math.min(window.innerHeight - 70, (r.bottom || 120) + 8);
+  // a fileira de emojis nunca pode ficar em cima da barra de ações (responder / encaminhar)
+  const barB = ($('zapMsgBar').getBoundingClientRect().bottom || 70) + 6;
+  let top = r.top - 58;
+  if (top < barB) top = (r.bottom || 120) + 8;                         // sem espaço em cima: embaixo do balão
+  if (top > window.innerHeight - 130) top = barB;                      // balão grande (foto): logo abaixo da barra
+  top = Math.max(barB, top);
   let left = m.de_mim ? (r.right - w) : r.left; left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
   row.style.top = top + 'px'; row.style.left = left + 'px';
 }
