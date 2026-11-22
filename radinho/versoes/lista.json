@@ -1,5 +1,10 @@
 [
  {
+  "v": 98,
+  "ts": 1795310366084,
+  "resumo": "Zap: conexão mais robusta, desconectar sempre volta pro código, motivo da demora na tela, opção de acordar pelo aviso no menu do Zap"
+ },
+ {
   "v": 97,
   "ts": 1795220244716,
   "resumo": "conexão mais paciente: não reinicia a tentativa de conectar no meio quando a rede está lenta"

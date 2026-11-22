@@ -1605,7 +1605,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 97;
+const APP_VERSAO = 98;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4419,7 +4419,8 @@ async function zapAtualizarStatus(){
     if (novo){ Object.keys(ZAP.fotos).forEach(j => { if (!ZAP.fotos[j].url) delete ZAP.fotos[j]; }); zapCarregarLista(); zapCarregarVigiados(); if (ZAP.jid) zapCarregarMensagens(); setTimeout(() => zapCarregarFotos(document), 800); }
   } else {
     ZAP.conectado = false;
-    if (d.status === 'aguardando_qr'){ zapBannerConexao(''); zapMostrarConexao('parear', d.qrImagem); return; }
+    ZAP.diag = d.diag || null;
+    if (d.status === 'aguardando_qr'){ ZAP.inicioCon = 0; zapBannerConexao(''); zapMostrarConexao('parear', d.qrImagem); ZAP.tStatus = setTimeout(zapAtualizarStatus, 3000); return; }
     if (preso || !zapAbrirDoCache('Conectando ao WhatsApp...')) zapMostrarConexao('conectando', d.qrImagem);
     // demorando pra conectar: cutuca o motor pra religar na hora (motor novo; o velho só ignora)
     if (Date.now() - (ZAP.ultAcordar || 0) > 20000){ ZAP.ultAcordar = Date.now(); zapPost('/api/acordar', { origem: 'tela' }).catch(() => {}); }
@@ -4427,14 +4428,20 @@ async function zapAtualizarStatus(){
   }
 }
 
+function zapDiagTxt(){
+  const g = ZAP.diag; if (!g || !g.tentativas) return '';
+  let t = 'Tentativa ' + g.tentativas;
+  if (g.motivo) t += ' · ' + g.motivo + (g.codigo ? ' (' + g.codigo + ')' : '');
+  return '<div class="info" style="font-size:12px;opacity:.7;margin-top:6px">' + esc(t) + '</div>';
+}
 function zapMostrarConexao(estado, qr){
   if (ZAP.jid) zapFecharConversa();
   $('zapListaBox').hidden = true;
   const box = $('zapCon'); box.hidden = false;
   if (estado !== 'parear'){
     box.innerHTML = '<div class="zap-card"><div class="zap-tit">' + ic('zap') + '<b>Zap</b></div><div class="info">' +
-      (estado === 'iniciando' ? 'Ligando o Zap...' : 'Conectando ao WhatsApp...') + '</div>' +
-      (estado === 'iniciando' ? '' : '<button class="btn sec" id="zapZerar" style="margin-top:14px">Desconectar e gerar código novo</button>' +
+      (estado === 'iniciando' ? 'Ligando o Zap...' : 'Conectando ao WhatsApp...') + '</div>' + zapDiagTxt() +
+      ((estado === 'iniciando' && Date.now() - (ZAP.inicioCon || Date.now()) < 30000) ? '' : '<button class="btn sec" id="zapZerar" style="margin-top:14px">Desconectar e gerar código novo</button>' +
       '<div class="info" style="font-size:12.5px;opacity:.8">Use se ficar preso aqui. Suas conversas e contatos no Zap não são apagados.</div>') + '</div>';
     ZAP.telaPareamento = false;
     if ($('zapZerar')) $('zapZerar').onclick = zapZerarConexao;
@@ -4459,7 +4466,7 @@ async function zapZerarConexao(){
   const ok = await janela({ titulo: 'Desconectar e começar do zero?', texto: 'O Zap sai da sua conta do WhatsApp e gera um código/QR novo pra conectar de novo.\n\nSuas conversas, contatos e fotos que já estão no Zap continuam aqui.\n\nSe o Zap ainda aparecer em Aparelhos conectados no seu WhatsApp, pode remover ele de lá também.', ok: 'Desconectar', perigo: true });
   if (!ok) return;
   try{ await zapPost('/api/desconectar', {}); }catch(e){ aviso('Não desconectou: ' + e.message, 5000); return; }
-  ZAP.telaPareamento = false; ZAP.conectado = false;
+  ZAP.telaPareamento = false; ZAP.conectado = false; ZAP.inicioCon = Date.now(); ZAP.diag = null;
   zapMostrarConexao('conectando');
   aviso('Desconectado. Em alguns segundos aparece a tela do código.', 5000);
   clearTimeout(ZAP.tStatus); ZAP.tStatus = setTimeout(zapAtualizarStatus, 2500);
@@ -6207,6 +6214,7 @@ function zapMenu(){
   folha('Zap', '', [
     { ic: 'refresh', txt: 'Sincronizar contatos do WhatsApp', fn: () => { zapAbrirNovo(); setTimeout(zapSincronizarContatos, 300); } },
     { ic: esc_ ? 'eye' : 'eyeOff', txt: esc_ ? 'Mostrar meu online' : 'Esconder meu online', fn: () => zapAlternarEsconder(!esc_) },
+    ...(window.ChatSlimNativo && typeof ChatSlimNativo.escutaAtiva === 'function' ? [{ ic: 'zap', txt: 'Acordar pelo aviso do WhatsApp: ' + (ChatSlimNativo.escutaAtiva() ? 'ativo ✓' : 'ativar'), fn: () => { if (ChatSlimNativo.escutaAtiva()) { aviso('Já está ativo: o Zap acorda quando o WhatsApp oficial recebe mensagem.', 4000); return; } try{ ChatSlimNativo.abrirAcessoNotificacoes(); }catch(e){ return; } aviso('Ache "Radinho" na lista e ligue. Se estiver bloqueado (cinza): Informações do app → ⋮ → "Permitir configurações restritas".', 7000); } }] : []),
     { ic: 'logout', txt: 'Desconectar o WhatsApp (gerar código novo)', perigo: true, fn: zapZerarConexao },
   ]);
 }
