@@ -1605,7 +1605,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 98;
+const APP_VERSAO = 99;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -6970,6 +6970,9 @@ function backupAutomatico(){
 // backup COMPLETO (histórico + interface) pro Downloads, que sobrevive à reinstalação
 async function fazerBackupCompleto(auto){
   if (!temZap()){ if (!auto) aviso('O backup completo só funciona no APK master.', 4000); return; }
+  if (auto){   // instalação nova e vazia: NÃO sobrescreve o backup bom que está em Downloads antes de restaurar
+    try{ const i = await zapGet('/api/backup/info'); if (!i || (i.conversas === 0 && !i.restaurado_em)) return; }catch(e){ return; }
+  }
   try{
     await zapPost('/api/interface/retrato', { dados: dadosInterface() });   // o retrato da tela entra no arquivo
     const temNativo = window.ChatSlimNativo && typeof ChatSlimNativo.backupSalvar === 'function';
