@@ -1606,7 +1606,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 103;
+const APP_VERSAO = 104;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -6295,7 +6295,7 @@ async function zapAbrirPerfil(jid){
     h += '<div class="zap-pf-bloco"><small>Participantes</small><ul class="contas zap-pf-part">' + p.participantes.map(x =>
       '<li data-jid="' + esc(x.jid) + '">' + zapAvatar(x.jid, x.nome, false, false) + '<div><b>' + esc(x.nome) + '</b>' + (x.admin ? '<small>admin do grupo</small>' : '') + '</div></li>').join('') + '</ul></div>';
   }
-  h += '<div class="zap-pf-bloco">' + linha('trash', 'Apagar conversa', 'zapPfApagar') + '</div>';
+  h += '<div class="zap-pf-bloco">' + (p.grupo ? '' : linha('trash', 'Excluir contato da lista', 'zapPfExcluirC')) + linha('trash', 'Apagar conversa', 'zapPfApagar') + '</div>';
   box.innerHTML = h;
   zapCarregarFotos(box);
   $('zapPfVoltar').onclick = zapFecharPerfil;
@@ -6318,6 +6318,10 @@ async function zapAbrirPerfil(jid){
     catch(e){ aviso('Não deu: ' + e.message); }
   };
   $('zapPfApagar').onclick = () => zapConfirmarApagar(jid, p.nome);
+  const exC = $('zapPfExcluirC'); if (exC) exC.onclick = () => folha('Excluir contato', 'Tira ' + p.nome + ' da lista de contatos do Zap. A conversa continua e a agenda do celular não muda. Dá pra voltar a falar com a pessoa pelo número.', [
+    { ic: 'trash', txt: 'Excluir contato', perigo: true, fn: async () => { try{ await zapPost('/api/contatos/excluir', { jid }); ZAP.contatos = null; aviso('Contato excluído da lista.'); }catch(e){ aviso('Não deu: ' + e.message, 5000); } } },
+    { ic: 'x', txt: 'Cancelar', fn: () => {} }
+  ]);
   box.querySelectorAll('.zap-pf-midias button').forEach(b => b.onclick = () => {
     const m = p.midias[+b.dataset.i];
     if (m.midia_path) zapAbrirVer(m.tipo, zapUrl('/midia/' + m.midia_path), m.midia_path, p.nome);

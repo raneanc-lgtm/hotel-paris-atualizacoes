@@ -1,5 +1,10 @@
 [
  {
+  "v": 104,
+  "ts": 1795556071101,
+  "resumo": "Zap: Excluir contato da lista (no perfil da pessoa)"
+ },
+ {
   "v": 103,
   "ts": 1795531654357,
   "resumo": "Perfil: botão 'Conversar no cmd (PC)' escolhe quais conversas aparecem no cmd"
