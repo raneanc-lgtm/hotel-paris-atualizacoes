@@ -1453,6 +1453,7 @@
       <button class="btn sec" id="btnZapTema" data-ic="paleta">Aparência do Zap (cores, balões, papel de parede)</button>
       <button class="btn sec" id="btnZapTransc" data-ic="mic">Transcrição de áudio</button>
       <button class="btn sec" id="btnZapSync" data-ic="refresh">Sincronizar contatos do WhatsApp</button>
+      <button class="btn sec" id="btnZapCmd" data-ic="eyeOff">Modo cmd (usar no PC, em texto)</button>
       <button class="btn perigo" id="btnZapZerar" data-ic="logout">Desconectar o WhatsApp e gerar código novo</button>
       <h4>BACKUP E VERSÃO</h4>
       <button class="btn sec" id="btnBackupAgora" data-ic="baixar">Fazer backup agora (tudo)</button>
@@ -1605,7 +1606,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 100;
+const APP_VERSAO = 101;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -3943,6 +3944,7 @@ function prepararAjustes(){
 
   $('btnAjustes').onclick = () => { renderInfoVersao(); renderAdmin(); sincronizarAjustesExtra(); $('fundo').hidden = false; };
   if ($('swSilencio')) $('swSilencio').onchange = () => { if (!!$('swSilencio').checked !== !!cfgLocal.silencio) alternarSilencio(); };
+  if ($('btnZapCmd')) $('btnZapCmd').onclick = () => { $('fundo').hidden = true; mudarAba('zap'); zapCmdAbrir(); };
   if ($('swZapOnline')) $('swZapOnline').onchange = () => { zapAlternarEsconder($('swZapOnline').checked); setTimeout(() => { $('swZapOnline').checked = !!(typeof ZAP !== 'undefined' && ZAP.cfg && ZAP.cfg.esconder_online); }, 600); };
   if ($('btnZapTransc')) $('btnZapTransc').onclick = () => { $('fundo').hidden = true; zapConfigTranscricao(); };
   if ($('btnBackupAgora')) $('btnBackupAgora').onclick = () => { $('fundo').hidden = true; fazerBackupCompleto(false); };
