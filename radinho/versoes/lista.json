@@ -1,5 +1,10 @@
 [
  {
+  "v": 103,
+  "ts": 1795531654357,
+  "resumo": "Perfil: botão 'Conversar no cmd (PC)' escolhe quais conversas aparecem no cmd"
+ },
+ {
   "v": 102,
   "ts": 1795528820190,
   "resumo": "Modo cmd com senha fixa"

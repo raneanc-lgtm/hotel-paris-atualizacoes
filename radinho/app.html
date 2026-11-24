@@ -1606,7 +1606,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 102;
+const APP_VERSAO = 103;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -6262,6 +6262,8 @@ async function zapAbrirPerfil(jid){
   const foto = p.foto ? zapUrl('/midia/' + p.foto) : null;
   const sub = p.grupo ? 'Grupo • ' + ((p.participantes || []).length) + ' participantes' : (p.numero || 'contato do WhatsApp');
   const pres = p.grupo ? '' : zapTextoPresenca(jid);
+  let noCmd = false; try{ noCmd = ((await zapGet('/api/cmd/jids')).jids || []).indexOf(jid) >= 0; }catch(e){}
+  if (ZAP.jid !== jid || box.hidden) return;
   const linha = (ico, txt, id, on) => '<button class="zap-pf-linha" id="' + id + '">' + ic(ico) + '<span>' + txt + '</span>' + (on === undefined ? '' : '<i class="zap-chave' + (on ? ' on' : '') + '"></i>') + '</button>';
   let h = '<div class="zap-pf-topo"><button class="zap-pf-voltar" id="zapPfVoltar" aria-label="Voltar">‹</button><span>' + (p.grupo ? 'Dados do grupo' : 'Dados do contato') + '</span></div>' +
     '<div class="zap-pf-cab">' +
@@ -6286,6 +6288,7 @@ async function zapAbrirPerfil(jid){
   h += '<div class="zap-pf-bloco zap-pf-acoes">' +
     linha('bellOff', 'Silenciar notificações', 'zapPfSil', !!p.silenciada) +
     (p.grupo ? '' : linha('image', 'Silenciar status', 'zapPfStSil', !!p.status_silenciado)) +
+    linha('eyeOff', 'Conversar no cmd (PC)', 'zapPfCmd', noCmd) +
     (foto ? linha('baixar', 'Salvar foto de perfil (alta qualidade)', 'zapPfFotoHd') : '') +
   '</div>';
   if (p.grupo && p.participantes){
@@ -6301,6 +6304,11 @@ async function zapAbrirPerfil(jid){
   $('zapPfSil').onclick = async () => {
     const ligar = !p.silenciada;
     try{ await zapPost('/api/conversas/' + zapJ(jid) + '/silenciar', { ligar }); p.silenciada = ligar; $('zapPfSil').querySelector('.zap-chave').classList.toggle('on', ligar); aviso(ligar ? 'Conversa silenciada: sem notificação.' : 'Notificações ligadas de novo.'); zapCarregarLista(); }
+    catch(e){ aviso('Não deu: ' + e.message); }
+  };
+  $('zapPfCmd').onclick = async () => {
+    const ligar = !noCmd;
+    try{ await zapPost('/api/cmd/jids', { jid, ativo: ligar }); noCmd = ligar; $('zapPfCmd').querySelector('.zap-chave').classList.toggle('on', ligar); aviso(ligar ? 'Essa conversa aparece no cmd.' : 'Essa conversa saiu do cmd.'); }
     catch(e){ aviso('Não deu: ' + e.message); }
   };
   const vg = $('zapPfVig'); if (vg) vg.onclick = () => zapAlternarVigia(() => { p.vigiado = !!ZAP.vigiados[jid]; vg.querySelector('.zap-chave').classList.toggle('on', p.vigiado); });
