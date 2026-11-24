@@ -1606,7 +1606,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 101;
+const APP_VERSAO = 102;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -6232,7 +6232,7 @@ async function zapCmdAbrir(){
     return;
   }
   folha('Modo cmd: LIGADO', (e.url ? 'No PC, abra no navegador:\n' + e.url : 'Não achei o IP do celular. Veja o IP do Wi-Fi nas configurações e abra http://IP:' + e.porta) + '\n\nSenha: ' + e.senha + '\n\nNo cmd: dir (lista), cd 1 (abre), texto (envia), cd .. (volta), Esc ou cls (limpa).', [
-    { ic: 'refresh', txt: 'Gerar senha nova (derruba quem está logado)', fn: () => mudar({ novaSenha: true }) },
+    { ic: 'refresh', txt: 'Derrubar quem está logado no PC', fn: () => mudar({ novaSenha: true }) },
     { ic: 'logout', txt: 'Desligar', perigo: true, fn: () => mudar({ ativo: false }) },
     { ic: 'x', txt: 'Fechar', fn: () => {} }
   ]);

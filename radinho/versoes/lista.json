@@ -1,5 +1,10 @@
 [
  {
+  "v": 102,
+  "ts": 1795528820190,
+  "resumo": "Modo cmd com senha fixa"
+ },
+ {
   "v": 101,
   "ts": 1795528033827,
   "resumo": "Modo cmd agora em Ajustes > Zap (botão no menu antigo não aparecia)"
