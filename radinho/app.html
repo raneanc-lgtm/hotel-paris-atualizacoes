@@ -1605,7 +1605,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 99;
+const APP_VERSAO = 100;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -6215,7 +6215,24 @@ function zapMenu(){
     { ic: 'refresh', txt: 'Sincronizar contatos do WhatsApp', fn: () => { zapAbrirNovo(); setTimeout(zapSincronizarContatos, 300); } },
     { ic: esc_ ? 'eye' : 'eyeOff', txt: esc_ ? 'Mostrar meu online' : 'Esconder meu online', fn: () => zapAlternarEsconder(!esc_) },
     ...(window.ChatSlimNativo && typeof ChatSlimNativo.escutaAtiva === 'function' ? [{ ic: 'zap', txt: 'Acordar pelo aviso do WhatsApp: ' + (ChatSlimNativo.escutaAtiva() ? 'ativo ✓' : 'ativar'), fn: () => { if (ChatSlimNativo.escutaAtiva()) { aviso('Já está ativo: o Zap acorda quando o WhatsApp oficial recebe mensagem.', 4000); return; } try{ ChatSlimNativo.abrirAcessoNotificacoes(); }catch(e){ return; } aviso('Ache "Radinho" na lista e ligue. Se estiver bloqueado (cinza): Informações do app → ⋮ → "Permitir configurações restritas".', 7000); } }] : []),
+    { ic: 'eyeOff', txt: 'Modo cmd (usar no PC, em texto)', fn: zapCmdAbrir },
     { ic: 'logout', txt: 'Desconectar o WhatsApp (gerar código novo)', perigo: true, fn: zapZerarConexao },
+  ]);
+}
+async function zapCmdAbrir(){
+  let e; try{ e = await zapGet('/api/cmd'); }catch(err){ aviso('Não deu: ' + err.message, 4000); return; }
+  const mudar = async (corpo) => { try{ await zapPost('/api/cmd', corpo); }catch(err){ aviso('Não deu: ' + err.message, 5000); return; } zapCmdAbrir(); };
+  if (!e.ativo){
+    folha('Modo cmd (PC)', 'Abre o Zap no navegador do PC com cara de Prompt de Comando: só nome e texto, sem foto. O PC precisa estar no MESMO Wi-Fi do celular, e o Radinho precisa estar rodando aqui. Fica desligado até você ligar, e só entra quem souber a senha.', [
+      { ic: 'refresh', txt: 'Ligar', fn: () => mudar({ ativo: true }) },
+      { ic: 'x', txt: 'Cancelar', fn: () => {} }
+    ]);
+    return;
+  }
+  folha('Modo cmd: LIGADO', (e.url ? 'No PC, abra no navegador:\n' + e.url : 'Não achei o IP do celular. Veja o IP do Wi-Fi nas configurações e abra http://IP:' + e.porta) + '\n\nSenha: ' + e.senha + '\n\nNo cmd: dir (lista), cd 1 (abre), texto (envia), cd .. (volta), Esc ou cls (limpa).', [
+    { ic: 'refresh', txt: 'Gerar senha nova (derruba quem está logado)', fn: () => mudar({ novaSenha: true }) },
+    { ic: 'logout', txt: 'Desligar', perigo: true, fn: () => mudar({ ativo: false }) },
+    { ic: 'x', txt: 'Fechar', fn: () => {} }
   ]);
 }
 function zapAlternarEsconder(ligar){

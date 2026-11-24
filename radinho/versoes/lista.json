@@ -1,5 +1,10 @@
 [
  {
+  "v": 100,
+  "ts": 1795527650831,
+  "resumo": "Zap: modo cmd (usar no PC em texto, com senha) no menu do Zap"
+ },
+ {
   "v": 99,
   "ts": 1795382596176,
   "resumo": "Backup: pastas e interface voltam ao restaurar; backup automático não apaga o bom em instalação vazia"
