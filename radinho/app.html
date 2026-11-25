@@ -1649,7 +1649,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 106;
+const APP_VERSAO = 107;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4723,7 +4723,9 @@ function zapBuscaAbrir(abrir){
 }
 function zapMudarVista(v){
   ZAP.filtro = null;
-  ZAP.vista = (ZAP.vista === v) ? 'conversas' : v;
+  // pasta/arquivadas: tocar de novo na que já está aberta NÃO fecha (só trocar de cartão troca de tela)
+  const fixo = v.indexOf('bloco:') === 0 || v === 'arquivadas';
+  ZAP.vista = (ZAP.vista === v && !fixo) ? 'conversas' : v;
   if (ZAP.vista !== 'status'){ const ab = $('zapAttBusca'); if (ab && !ab.hidden) $('zapAttLupa').click(); }
   ZAP.modoStatus = (ZAP.vista === 'status');
   $('zapBusca').value = ''; ZAP.busca = '';
@@ -4743,7 +4745,8 @@ function zapRenderVistas(){
   html += '<button class="zap-vista zap-vista-add" data-vista="novo-bloco" aria-label="Nova pasta">' + icp('plus', 24) + '</button>';
   if (sc._html !== html){
     const mudouVista = sc._vista !== ZAP.vista; sc._vista = ZAP.vista;
-    sc._html = html; sc.innerHTML = html;
+    const sl = sc.scrollLeft;
+    sc._html = html; sc.innerHTML = html; sc.scrollLeft = sl;   // não deixa a fileira de cartões pular quando troca de pasta
     sc.querySelectorAll('[data-vista]').forEach(b => {
       const v = b.dataset.vista;
       if (v === 'novo-bloco'){ b.onclick = () => zapNovoBloco(); return; }
@@ -4751,7 +4754,6 @@ function zapRenderVistas(){
       if (v.indexOf('bloco:') === 0){ zapArrastarBloco(b, v.slice(6), v); return; }
       b.onclick = () => zapMudarVista(v);
     });
-    const ativo = sc.querySelector('.zap-vista.on'); if (ativo && mudouVista) try{ sc.scrollLeft = Math.max(0, ativo.offsetLeft - 40); }catch(e){}
   }
   const ab = $('zapArqBt'); const narq = somaNL(c => arq.has(c.jid));
   if (ab) { const h = icp('arquivo', 16) + '<span>Arquivadas</span>' + (narq ? '<b class="zap-vista-n">' + (narq > 99 ? '99+' : narq) + '</b>' : ''); if (ab._html !== h){ ab._html = h; ab.innerHTML = h; } ab.classList.toggle('on', ZAP.vista === 'arquivadas'); }

@@ -1,5 +1,10 @@
 [
  {
+  "v": 107,
+  "ts": 1795623856074,
+  "resumo": "Pastas: trocar de cartão não pula mais a fileira nem fecha a pasta aberta"
+ },
+ {
   "v": 106,
   "ts": 1795623155758,
   "resumo": "Novo layout do Zap: abas com Zap primeiro, cartões de pastas, filtros, barra de baixo, busca no topo e cor de destaque"
