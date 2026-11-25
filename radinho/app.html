@@ -1606,7 +1606,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 104;
+const APP_VERSAO = 105;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -2248,7 +2248,7 @@ async function conectarCanal(){
   setInterval(limparDmsAntigas, 30000);
   setInterval(varrerExpirados, 5000);
   atualizarVisor();
-  setTimeout(() => LS.set('radinho_boot', '0'), 6000); // app subiu bem
+  setTimeout(() => LS.set('radinho_boot', '0'), 800); // app subiu bem (abrir e fechar rápido não conta como falha)
   setTimeout(sincronizarStandby, 1500);
   setTimeout(voxLigar, 1200);
   setInterval(sincronizarStandby, 20 * 60000);          // renova o login do stand-by
@@ -3876,6 +3876,7 @@ async function checarGitHub(manual){        // atualização publicada pelo Clau
   }catch(e){ if (manual) aviso('Não consegui procurar atualização: ' + (e.message || e)); }
 }
 function mostrarFaixa(v){
+  if (!(v > APP_VERSAO) || attPronta === v) return;   // já estou nessa versão (ou mais nova): sem aviso repetido
   attPronta = v;
   $('faixaTxt').textContent = 'Nova versão ' + v + ' do Radinho pronta!';
   $('faixa').hidden = false;
@@ -4338,10 +4339,10 @@ function zapConectarEventos(){
   // vigia o canal: se ficar mudo (nem batida nem evento) com o app na frente, religa — pega conexão meia-morta
   if (!ZAP.esVigia) ZAP.esVigia = setInterval(() => {
     if (document.visibilityState !== 'visible' || aba !== 'zap') return;
-    const mudo = Date.now() - (ZAP.esUlt || 0) > 50000;
+    const mudo = Date.now() - (ZAP.esUlt || 0) > 30000;
     const caido = !ZAP.es || ZAP.es.readyState === 2;
     if (mudo || caido) zapConectarEventos();
-  }, 15000);
+  }, 8000);
 }
 
 /* cache local: o Zap abre na hora com o que tinha, enquanto o motor liga por trás */
@@ -6973,7 +6974,17 @@ document.addEventListener('visibilitychange', () => {
   zapFoco();
   if (document.visibilityState !== 'visible'){ zapGuardarPendentes(); return; }
   zapAbrirPendente();
-  if (!ZAP.es || ZAP.es.readyState !== 1) zapConectarEventos();     // o canal de avisos caiu enquanto estava fora: religa já
+  // canal "aberto" mas mudo depois de um tempo fora = conexão morta que o Android congelou: religa NA HORA (antes demorava ~1 min)
+  if (!ZAP.es || ZAP.es.readyState !== 1 || Date.now() - (ZAP.esUlt || 0) > 25000) zapConectarEventos();
+  zapPost('/api/acordar', { origem: 'tela' }).catch(() => {});      // motor confere o WhatsApp agora e religa se estiver morto
+  zapAtualizarStatus(); zapCarregarLista();
+  if (aba === 'zap' && ZAP.jid) zapCarregarMensagens();
+});
+
+window.addEventListener('online', () => {            // voltou a rede (Wi-Fi/dados): religa tudo sem esperar
+  if (!ZAP.iniciado) return;
+  zapConectarEventos();
+  zapPost('/api/acordar', { origem: 'rede' }).catch(() => {});
   zapAtualizarStatus(); zapCarregarLista();
   if (aba === 'zap' && ZAP.jid) zapCarregarMensagens();
 });

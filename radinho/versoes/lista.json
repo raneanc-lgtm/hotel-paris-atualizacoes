@@ -1,5 +1,10 @@
 [
  {
+  "v": 105,
+  "ts": 1795621923302,
+  "resumo": "Zap: reabre e atualiza na hora (religa canal morto); aviso de nova versão não repete mais"
+ },
+ {
   "v": 104,
   "ts": 1795556071101,
   "resumo": "Zap: Excluir contato da lista (no perfil da pessoa)"
