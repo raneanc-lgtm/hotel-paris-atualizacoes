@@ -1,5 +1,10 @@
 [
  {
+  "v": 108,
+  "ts": 1795635406339,
+  "resumo": "Pastas: mover conversa agora tira do bloco antigo e põe no novo (antes só adicionava e ficava nos dois)"
+ },
+ {
   "v": 107,
   "ts": 1795623856074,
   "resumo": "Pastas: trocar de cartão não pula mais a fileira nem fecha a pasta aberta"

@@ -1649,7 +1649,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 107;
+const APP_VERSAO = 108;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -4874,11 +4874,20 @@ function zapArrastarBloco(btn, id, v){
   btn.addEventListener('pointercancel', limpar);
 }
 function zapBlocoAdd(id, jids){ const b = zapBlocos(), x = b.find(y => y.id === id); if (x){ const st = new Set(x.jids); jids.forEach(j => st.add(j)); x.jids = [...st]; zapSalvarBlocos(b); } }
+// mover de verdade: sai de TODOS os outros blocos e entra só no escolhido
+function zapBlocoMover(id, jids){
+  const b = zapBlocos(), alvo = b.find(y => y.id === id); if (!alvo) return false;
+  const st = new Set(jids);
+  b.forEach(x => { if (x.id !== id) x.jids = (x.jids || []).filter(j => !st.has(j)); });
+  const ja = new Set(alvo.jids || []); jids.forEach(j => ja.add(j)); alvo.jids = [...ja];
+  zapSalvarBlocos(b); return true;
+}
 function zapBlocoRemover(id, jids){ const b = zapBlocos(), x = b.find(y => y.id === id); if (x){ const st = new Set(jids); x.jids = x.jids.filter(j => !st.has(j)); zapSalvarBlocos(b); } }
 function zapNovoBloco(jids){
   zapPerguntar('Nome do novo bloco (ex.: Empresas, Família)', nome => {
     nome = (nome || '').trim(); if (!nome) return;
     const blocos = zapBlocos(), id = 'b' + Date.now().toString(36);
+    if (jids && jids.length){ const st = new Set(jids); blocos.forEach(x => { x.jids = (x.jids || []).filter(j => !st.has(j)); }); }
     blocos.push({ id, nome, jids: jids ? [...jids] : [] });
     zapSalvarBlocos(blocos);
     if (ZAP.sel){ ZAP.sel = null; zapSelRender(); }
@@ -4897,10 +4906,11 @@ function zapMenuBloco(id){
 function zapSelMover(){
   const j = [...ZAP.sel], acoes = [];
   if (ZAP.vista.indexOf('bloco:') === 0){ const id = ZAP.vista.slice(6); acoes.push({ ic: 'x', txt: 'Tirar deste bloco', fn: () => { zapBlocoRemover(id, j); zapSelFim(); aviso('Tiradas do bloco.', 2500); } }); }
-  zapBlocos().forEach(bl => acoes.push({ ic: 'bloco', txt: bl.nome, fn: () => { zapBlocoAdd(bl.id, j); zapSelFim(); aviso('Movidas pra "' + bl.nome + '".', 2500); } }));
+  const atual = ZAP.vista.indexOf('bloco:') === 0 ? ZAP.vista.slice(6) : null;
+  zapBlocos().forEach(bl => { if (bl.id === atual) return; acoes.push({ ic: 'bloco', txt: bl.nome, fn: () => { zapBlocoMover(bl.id, j); zapSelFim(); aviso('Movidas pra "' + bl.nome + '".', 2500); } }); });
   acoes.push({ ic: 'plus', txt: 'Criar novo bloco...', fn: () => zapNovoBloco(j) });
   acoes.push({ ic: 'x', txt: 'Cancelar', fn: () => {} });
-  folha('Mover pra bloco', 'Essas conversas vão aparecer no bloco escolhido (continuam na lista também).', acoes);
+  folha('Mover pra bloco', 'As conversas saem do bloco onde estão e vão pro escolhido.', acoes);
 }
 
 
