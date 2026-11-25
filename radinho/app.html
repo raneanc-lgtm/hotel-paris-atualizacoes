@@ -1171,6 +1171,44 @@
     #zapNovo{right:18px}
   }
 </style>
+
+<style id="novoLayout">
+/* ===== novo layout do Zap: cartões, filtros, barra de baixo ===== */
+#pZap .zap-vistas{margin:2px 0 4px;padding-top:0;display:block}
+#pZap .zap-vistas-scroll{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 0;margin:0;flex:none}
+#pZap .zap-vistas-scroll .zap-vista{flex:0 0 calc((100% - 30px)/4);min-width:0;scroll-snap-align:start;flex-direction:column;justify-content:center;height:84px;border-radius:20px;padding:0 4px;gap:8px;
+  background:linear-gradient(165deg,var(--acento-bg),var(--corpo2) 70%);border:1px solid var(--borda);color:var(--txt);font-size:13px;font-weight:700;position:relative}
+#pZap .zap-vistas-scroll .zap-vista .zap-vista-ic svg{width:28px!important;height:28px!important;color:var(--verde)}
+#pZap .zap-vistas-scroll .zap-vista .zap-vista-tx{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#pZap .zap-vistas-scroll .zap-vista.on{border-color:var(--verde);box-shadow:inset 0 0 0 1px var(--verde)}
+#pZap .zap-vistas-scroll .zap-vista-add{width:auto;flex:0 0 calc((100% - 30px)/4);background:transparent;border:1px dashed var(--borda);color:var(--sub)}
+#pZap .zap-vistas-scroll .zap-vista-add svg{width:24px;height:24px;color:var(--sub)}
+#pZap .zap-vistas-scroll .zap-vista-n{top:6px;right:8px}
+.zap-pager{display:flex;justify-content:center;gap:5px;height:6px;margin:2px 0 8px;flex:none}
+.zap-pager:empty{display:none}
+.zap-pager i{width:12px;height:4px;border-radius:2px;background:var(--borda);transition:width .2s,background .2s}
+.zap-pager i.on{width:20px;background:var(--verde)}
+.zap-filtros{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:6px 0 10px;flex:none}
+.zap-filtros::-webkit-scrollbar{display:none}
+.zap-filtro{flex:none;border:1px solid var(--borda);background:var(--corpo2);color:var(--sub);border-radius:999px;padding:0 14px;height:36px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px;position:relative;cursor:pointer}
+.zap-filtro svg{width:16px;height:16px}
+.zap-filtro.on{background:var(--verde);border-color:var(--verde);color:#07140c}
+.zap-filtro .fn{position:absolute;top:-6px;right:-4px;background:var(--verm);color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
+#zapNav{display:flex;flex:none;gap:2px;margin:6px 0 4px;padding:6px;background:var(--corpo);border:1px solid var(--borda);border-radius:24px}
+#zapNav button{flex:1;border:0;background:transparent;color:var(--sub);display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;font-weight:700;padding:7px 0 6px;border-radius:18px;position:relative;cursor:pointer}
+#zapNav button svg{width:22px;height:22px}
+#zapNav button.on{color:var(--verde);background:var(--acento-bg)}
+#zapNav .nn{position:absolute;top:2px;left:calc(50% + 6px);background:var(--verm);color:#fff;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0 4px}
+#zapListaBox.modo-att > :not(#zapAtt):not(#zapNav),#zapListaBox.modo-cham > :not(#zapCham):not(#zapNav){display:none!important}
+#zapListaBox #zapNav,#zapListaBox.modo-att > #zapNav,#zapListaBox.modo-cham > #zapNav{display:flex!important}
+#zapListaBox.modo-att #zapAtt{padding-bottom:30px}
+#zapListaBox.modo-att .zap-att-fabs{bottom:96px}
+.zap-busca-linha{display:none}
+.zap-busca-linha.aberta{display:flex}
+#zapArqBt,#zapChamBtn,#zapStatusBtn,#zapLupa{display:none!important}
+#zapNovo{bottom:96px}
+#btnBuscaZap.on{color:var(--verde)}
+</style>
 </head>
 <body>
 
@@ -1200,15 +1238,16 @@
     <img class="logo-topo" id="logoTopo" alt="" draggable="false">
     <div class="led" id="led"></div>
     <div class="titulo"><b>RADINHO</b><small id="lblCanal"></small></div>
+    <button class="icone" id="btnBuscaZap" aria-label="Buscar conversa" style="display:none"></button>
     <button class="icone btn-power" id="btnPower" aria-label="Ligar ou desligar o rádio"></button>
     <button class="icone" id="btnSilencio" aria-label="Rádio no silencioso" style="display:none"></button>
     <button class="icone" id="btnAjustes" aria-label="Ajustes" data-ic="gear" style="display:none"></button>
   </header>
 
   <div class="abas">
+    <button class="aba" id="abaZap" data-ic="zap" hidden>Zap<span class="badge" id="bdZap" hidden>0</span></button>
     <button class="aba ativa" id="abaRadio" data-ic="radio">Rádio<span class="badge" id="bdRadio" hidden>!</span></button>
     <button class="aba" id="abaChat" data-ic="chat">Chat<span class="badge" id="bdChat" hidden>0</span></button>
-    <button class="aba" id="abaZap" data-ic="zap" hidden>Zap<span class="badge" id="bdZap" hidden>0</span></button>
   </div>
 
   <div class="painel" id="pRadio">
@@ -1275,6 +1314,8 @@
       <div class="zap-vistas" id="zapVistas">
         <div class="zap-vistas-scroll" id="zapVistasScroll"></div>
       </div>
+      <div class="zap-pager" id="zapPager"></div>
+      <div class="zap-filtros" id="zapFiltros"></div>
       <div class="zap-st-acoes" id="zapStAcoes" hidden>
         <button class="alvo" id="zapPostTexto"></button>
         <button class="alvo" id="zapPostFoto"></button>
@@ -1308,6 +1349,7 @@
         <div class="zap-att-ocultas" id="zapAttOcultas" hidden></div>
         <div class="zap-att-fabs"><button class="zap-att-lapis" id="zapAttLapis" aria-label="Status de texto"></button><button class="zap-att-cam" id="zapAttCam" aria-label="Foto ou vídeo"></button></div>
       </div>
+      <nav id="zapNav" aria-label="Zap"></nav>
     </div>
     <div class="dm-bar zap-bar" id="zapBar" hidden>
       <button class="alvo" id="zapVoltar"></button>
@@ -1451,6 +1493,7 @@
         <label class="sw"><input type="checkbox" id="swZapOnline"><b></b></label>
       </div>
       <button class="btn sec" id="btnZapTema" data-ic="paleta">Aparência do Zap (cores, balões, papel de parede)</button>
+      <div class="linha-op" id="zapAcentosBox" style="display:block;padding:6px 2px 10px"><div style="font-size:13px;color:var(--sub);margin-bottom:8px">Cor de destaque do app</div><div id="zapAcentos" style="display:flex;gap:10px;flex-wrap:wrap"></div></div>
       <button class="btn sec" id="btnZapTransc" data-ic="mic">Transcrição de áudio</button>
       <button class="btn sec" id="btnZapSync" data-ic="refresh">Sincronizar contatos do WhatsApp</button>
       <button class="btn sec" id="btnZapCmd" data-ic="eyeOff">Modo cmd (usar no PC, em texto)</button>
@@ -1606,7 +1649,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 105;
+const APP_VERSAO = 106;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -2121,6 +2164,7 @@ function mudarAba(a){
   else if (ZAP.gravando) zapPararAudio(true);
   if (a === 'chat'){ naoLidas = 0; if (dmCom) marcarDmLida(dmCom.id); atualizarBadge(); rolarFim(true); }
   else $('bdRadio').hidden = true;
+  try{ zapHeaderBusca(); }catch(e){}
 }
 // abre o app na mesma aba em que estava da última vez
 function abrirUltimaAba(){
@@ -2249,6 +2293,7 @@ async function conectarCanal(){
   setInterval(varrerExpirados, 5000);
   atualizarVisor();
   setTimeout(() => LS.set('radinho_boot', '0'), 800); // app subiu bem (abrir e fechar rápido não conta como falha)
+  aplicarAcento(); montarAcentos();
   setTimeout(sincronizarStandby, 1500);
   setTimeout(voxLigar, 1200);
   setInterval(sincronizarStandby, 20 * 60000);          // renova o login do stand-by
@@ -3875,6 +3920,18 @@ async function checarGitHub(manual){        // atualização publicada pelo Clau
     mostrarFaixa(vc);
   }catch(e){ if (manual) aviso('Não consegui procurar atualização: ' + (e.message || e)); }
 }
+const ACENTOS = [['Padrão', ''], ['Azul', '#4da3ff'], ['Roxo', '#a77bff'], ['Âmbar', '#ffb020'], ['Rosa', '#ff6fa8'], ['Ciano', '#2fd4d4'], ['Branco', '#e8ecef']];
+function aplicarAcento(){
+  const c = LS.get('radinho_acento'), st = document.body.style;
+  if (c && /^#[0-9a-f]{6}$/i.test(c)){ st.setProperty('--verde', c); st.setProperty('--acento-bg', c + '30'); }
+  else { st.removeProperty('--verde'); st.removeProperty('--acento-bg'); }
+}
+function montarAcentos(){
+  const box = $('zapAcentos'); if (!box) return;
+  const atual = LS.get('radinho_acento') || '';
+  box.innerHTML = ACENTOS.map(a => '<button type="button" data-c="' + a[1] + '" aria-label="' + a[0] + '" style="width:38px;height:38px;border-radius:50%;border:2px solid ' + (a[1] === atual ? 'var(--txt)' : 'var(--borda)') + ';background:' + (a[1] || '#3ddc84') + ';position:relative">' + (a[1] === '' ? '<small style="position:absolute;inset:0;display:grid;place-items:center;font-size:9px;font-weight:800;color:#062012">PAD</small>' : '') + '</button>').join('');
+  box.querySelectorAll('button').forEach(b => b.onclick = () => { if (b.dataset.c) LS.set('radinho_acento', b.dataset.c); else LS.del('radinho_acento'); aplicarAcento(); montarAcentos(); });
+}
 function mostrarFaixa(v){
   if (!(v > APP_VERSAO) || attPronta === v) return;   // já estou nessa versão (ou mais nova): sem aviso repetido
   attPronta = v;
@@ -4224,6 +4281,8 @@ function zapIniciar(){
   $('zapStatusBtn').onclick = () => zapMudarVista('status');
   zapLigarChamadas();
   $('zapLupa').onclick = () => zapBuscaAbrir($('zapBusca').hidden);
+  $('btnBuscaZap').onclick = () => zapBuscaAbrir($('zapBusca').hidden);
+  try{ new MutationObserver(() => zapHeaderBusca()).observe($('zapListaBox'), { attributes: true, attributeFilter: ['hidden'] }); }catch(e){}
   $('zapArqBt').onclick = () => zapMudarVista('arquivadas');
   $('zapSelX').onclick = zapSelFim;
   $('zapMsgX').onclick = zapMsgSelFim;
@@ -4552,8 +4611,10 @@ function zapRenderLista(){
   let bset = null, emb = null;
   if (ZAP.vista.indexOf('bloco:') === 0){ const bl = zapBloco(ZAP.vista.slice(6)); bset = new Set(bl ? bl.jids : []); }
   else emb = zapEmBlocos();
+  const flt = (ZAP.vista === 'conversas') ? ZAP.filtro : null;
   let l = ZAP.conversas.filter(c => {
     const ea = arq.has(c.jid);
+    if (flt) return !ea && zapFiltroOk(c, flt);
     if (bset) return bset.has(c.jid) && !ea;
     if (ZAP.vista === 'arquivadas') return ea;
     if (ea) return false;
@@ -4623,6 +4684,7 @@ function zapPresencaNaLista(jid){
 }
 function zapVaziaTxt(){
   if (ZAP.busca) return 'Nada com esse nome.';
+  if (ZAP.filtro) return 'Nenhuma conversa nesse filtro.';
   if (ZAP.vista.indexOf('bloco:') === 0) return 'Bloco vazio. Segure conversas, toque em Mover e escolha este bloco.';
   if (ZAP.vista === 'grupos') return 'Seus grupos do WhatsApp aparecem aqui.';
   if (ZAP.vista === 'arquivadas') return 'Nenhuma conversa arquivada. Segure uma conversa pra arquivar.';
@@ -4654,10 +4716,13 @@ function zapSelRender(){
 function zapBuscaAbrir(abrir){
   const inp = $('zapBusca'), arqb = $('zapArqBt'), lupa = $('zapLupa');
   const ut = [$('zapChamBtn'), $('zapStatusBtn')];
+  setTimeout(zapHeaderBusca, 0);
+  const linha = inp.closest('.zap-busca-linha'); if (linha) linha.classList.toggle('aberta', !!abrir);
   if (abrir){ inp.hidden = false; if (arqb) arqb.hidden = true; ut.forEach(b => b && (b.hidden = true)); lupa.classList.add('on'); lupa.innerHTML = ic('x'); setTimeout(() => inp.focus(), 30); }
   else { inp.value = ''; ZAP.busca = ''; inp.hidden = true; if (arqb) arqb.hidden = false; ut.forEach(b => b && (b.hidden = false)); lupa.classList.remove('on'); lupa.innerHTML = ic('search'); zapRenderLista(); }
 }
 function zapMudarVista(v){
+  ZAP.filtro = null;
   ZAP.vista = (ZAP.vista === v) ? 'conversas' : v;
   if (ZAP.vista !== 'status'){ const ab = $('zapAttBusca'); if (ab && !ab.hidden) $('zapAttLupa').click(); }
   ZAP.modoStatus = (ZAP.vista === 'status');
@@ -4671,16 +4736,18 @@ function zapRenderVistas(){
   const arq = zapArquivadas(), emb = zapEmBlocos();
   const somaNL = f => ZAP.conversas.filter(f).reduce((n, c) => n + (c.nao_lidas || 0), 0);
   const chip = (v, label, icone, n, min) => '<button class="zap-vista' + (min ? ' zap-vista-min' : '') + (ZAP.vista === v ? ' on' : '') + '" data-vista="' + v + '"' + (min ? ' aria-label="' + esc(label) + '"' : '') + '><span class="zap-vista-ic">' + icp(icone, 18) + '</span>' + (min ? '' : '<span class="zap-vista-tx">' + esc(label) + '</span>') + (n ? '<b class="zap-vista-n">' + (n > 99 ? '99+' : n) + '</b>' : '') + '</button>';
-  let html = chip('conversas', 'Conversas', 'chat', 0, true);
-  html += chip('grupos', 'Grupos', 'users', somaNL(c => c.eh_grupo && !arq.has(c.jid) && !emb.has(c.jid)), true);
+  let html = '';
   for (const bl of zapBlocos()) { const set = new Set(bl.jids); html += chip('bloco:' + bl.id, bl.nome, 'bloco', somaNL(c => set.has(c.jid)), false); }
-  html += '<button class="zap-vista zap-vista-add" data-vista="novo-bloco" aria-label="Novo bloco">' + icp('plus', 18) + '</button>';
+  html += chip('arquivadas', 'Arquivadas', 'arquivo', somaNL(c => arq.has(c.jid)), false);
+  html += chip('contatos', 'Contatos', 'users', 0, false);
+  html += '<button class="zap-vista zap-vista-add" data-vista="novo-bloco" aria-label="Nova pasta">' + icp('plus', 24) + '</button>';
   if (sc._html !== html){
     const mudouVista = sc._vista !== ZAP.vista; sc._vista = ZAP.vista;
     sc._html = html; sc.innerHTML = html;
     sc.querySelectorAll('[data-vista]').forEach(b => {
       const v = b.dataset.vista;
       if (v === 'novo-bloco'){ b.onclick = () => zapNovoBloco(); return; }
+      if (v === 'contatos'){ b.onclick = () => zapAbrirNovo(); return; }
       if (v.indexOf('bloco:') === 0){ zapArrastarBloco(b, v.slice(6), v); return; }
       b.onclick = () => zapMudarVista(v);
     });
@@ -4695,6 +4762,65 @@ function zapRenderVistas(){
   s.classList.toggle('tem-novo', nst > 0);
   const sa = $('zapStAcoes'); if (sa) sa.hidden = ZAP.vista !== 'status';
   const nv = $('zapNovo'); if (nv) nv.hidden = (ZAP.vista === 'status' || ZAP.vista === 'arquivadas');
+  zapPagerFiltrosNav();
+}
+/* ----- novo layout: bolinhas dos cartões, filtros e barra de baixo ----- */
+function zapFiltroOk(c, f){
+  const t = String(c.ultima_mensagem_texto || '');
+  if (f === 'naolidas') return (c.nao_lidas | 0) > 0;
+  if (f === 'audios') return /^\[(audio|áudio|ptt)/i.test(t);
+  if (f === 'videos') return /^\[(video|vídeo)/i.test(t);
+  if (f === 'links') return /https?:\/\/|www\./i.test(t);
+  return true;
+}
+function zapPagerFiltrosNav(){
+  const sc = $('zapVistasScroll'), pg = $('zapPager'); if (!sc || !pg) return;
+  // bolinhas: uma por "página" de 4 cartões
+  const n = sc.querySelectorAll('.zap-vista').length, pags = Math.max(1, Math.ceil(n / 4));
+  if (pg._n !== pags){ pg._n = pags; pg.innerHTML = pags > 1 ? new Array(pags + 1).join('<i></i>') : ''; }
+  if (!sc._pg){ sc._pg = 1; sc.addEventListener('scroll', () => { const i = Math.round(sc.scrollLeft / Math.max(1, sc.clientWidth)); [...pg.children].forEach((d, k) => d.classList.toggle('on', k === i)); }, { passive: true }); }
+  [...pg.children].forEach((d, k) => d.classList.toggle('on', k === Math.round(sc.scrollLeft / Math.max(1, sc.clientWidth))));
+  // filtros
+  const arq = zapArquivadas(), vivas = ZAP.conversas.filter(c => !arq.has(c.jid));
+  const nl = vivas.filter(c => (c.nao_lidas | 0) > 0).length;
+  const fl = ZAP.filtro || null, v = ZAP.vista;
+  const F = [['todas', 'Todas', 'chat', v === 'conversas' && !fl, 0], ['naolidas', 'Não lidas', 'chat', fl === 'naolidas', nl], ['grupos', 'Grupos', 'users', v === 'grupos', 0], ['audios', 'Áudios', 'mic', fl === 'audios', 0], ['videos', 'Vídeos', 'video', fl === 'videos', 0], ['links', 'Links', 'link', fl === 'links', 0]];
+  const h = F.map(x => '<button class="zap-filtro' + (x[3] ? ' on' : '') + '" data-f="' + x[0] + '">' + (x[4] ? '<b class="fn">' + x[4] + '</b>' : '') + '<span>' + x[1] + '</span></button>').join('');
+  const fb = $('zapFiltros');
+  if (fb._h !== h){ fb._h = h; fb.innerHTML = h; fb.querySelectorAll('.zap-filtro').forEach(b => b.onclick = () => zapFiltrar(b.dataset.f)); }
+  // barra de baixo
+  const nav = $('zapNav'); if (!nav._ok){
+    nav._ok = 1;
+    nav.innerHTML = '<button data-n="conv"></button><button data-n="status"></button><button data-n="cham"></button><button data-n="ajus"></button>';
+    const ico = { conv: ['chat', 'Conversas'], status: ['historias', 'Status'], cham: ['fone', 'Ligações'], ajus: ['gear', 'Ajustes'] };
+    nav.querySelectorAll('button').forEach(b => { const k = b.dataset.n; b.innerHTML = (k === 'ajus' ? ic('gear') : icp(ico[k][0], 22)) + '<span>' + ico[k][1] + '</span>'; });
+    nav.querySelector('[data-n=conv]').onclick = () => { if (ZAP.vista === 'status' || ZAP.vista === 'chamadas') zapMudarVista(ZAP.vista); else { ZAP.filtro = null; ZAP.vista = 'conversas'; zapRenderLista(); const ul = $('zapLista'); if (ul) ul.scrollTo({ top: 0, behavior: 'smooth' }); } };
+    nav.querySelector('[data-n=status]').onclick = () => { if (ZAP.vista !== 'status') zapMudarVista('status'); };
+    nav.querySelector('[data-n=cham]').onclick = () => { if (ZAP.vista !== 'chamadas') zapMudarVista('chamadas'); };
+    nav.querySelector('[data-n=ajus]').onclick = () => $('btnAjustes').click();
+  }
+  const on = v === 'status' ? 'status' : v === 'chamadas' ? 'cham' : 'conv';
+  nav.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.n === on));
+  const badge = (k, n) => { const b = nav.querySelector('[data-n=' + k + ']'); let e = b.querySelector('.nn'); if (n){ if (!e){ e = document.createElement('b'); e.className = 'nn'; b.appendChild(e); } e.textContent = n > 99 ? '99+' : n; } else if (e) e.remove(); };
+  badge('status', $('nStatus') && !$('nStatus').hidden ? parseInt($('nStatus').textContent) || 0 : 0);
+  badge('cham', $('nCham') && !$('nCham').hidden ? parseInt($('nCham').textContent) || 0 : 0);
+  zapHeaderBusca();
+}
+function zapFiltrar(f){
+  if (f === 'todas'){ ZAP.filtro = null; ZAP.vista = 'conversas'; }
+  else if (f === 'grupos'){ ZAP.filtro = null; ZAP.vista = 'grupos'; }
+  else { ZAP.filtro = (ZAP.filtro === f) ? null : f; ZAP.vista = 'conversas'; }
+  ZAP.modoStatus = false; $('zapBusca').value = ''; ZAP.busca = '';
+  zapRenderLista();
+}
+function zapHeaderBusca(){
+  const b = $('btnBuscaZap'); if (!b) return;
+  const lb = $('zapListaBox');
+  const ver = aba === 'zap' && lb && !lb.hidden && ZAP.vista !== 'status' && ZAP.vista !== 'chamadas' && (!ZAP.jid || zapLarga());
+  b.style.display = ver ? '' : 'none';
+  const aberta = !$('zapBusca').hidden;
+  if (b._ab !== aberta || !b.innerHTML){ b._ab = aberta; b.innerHTML = ic(aberta ? 'x' : 'search'); }
+  b.classList.toggle('on', aberta);
 }
 function zapAtualizarVez(id, status){
   const bolha = ZAP.bolhas && ZAP.bolhasJid === ZAP.jid ? ZAP.bolhas.get(id) : null;

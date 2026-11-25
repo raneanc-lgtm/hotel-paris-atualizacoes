@@ -1,5 +1,10 @@
 [
  {
+  "v": 106,
+  "ts": 1795623155758,
+  "resumo": "Novo layout do Zap: abas com Zap primeiro, cartões de pastas, filtros, barra de baixo, busca no topo e cor de destaque"
+ },
+ {
   "v": 105,
   "ts": 1795621923302,
   "resumo": "Zap: reabre e atualiza na hora (religa canal morto); aviso de nova versão não repete mais"
