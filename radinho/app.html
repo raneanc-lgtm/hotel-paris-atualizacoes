@@ -1649,7 +1649,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 108;
+const APP_VERSAO = 109;
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",
@@ -6685,8 +6685,14 @@ function zapBolha(m, cont){
       (m.transcricao ? '<div class="zap-transc">' + esc(m.transcricao) + '</div>' : '<button class="zap-transc-bt" data-transc="' + esc(m.id) + '">' + icp('texto', 14) + '<span>Transcrever</span></button>')
                 : '<div class="tx zap-sem">' + ic('mic') + ' Áudio' + (m.pode_baixar ? ' • toque pra baixar' : ' (não disponível)') + '</div>';
   } else if (m.tipo === 'unica'){
+    let regU = '';
+    if (!m.de_mim){
+      const lst = (ZAP.msgsAtuais || []).filter(x => x.tipo === 'unica' && !x.de_mim && x.remetente_jid === m.remetente_jid);
+      const ord = lst.findIndex(x => x.id === m.id) + 1, num = zapFmtNum(String(m.remetente_jid || '').split('@')[0]);
+      regU = '<small>' + (num ? 'de ' + esc(num) : '') + (ord ? (num ? ' • ' : '') + ord + 'ª deste contato' : '') + '</small>';
+    }
     corpo = '<div class="tx zap-unica"><span class="zap-um">1</span><span><b>Visualização única</b><small>' +
-      (m.de_mim ? 'enviada pelo seu celular' : 'o WhatsApp só libera esse tipo de mensagem no celular') + '</small></span></div>';
+      (m.de_mim ? 'enviada pelo seu celular' : 'o WhatsApp só libera esse tipo de mensagem no celular') + '</small>' + regU + '</span></div>';
   } else if (m.tipo === 'documento'){
     corpo = '<div class="tx zap-doc">📄 ' + esc(m.nome_arquivo || m.texto || 'Documento') + '</div>';
   } else if (['localizacao', 'contato', 'enquete', 'evento'].includes(m.tipo) && m.dados){

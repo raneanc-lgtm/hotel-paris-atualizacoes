@@ -1,5 +1,10 @@
 [
  {
+  "v": 109,
+  "ts": 1795644411141,
+  "resumo": "Cartão de visualização única mostra o número de quem mandou e a ordem (1ª, 2ª...) por contato"
+ },
+ {
   "v": 108,
   "ts": 1795635406339,
   "resumo": "Pastas: mover conversa agora tira do bloco antigo e põe no novo (antes só adicionava e ficava nos dois)"
