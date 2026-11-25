@@ -1649,7 +1649,9 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 109;
+const APP_VERSAO = 110;
+// app subiu: zera o contador de falha de abertura logo (sem depender do login). Senão a cada 3 aberturas o carregador joga fora a atualização baixada e o aviso volta.
+setTimeout(function(){ try{ localStorage.setItem('radinho_boot', '0'); }catch(e){} }, 1200);
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC6b6UGl2jnJbsgeSn9j71pIERBkhWCP6M",
   authDomain: "cambio-radio.firebaseapp.com",

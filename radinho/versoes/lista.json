@@ -1,5 +1,10 @@
 [
  {
+  "v": 110,
+  "ts": 1795648681107,
+  "resumo": "Corrige o aviso de atualização que voltava toda hora (contador de abertura zera logo ao abrir)"
+ },
+ {
   "v": 109,
   "ts": 1795644411141,
   "resumo": "Cartão de visualização única mostra o número de quem mandou e a ordem (1ª, 2ª...) por contato"
