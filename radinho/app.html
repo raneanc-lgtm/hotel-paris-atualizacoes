@@ -1662,7 +1662,7 @@
 /* =============================================================
    RADINHO — Slim Creative
    ============================================================= */
-const APP_VERSAO = 111;
+const APP_VERSAO = 112;
 // app subiu: zera o contador de falha de abertura logo (sem depender do login). Senão a cada 3 aberturas o carregador joga fora a atualização baixada e o aviso volta.
 setTimeout(function(){ try{ localStorage.setItem('radinho_boot', '0'); }catch(e){} }, 1200);
 const FIREBASE_CONFIG = {
@@ -5372,13 +5372,50 @@ async function zapSincronizarContatos(){
   }catch(e){ aviso('Não sincronizou: ' + e.message, 6000); }
   b.disabled = false; b.innerHTML = ic('refresh') + '<span>Sincronizar contatos do WhatsApp</span>';
 }
+// lê a agenda do celular (precisa do APK novo), manda pro motor conferir no WhatsApp e espera terminar
+async function zapAgendaCelular(b){
+  const N = window.ChatSlimNativo;
+  if (!N || typeof N.agendaCelular !== 'function') return { pulou: 'apk' };
+  const esp = ms => new Promise(r => setTimeout(r, ms));
+  const rot = t => { b.innerHTML = ic('refresh') + '<span>' + t + '</span>'; };
+  let txt = '';
+  try{
+    if (!N.agendaPermitida()){
+      N.agendaCelular();                       // pede a permissão
+      rot('Permita o acesso aos contatos...');
+      const t0 = Date.now();
+      while (!N.agendaPermitida()){ if (Date.now() - t0 > 40000) return { pulou: 'permissao' }; await esp(700); }
+    }
+    rot('Lendo a agenda do celular...');
+    txt = N.agendaCelular();
+    if (!txt || txt === 'erro' || txt === 'permissao') return { pulou: 'erro' };
+    const lista = JSON.parse(txt);
+    if (!lista.length) return { total: 0, comWhats: 0, novos: 0 };
+    let st = await zapPost('/api/contatos/importar-agenda', { lista });
+    const t1 = Date.now();
+    while (st.rodando && Date.now() - t1 < 15 * 60 * 1000){
+      rot('Conferindo a agenda no WhatsApp ' + st.feitos + '/' + st.total + '...');
+      await esp(2000);
+      st = await zapGet('/api/contatos/importar-agenda') || st;
+    }
+    return st;
+  }catch(e){ return { pulou: 'falha', msg: e.message }; }
+}
 async function zapPuxarContatos(){
   const b = $('zapRecupBtn'); b.disabled = true; b.innerHTML = ic('refresh') + '<span>Puxando do WhatsApp... (1 ou 2 minutos)</span>';
-  let r = null;
+  let r = null, ag = null;
   try{
+    ag = await zapAgendaCelular(b);
+    b.innerHTML = ic('refresh') + '<span>Puxando do WhatsApp... (1 ou 2 minutos)</span>';
     r = await zapPost('/api/contatos/recuperar', {});
     ZAP.contatos = await zapGet('/api/contatos') || []; zapRenderNovo();
-    aviso(r.total + ' contatos no Zap (' + r.agenda + ' com nome da sua agenda).', 6000);
+    let extra = '';
+    if (ag && ag.pulou === 'apk') extra = ' A agenda do celular precisa do APK novo do Radinho.';
+    else if (ag && ag.pulou === 'permissao') extra = ' Agenda do celular não lida: permissão de contatos não foi dada (Ajustes do Android › Apps › Radinho › Permissões).';
+    else if (ag && ag.pulou) extra = ' Agenda do celular não lida' + (ag.msg ? ': ' + ag.msg : '.');
+    else if (ag && ag.erro) extra = ' Agenda do celular parou no meio: ' + ag.erro;
+    else if (ag) extra = ' Agenda do celular: ' + ag.comWhats + ' têm WhatsApp, ' + ag.novos + ' novos.';
+    aviso(r.total + ' contatos no Zap (' + r.agenda + ' com nome da sua agenda).' + extra, 9000);
   }catch(e){ aviso('Não puxou: ' + e.message, 6000); }
   b.disabled = false; b.innerHTML = ic('users') + '<span>Puxar todos os contatos que já tive</span>';
 }
